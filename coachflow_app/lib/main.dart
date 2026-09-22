@@ -9,9 +9,9 @@ import 'views/webview_dashboard_view.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Color(0xFF020617),
+    statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,
-    systemNavigationBarColor: Color(0xFF0F172A),
+    systemNavigationBarColor: Color(0xFF020617),
     systemNavigationBarIconBrightness: Brightness.light,
   ));
 
@@ -28,7 +28,7 @@ class CoachFlowApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'CoachFlow Android Gateway',
+      title: 'CoachFlow',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
@@ -42,27 +42,24 @@ class CoachFlowApp extends StatelessWidget {
         ),
         fontFamily: 'Roboto',
       ),
-      home: const MainNavigationScreen(),
+      home: const MainDashboardScreen(),
     );
   }
 }
 
-class MainNavigationScreen extends StatefulWidget {
-  const MainNavigationScreen({Key? key}) : super(key: key);
+class MainDashboardScreen extends StatefulWidget {
+  const MainDashboardScreen({Key? key}) : super(key: key);
 
   @override
-  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
+  State<MainDashboardScreen> createState() => _MainDashboardScreenState();
 }
 
-class _MainNavigationScreenState extends State<MainNavigationScreen> {
-  int _currentIndex = 0;
+class _MainDashboardScreenState extends State<MainDashboardScreen> {
   final SmsPollingService _pollingService = SmsPollingService();
 
-  final List<Widget> _screens = const [
-    WebViewDashboardView(),
-    SmsGatewayView(),
-    ApiDocsView(),
-  ];
+  // Floating button draggable position
+  Offset? _fabPosition;
+  double _dragDistance = 0.0;
 
   @override
   void initState() {
@@ -80,86 +77,308 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     super.dispose();
   }
 
+  void _openGatewayModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return const GatewayTabsBottomSheet();
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final screenSize = mediaQuery.size;
+    final padding = mediaQuery.padding;
+
+    // Default position: bottom right corner
+    if (_fabPosition == null) {
+      _fabPosition = Offset(screenSize.width - 76.0, screenSize.height - padding.bottom - 90.0);
+    } else {
+      // Re-clamp if screen orientation/size changed
+      final clampedX = _fabPosition!.dx.clamp(12.0, screenSize.width - 76.0);
+      final clampedY = _fabPosition!.dy.clamp(padding.top + 12.0, screenSize.height - padding.bottom - 76.0);
+      _fabPosition = Offset(clampedX, clampedY);
+    }
+
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0F172A),
-        elevation: 0,
-        titleSpacing: 16,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Text(
-              'CoachFlow',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.white),
+      backgroundColor: const Color(0xFF020617),
+      // No top AppBar (fullscreen immersive dashboard)
+      // No bottomNavigationBar (clean webview area)
+      body: SafeArea(
+        top: true,
+        bottom: false,
+        child: Stack(
+          children: [
+            // 1. FULLSCREEN IMMERSIVE WEBVIEW (DIRECT TO /dashboard ROUTE)
+            const Positioned.fill(
+              child: WebViewDashboardView(
+                initialUrl: 'https://coaching-bd.netlify.app/dashboard',
+              ),
             ),
-            Text(
-              'Flutter Android Gateway & Admin',
-              style: TextStyle(fontSize: 10, color: Color(0xFF94A3B8)),
+
+            // 2. MOVABLE DRAGGABLE FLOATING SMS GATEWAY BUTTON
+            Positioned(
+              left: _fabPosition!.dx,
+              top: _fabPosition!.dy,
+              child: GestureDetector(
+                onPanStart: (details) {
+                  _dragDistance = 0.0;
+                },
+                onPanUpdate: (details) {
+                  _dragDistance += details.delta.distance;
+                  setState(() {
+                    double newX = (_fabPosition!.dx + details.delta.dx).clamp(12.0, screenSize.width - 76.0);
+                    double newY = (_fabPosition!.dy + details.delta.dy).clamp(padding.top + 12.0, screenSize.height - padding.bottom - 76.0);
+                    _fabPosition = Offset(newX, newY);
+                  });
+                },
+                onPanEnd: (details) {
+                  // If movement was minimal, consider it a tap
+                  if (_dragDistance < 8.0) {
+                    _openGatewayModal(context);
+                  }
+                },
+                onTap: () {
+                  _openGatewayModal(context);
+                },
+                child: _buildFloatingSmsButton(),
+              ),
             ),
           ],
         ),
-        actions: [
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E293B),
-              borderRadius: BorderRadius.circular(20),
+      ),
+    );
+  }
+
+  Widget _buildFloatingSmsButton() {
+    final activeSlot = _pollingService.preferredSimSlot;
+    final isOnline = _pollingService.pollingActive;
+
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        width: 62,
+        height: 62,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: const LinearGradient(
+            colors: [Color(0xFF6366F1), Color(0xFF4338CA)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF6366F1).withOpacity(0.55),
+              blurRadius: 16,
+              spreadRadius: 2,
+              offset: const Offset(0, 6),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 7,
-                  height: 7,
-                  decoration: BoxDecoration(
-                    color: _pollingService.pollingActive ? const Color(0xFF10B981) : const Color(0xFFEF4444),
-                    shape: BoxShape.circle,
+          ],
+          border: Border.all(
+            color: const Color(0xFF818CF8).withOpacity(0.6),
+            width: 1.5,
+          ),
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            // Center SMS Icon
+            const Icon(
+              Icons.sms_rounded,
+              color: Colors.white,
+              size: 27,
+            ),
+
+            // Top Status Chip: SIM 1 / SIM 2 + Active Dot
+            Positioned(
+              top: -6,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0F172A),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isOnline ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.4),
+                      blurRadius: 4,
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 5,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: isOnline ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 3),
+                    Text(
+                      'SIM $activeSlot',
+                      style: const TextStyle(
+                        fontSize: 8.5,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Bottom Grip Hint Dots
+            Positioned(
+              bottom: 4,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: List.generate(
+                  3,
+                  (index) => Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                    width: 2.5,
+                    height: 2.5,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.65),
+                      shape: BoxShape.circle,
+                    ),
                   ),
                 ),
-                const SizedBox(width: 6),
-                const Text(
-                  'SIM 1: Active',
-                  style: TextStyle(fontSize: 11, color: Color(0xFFE2E8F0), fontWeight: FontWeight.w600),
-                ),
-              ],
+              ),
             ),
-          ),
-        ],
-      ),
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFF0F172A),
-          border: Border(top: BorderSide(color: Color(0xFF1E293B))),
+          ],
         ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (index) => setState(() => _currentIndex = index),
-          backgroundColor: const Color(0xFF0F172A),
-          selectedItemColor: const Color(0xFF818CF8),
-          unselectedItemColor: const Color(0xFF64748B),
-          selectedFontSize: 11,
-          unselectedFontSize: 11,
-          type: BottomNavigationBarType.fixed,
-          elevation: 0,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.language, size: 20),
-              label: 'Web Dashboard',
+      ),
+    );
+  }
+}
+
+/// Modal Bottom Sheet holding SMS Gateway (with SIM selecting) and REST API tabs
+class GatewayTabsBottomSheet extends StatelessWidget {
+  const GatewayTabsBottomSheet({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final sheetHeight = MediaQuery.of(context).size.height * 0.90;
+
+    return DefaultTabController(
+      length: 2,
+      child: Container(
+        height: sheetHeight,
+        decoration: const BoxDecoration(
+          color: Color(0xFF020617),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border(
+            top: BorderSide(color: Color(0xFF334155), width: 1.2),
+          ),
+        ),
+        child: Column(
+          children: [
+            // Top Notch Drag Handle
+            const SizedBox(height: 10),
+            Center(
+              child: Container(
+                width: 44,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF475569),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.cell_tower, size: 20),
-              label: 'SMS Gateway',
+            const SizedBox(height: 8),
+
+            // Top Header: Tab Selector & Close Button
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+              child: Row(
+                children: [
+                  // Tab Switcher
+                  Expanded(
+                    child: Container(
+                      height: 40,
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0F172A),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFF1E293B)),
+                      ),
+                      child: TabBar(
+                        indicator: BoxDecoration(
+                          color: const Color(0xFF4F46E5),
+                          borderRadius: BorderRadius.circular(9),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF4F46E5).withOpacity(0.4),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        labelColor: Colors.white,
+                        unselectedLabelColor: const Color(0xFF94A3B8),
+                        labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                        unselectedLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
+                        indicatorSize: TabBarIndicatorSize.tab,
+                        tabs: const [
+                          Tab(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.cell_tower_rounded, size: 16),
+                                SizedBox(width: 6),
+                                Text('SMS Gateway (SIM)'),
+                              ],
+                            ),
+                          ),
+                          Tab(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.code_rounded, size: 16),
+                                SizedBox(width: 6),
+                                Text('REST API'),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+
+                  // Close Button
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, color: Colors.white70, size: 22),
+                    onPressed: () => Navigator.pop(context),
+                    tooltip: 'বন্ধ করুন',
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ],
+              ),
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.code, size: 20),
-              label: 'REST API',
+            const Divider(color: Color(0xFF1E293B), height: 1),
+
+            // Tab Views: Tab 1 = SmsGatewayView, Tab 2 = ApiDocsView
+            const Expanded(
+              child: TabBarView(
+                children: [
+                  SmsGatewayView(),
+                  ApiDocsView(),
+                ],
+              ),
             ),
           ],
         ),

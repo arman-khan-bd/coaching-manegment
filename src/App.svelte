@@ -55,6 +55,13 @@
         if (user.institute_name) {
           instituteSettings.update((curr) => ({ ...curr, name: user.institute_name || curr.name }));
         }
+        // If logged in, open direct dashboard without showing login page
+        if (typeof window !== 'undefined') {
+          const path = window.location.pathname;
+          if (path === '/login' || path === '/signin' || path === '/dashboard' || path === '/dashboard/') {
+            navigate('/dashboard/overview');
+          }
+        }
       }
     });
   });

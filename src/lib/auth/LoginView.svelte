@@ -24,6 +24,14 @@
     AlertCircle,
   } from 'lucide-svelte';
 
+  import { onMount } from 'svelte';
+
+  onMount(() => {
+    if ($currentAuthUser) {
+      navigate('/dashboard/overview');
+    }
+  });
+
   let authMode: 'signin' | 'register' = 'signin';
 
   // Login form
