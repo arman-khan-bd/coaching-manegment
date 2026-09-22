@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { currentView, currentRole, instituteSettings, showToast, type UserRole } from '../store';
+  import { currentRole, instituteSettings, showToast, type UserRole } from '../store';
+  import { navigate } from '../router';
   import {
     supabaseSignIn,
     supabaseSignUp,
@@ -58,7 +59,7 @@
         name: res.user?.institute_name || curr.name,
       }));
       showToast('success', 'Supabase Authenticated', `Welcome back, ${res.user.full_name}! Synced with Supabase.`);
-      currentView.set('dashboard');
+      navigate('/dashboard/overview');
     } else {
       errorMessage = res.error || 'Authentication failed. Check credentials.';
       // Helpful fallback note
@@ -100,7 +101,7 @@
           email: regEmail,
           phone: regPhone || curr.phone,
         }));
-        currentView.set('dashboard');
+        navigate('/dashboard/overview');
       }, 1000);
     } else {
       errorMessage = res.error || 'Failed to register account.';
@@ -112,7 +113,7 @@
     email = demoEmail;
     password = 'Password123!';
     currentRole.set(role);
-    currentView.set('dashboard');
+    navigate('/dashboard/overview');
     showToast('success', 'Demo Login Activated', `Signed in as ${role.replace('_', ' ').toUpperCase()} (Demo Mode).`);
   }
 </script>
@@ -127,7 +128,7 @@
     <button
       type="button"
       class="inline-flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-white mb-6 transition-colors"
-      on:click={() => currentView.set('landing')}
+      on:click={() => navigate('/')}
     >
       <ArrowLeft class="w-4 h-4" />
       <span>Back to Public Website</span>
@@ -158,6 +159,21 @@
             ? 'Access your coaching dashboard with Supabase Auth'
             : 'Create your academy admin profile stored in Supabase'}
         </p>
+      </div>
+
+      <!-- Step-by-step Wizard Prompt -->
+      <div class="mb-5 p-3 rounded-2xl bg-indigo-950/40 border border-indigo-500/30 flex items-center justify-between gap-3 text-xs">
+        <div>
+          <p class="font-semibold text-indigo-300">Setting up a new Coaching Center?</p>
+          <p class="text-[11px] text-slate-400">Step-by-step wizard with plan & SMS setup</p>
+        </div>
+        <button
+          type="button"
+          class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-colors shrink-0 shadow-sm"
+          on:click={() => navigate('/register?step=1')}
+        >
+          Launch Wizard →
+        </button>
       </div>
 
       <!-- Mode Switcher Tabs -->

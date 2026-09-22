@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { currentView } from '../store';
+  import { navigate } from '../router';
   import { GraduationCap, Heart, Shield, Mail, Phone, MapPin } from 'lucide-svelte';
 </script>
 
@@ -23,10 +23,10 @@
       <div>
         <h4 class="font-bold text-white uppercase tracking-wider text-[11px] mb-3">Academic Engine</h4>
         <ul class="space-y-2">
-          <li><button on:click={() => currentView.set('dashboard')} class="hover:text-indigo-400 transition-colors">Courses & Units</button></li>
-          <li><button on:click={() => currentView.set('dashboard')} class="hover:text-indigo-400 transition-colors">Batch Capacities</button></li>
-          <li><button on:click={() => currentView.set('dashboard')} class="hover:text-indigo-400 transition-colors">Student Registrations</button></li>
-          <li><button on:click={() => currentView.set('dashboard')} class="hover:text-indigo-400 transition-colors">Faculty Schedules</button></li>
+          <li><button on:click={() => navigate('/dashboard/academics')} class="hover:text-indigo-400 transition-colors">Courses & Units</button></li>
+          <li><button on:click={() => navigate('/dashboard/academics')} class="hover:text-indigo-400 transition-colors">Batch Capacities</button></li>
+          <li><button on:click={() => navigate('/dashboard/students')} class="hover:text-indigo-400 transition-colors">Student Registrations</button></li>
+          <li><button on:click={() => navigate('/dashboard/teachers')} class="hover:text-indigo-400 transition-colors">Faculty Schedules</button></li>
         </ul>
       </div>
 
@@ -34,10 +34,10 @@
       <div>
         <h4 class="font-bold text-white uppercase tracking-wider text-[11px] mb-3">Communication & Finance</h4>
         <ul class="space-y-2">
-          <li><button on:click={() => currentView.set('dashboard')} class="hover:text-indigo-400 transition-colors">Android SMS Gateway Hub</button></li>
-          <li><button on:click={() => currentView.set('dashboard')} class="hover:text-indigo-400 transition-colors">Cloud SMS Packs</button></li>
-          <li><button on:click={() => currentView.set('dashboard')} class="hover:text-indigo-400 transition-colors">Tuition Invoicing & Receipts</button></li>
-          <li><button on:click={() => currentView.set('dashboard')} class="hover:text-indigo-400 transition-colors">Exam Report Cards</button></li>
+          <li><button on:click={() => navigate('/dashboard/sms')} class="hover:text-indigo-400 transition-colors">Android SMS Gateway Hub</button></li>
+          <li><button on:click={() => navigate('/dashboard/sms-templates')} class="hover:text-indigo-400 transition-colors">SMS Templates</button></li>
+          <li><button on:click={() => navigate('/dashboard/fees')} class="hover:text-indigo-400 transition-colors">Tuition Invoicing & Receipts</button></li>
+          <li><button on:click={() => navigate('/dashboard/exams')} class="hover:text-indigo-400 transition-colors">Exam Report Cards</button></li>
         </ul>
       </div>
 
@@ -57,9 +57,9 @@
     <div class="pt-8 border-t border-slate-900 flex flex-col sm:flex-row items-center justify-between gap-4">
       <p>© 2026 CoachFlow SaaS Technologies Inc. All rights reserved.</p>
       <div class="flex items-center gap-6">
-        <button on:click={() => currentView.set('login')} class="hover:text-white transition-colors">Admin Portal</button>
-        <button on:click={() => currentView.set('dashboard')} class="hover:text-white transition-colors">Interactive Demo</button>
-        <button on:click={() => currentView.set('checkout')} class="hover:text-white transition-colors">Upgrade Plan</button>
+        <button on:click={() => navigate('/login')} class="hover:text-white transition-colors">Admin Portal</button>
+        <button on:click={() => navigate('/dashboard/overview')} class="hover:text-white transition-colors">Interactive Demo</button>
+        <button on:click={() => navigate('/register?step=3')} class="hover:text-white transition-colors">Register / Upgrade Plan</button>
       </div>
     </div>
   </div>

@@ -1,10 +1,11 @@
 <script lang="ts">
-  import { currentView, selectedPlan, subscriptionPlans } from '../store';
+  import { selectedPlan, subscriptionPlans } from '../store';
+  import { navigate } from '../router';
   import { Sparkles, ArrowRight, ShieldCheck, Smartphone, CheckCircle, Users, BookOpen, Layers, Zap } from 'lucide-svelte';
 
   function launchStarterTrial() {
     selectedPlan.set(subscriptionPlans[1]); // Pro
-    currentView.set('checkout');
+    navigate('/register?step=3');
   }
 </script>
 
@@ -47,7 +48,7 @@
         <button
           type="button"
           class="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-2xl text-base font-semibold text-slate-200 bg-slate-900/80 hover:bg-slate-800 border border-slate-700/70 hover:border-slate-600 transition-all hover:scale-[1.02]"
-          on:click={() => currentView.set('dashboard')}
+          on:click={() => navigate('/dashboard/overview')}
         >
           <Zap class="w-5 h-5 text-amber-400" />
           <span>Launch Interactive Demo</span>
@@ -136,7 +137,7 @@
             <span class="text-xs text-slate-300">Live Batch: <strong>Physics Alpha (Morning Intensive)</strong> • Room 201 • 26/30 Students</span>
           </div>
           <button
-            on:click={() => currentView.set('dashboard')}
+            on:click={() => navigate('/dashboard/overview')}
             class="text-xs font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
           >
             <span>Open in Full Management View</span>

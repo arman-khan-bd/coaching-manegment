@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { selectedPlan, currentView, instituteSettings, showToast, subscriptionPlans, type SubscriptionPlan } from '../store';
+  import { selectedPlan, instituteSettings, showToast, subscriptionPlans, type SubscriptionPlan } from '../store';
+  import { navigate } from '../router';
   import { Check, Shield, CreditCard, Smartphone, Building, ArrowLeft, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-svelte';
   import confetti from 'canvas-confetti';
 
@@ -45,7 +46,7 @@
 
       triggerCelebration();
       showToast('success', 'Subscription Activated!', `Welcome to CoachFlow! Your ${currentPlan.name} plan is live.`);
-      currentView.set('dashboard');
+      navigate('/dashboard/overview');
     }, 1200);
   }
 </script>
@@ -60,7 +61,7 @@
     <button
       type="button"
       class="inline-flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-white mb-6 transition-colors"
-      on:click={() => currentView.set('landing')}
+      on:click={() => navigate('/')}
     >
       <ArrowLeft class="w-4 h-4" />
       <span>Back to Public Website</span>

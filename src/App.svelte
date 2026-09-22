@@ -13,6 +13,7 @@
 
   // Auth Components
   import LoginView from './lib/auth/LoginView.svelte';
+  import StepByStepRegisterView from './lib/auth/StepByStepRegisterView.svelte';
 
   // Dashboard Components
   import Sidebar from './lib/dashboard/Sidebar.svelte';
@@ -32,6 +33,7 @@
 
   import { onMount } from 'svelte';
   import { initSupabaseAuth } from './lib/supabase';
+  import { initRouter } from './lib/router';
 
   let isMobileSidebarOpen = false;
 
@@ -44,6 +46,7 @@
   }
 
   onMount(() => {
+    initRouter();
     initSupabaseAuth((user) => {
       if (user) {
         currentRole.set(user.role);
@@ -76,7 +79,11 @@
   {:else if $currentView === 'login'}
     <LoginView />
 
-  <!-- 3. SUBSCRIPTION BUY & CHECKOUT VIEW -->
+  <!-- 3. STEP-BY-STEP REGISTER VIEW -->
+  {:else if $currentView === 'register'}
+    <StepByStepRegisterView />
+
+  <!-- 4. SUBSCRIPTION BUY & CHECKOUT VIEW -->
   {:else if $currentView === 'checkout'}
     <CheckoutModal />
 

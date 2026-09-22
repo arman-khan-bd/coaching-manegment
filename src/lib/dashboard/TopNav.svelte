@@ -34,8 +34,10 @@
     showToast('info', 'Switched View Perspective', `Current perspective set to ${role.replace('_', ' ').toUpperCase()}`);
   }
 
+  import { navigate } from '../router';
+
   function handleLogout() {
-    currentView.set('login');
+    navigate('/login');
     showToast('info', 'Logged Out', 'You have been signed out of your academy session.');
   }
 </script>
@@ -82,7 +84,7 @@
     <button
       type="button"
       class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-900/40 transition-colors text-xs font-semibold"
-      on:click={() => activeTab.set('sms')}
+      on:click={() => navigate('/dashboard/sms')}
     >
       <Coins class="w-4 h-4 text-indigo-400" />
       <span class="hidden sm:inline">SMS Credits:</span>

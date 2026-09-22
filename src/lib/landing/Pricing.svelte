@@ -1,12 +1,13 @@
 <script lang="ts">
-  import { subscriptionPlans, selectedPlan, currentView, type SubscriptionPlan } from '../store';
+  import { subscriptionPlans, selectedPlan, type SubscriptionPlan } from '../store';
+  import { navigate } from '../router';
   import { Check, Sparkles, ArrowRight, ShieldCheck, Zap } from 'lucide-svelte';
 
   let billingCycle: 'monthly' | 'yearly' = 'monthly';
 
   function handleBuyPlan(plan: SubscriptionPlan) {
     selectedPlan.set(plan);
-    currentView.set('checkout');
+    navigate('/register?step=3');
   }
 </script>
 

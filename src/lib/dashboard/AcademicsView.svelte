@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { courses, units, batches, teachers, students, addBatch, showToast, activeTab, type Batch } from '../store';
+  import { courses, units, batches, teachers, students, addBatch, showToast, type Batch } from '../store';
+  import { navigate } from '../router';
   import SendSmsModal from '../components/SendSmsModal.svelte';
   import Modal from '../components/Modal.svelte';
   import Badge from '../components/Badge.svelte';
@@ -136,7 +137,7 @@
       <button
         type="button"
         class="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-indigo-500/40 text-indigo-300 hover:text-white font-semibold text-xs transition-all flex items-center gap-1.5"
-        on:click={() => activeTab.set('syllabus_routine')}
+        on:click={() => navigate('/dashboard/syllabus-routine')}
       >
         <CalendarClock class="w-4 h-4 text-emerald-400" />
         <span>Syllabus & Routine Studio</span>

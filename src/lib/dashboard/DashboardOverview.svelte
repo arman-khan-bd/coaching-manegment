@@ -8,8 +8,8 @@
     smsAccount,
     smsLogs,
     instituteSettings,
-    activeTab,
   } from '../store';
+  import { navigate } from '../router';
   import {
     Users,
     Layers,
@@ -91,7 +91,7 @@
         <button
           type="button"
           class="px-3.5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-all shadow-md shadow-indigo-600/30 flex items-center gap-1.5"
-          on:click={() => activeTab.set('students')}
+          on:click={() => navigate('/dashboard/students')}
         >
           <Plus class="w-4 h-4" />
           <span>Admit Student</span>
@@ -100,7 +100,7 @@
         <button
           type="button"
           class="px-3.5 py-2.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 font-semibold text-xs transition-all flex items-center gap-1.5"
-          on:click={() => activeTab.set('attendance')}
+          on:click={() => navigate('/dashboard/attendance')}
         >
           <CalendarCheck class="w-4 h-4" />
           <span>Mark Attendance</span>
@@ -109,7 +109,7 @@
         <button
           type="button"
           class="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs transition-all flex items-center gap-1.5"
-          on:click={() => activeTab.set('sms')}
+          on:click={() => navigate('/dashboard/sms')}
         >
           <Smartphone class="w-4 h-4 text-emerald-400" />
           <span>Send SMS Alert</span>
@@ -198,7 +198,7 @@
         <button
           type="button"
           class="text-xs font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
-          on:click={() => activeTab.set('academics')}
+          on:click={() => navigate('/dashboard/academics')}
         >
           <span>View All Batches</span>
           <ArrowRight class="w-3.5 h-3.5" />
@@ -229,7 +229,7 @@
               <button
                 type="button"
                 class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 transition-colors"
-                on:click={() => activeTab.set('attendance')}
+                on:click={() => navigate('/dashboard/attendance')}
               >
                 Mark Attendance
               </button>
@@ -250,7 +250,7 @@
           <button
             type="button"
             class="text-xs font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
-            on:click={() => activeTab.set('fees')}
+            on:click={() => navigate('/dashboard/fees')}
           >
             <span>View Ledger</span>
             <ArrowRight class="w-3.5 h-3.5" />

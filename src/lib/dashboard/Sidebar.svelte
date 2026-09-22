@@ -52,8 +52,26 @@
     { id: 'settings', label: 'Institute Settings', icon: Settings },
   ];
 
+  import { navigate } from '../router';
+
+  const tabSlugMap: Record<string, string> = {
+    overview: 'overview',
+    students: 'students',
+    idcards: 'idcards',
+    teachers: 'teachers',
+    academics: 'academics',
+    syllabus_routine: 'syllabus-routine',
+    attendance: 'attendance',
+    sms: 'sms',
+    sms_templates: 'sms-templates',
+    fees: 'fees',
+    exams: 'exams',
+    settings: 'settings',
+  };
+
   function selectTab(id: string) {
-    activeTab.set(id);
+    const slug = tabSlugMap[id] || id;
+    navigate(`/dashboard/${slug}`);
     closeMobile();
   }
 </script>
@@ -143,7 +161,7 @@
     <button
       type="button"
       class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-800 transition-colors"
-      on:click={() => currentView.set('landing')}
+      on:click={() => navigate('/')}
     >
       <ExternalLink class="w-3.5 h-3.5" />
       <span>View Public SaaS Portal</span>

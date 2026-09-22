@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { students, batches, courses, addStudent, deleteStudent, showToast, activeTab, type Student } from '../store';
+  import { students, batches, courses, addStudent, deleteStudent, showToast, type Student } from '../store';
+  import { navigate } from '../router';
   import StudentIdCardModal from './StudentIdCardModal.svelte';
   import SendSmsModal from '../components/SendSmsModal.svelte';
   import Modal from '../components/Modal.svelte';
@@ -174,7 +175,7 @@
       <button
         type="button"
         class="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 font-semibold text-xs transition-all flex items-center gap-2"
-        on:click={() => activeTab.set('idcards')}
+        on:click={() => navigate('/dashboard/idcards')}
       >
         <QrCode class="w-4 h-4 text-indigo-400" />
         <span>Bulk ID Cards Studio</span>
