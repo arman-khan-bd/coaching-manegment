@@ -15,6 +15,11 @@ jobs:
     name: Build Android APK & Publish Release
     runs-on: ubuntu-latest
 
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+      NODE_OPTIONS: "--max-old-space-size=4096"
+
     steps:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v4
@@ -37,8 +42,9 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: 🤖 Setup Android SDK
-        uses: android-actions/setup-android@v3
+      - name: 🤖 Accept Android SDK Licenses
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || yes | sdkmanager --licenses 2>/dev/null || true
 
       - name: 🔑 Ensure Android Debug Keystore
         working-directory: coachflow-android-gateway/android/app
@@ -55,12 +61,10 @@ jobs:
 
       - name: 🔨 Build Android APK
         working-directory: coachflow-android-gateway/android
-        env:
-          NODE_OPTIONS: "--max-old-space-size=4096"
         run: |
-          gradle wrapper --gradle-version 8.6
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          gradle wrapper --gradle-version 8.6 || true
+          chmod +x gradlew || true
+          ./gradlew assembleDebug --no-daemon --stacktrace || gradle assembleDebug --no-daemon --stacktrace
 
       - name: 📦 Prepare APK Asset for Release
         id: prepare_asset
