@@ -32,9 +32,11 @@
   import SyllabusRoutineView from './lib/dashboard/SyllabusRoutineView.svelte';
   import SaasAdminDashboard from './lib/saas/SaasAdminDashboard.svelte';
 
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { initSupabaseAuth } from './lib/supabase';
   import { initRouter, navigate } from './lib/router';
+  import { subscribeToSmsQueueRealtime } from './lib/smsQueueApi';
+  import { smsQueue } from './lib/store';
   import { LayoutDashboard, Users, CalendarClock, Smartphone, Grid } from 'lucide-svelte';
 
   let isMobileSidebarOpen = false;
@@ -46,6 +48,8 @@
   function closeMobileSidebar() {
     isMobileSidebarOpen = false;
   }
+
+  let unsubRealtime: any = null;
 
   onMount(() => {
     initRouter();
@@ -64,6 +68,26 @@
         }
       }
     });
+
+    // Persistent Supabase Realtime Listener for SMS queue
+    const unsubInstitute = instituteSettings.subscribe((s) => {
+      const cid = s?.coachingCenterId || 'aac-dhaka-01';
+      if (unsubRealtime) unsubRealtime();
+      unsubRealtime = subscribeToSmsQueueRealtime(cid, (item, eventType) => {
+        if (eventType === 'INSERT') {
+          smsQueue.update((q) => [item, ...q.filter((x) => x.id !== item.id)]);
+        } else if (eventType === 'UPDATE') {
+          smsQueue.update((q) => q.map((x) => (x.id === item.id ? item : x)));
+        } else if (eventType === 'DELETE') {
+          smsQueue.update((q) => q.filter((x) => x.id !== item.id));
+        }
+      });
+    });
+
+    return () => {
+      unsubInstitute();
+      if (unsubRealtime) unsubRealtime();
+    };
   });
 </script>
 

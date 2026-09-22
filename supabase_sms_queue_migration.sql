@@ -30,3 +30,8 @@ create policy "Allow all operations on sms_queue"
   for all
   using (true)
   with check (true);
+
+-- Enable Supabase Realtime CDC publication for instant WebSocket push
+alter table public.sms_queue replica identity full;
+alter publication supabase_realtime add table public.sms_queue;
+

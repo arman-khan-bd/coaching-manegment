@@ -223,7 +223,113 @@ export async function enqueueSmsToQueue(
     });
   }
 
+  // 4. Instant 0-second Bridge to Flutter Android Companion App (if running inside app)
+  if (typeof window !== 'undefined' && (window as any).FlutterGateway) {
+    try {
+      (window as any).FlutterGateway.postMessage(
+        JSON.stringify({
+          type: 'REALTIME_SMS_DISPATCH',
+          item: {
+            id: item.id,
+            to: item.recipientPhone,
+            recipientName: item.recipientName,
+            message: item.message,
+            simSlot: item.simSlot,
+            coachingCenterId: item.coachingCenterId,
+          },
+        })
+      );
+    } catch (_) {}
+  }
+
   return { success: true, item };
+}
+
+let activeRealtimeChannel: any = null;
+
+/**
+ * Subscribe to Supabase Realtime WebSocket changes on sms_queue
+ * Provides instant ~50ms push notifications for new SMS & status updates
+ */
+export function subscribeToSmsQueueRealtime(
+  coachingCenterId: string,
+  onQueueUpdated?: (item: SmsQueueItem, eventType: 'INSERT' | 'UPDATE' | 'DELETE') => void
+) {
+  if (typeof window === 'undefined') return () => {};
+
+  if (activeRealtimeChannel) {
+    try {
+      supabase.removeChannel(activeRealtimeChannel);
+    } catch (_) {}
+    activeRealtimeChannel = null;
+  }
+
+  const channelName = `sms-queue-rt-${coachingCenterId}`;
+  activeRealtimeChannel = supabase
+    .channel(channelName)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'sms_queue',
+        filter: `coaching_center_id=eq.${coachingCenterId}`,
+      },
+      (payload: any) => {
+        const row = payload.new || payload.old;
+        if (!row) return;
+
+        const item: SmsQueueItem = {
+          id: row.id,
+          coachingCenterId: row.coaching_center_id,
+          recipientPhone: row.recipient_phone,
+          recipientName: row.recipient_name || '',
+          message: row.message,
+          status: row.status || 'pending',
+          simSlot: row.sim_slot || 1,
+          errorMessage: row.error_message,
+          createdAt: row.created_at,
+          sentAt: row.sent_at,
+        };
+
+        if (onQueueUpdated) {
+          onQueueUpdated(item, payload.eventType);
+        }
+
+        // When a pending SMS arrives via Supabase Realtime, immediately dispatch to Flutter companion app!
+        if ((payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') && item.status === 'pending') {
+          if (typeof window !== 'undefined' && (window as any).FlutterGateway) {
+            try {
+              (window as any).FlutterGateway.postMessage(
+                JSON.stringify({
+                  type: 'REALTIME_SMS_DISPATCH',
+                  item: {
+                    id: item.id,
+                    to: item.recipientPhone,
+                    recipientName: item.recipientName,
+                    message: item.message,
+                    simSlot: item.simSlot,
+                    coachingCenterId: item.coachingCenterId,
+                  },
+                })
+              );
+            } catch (_) {}
+          }
+        }
+      }
+    )
+    .subscribe((status: string) => {
+      console.log(`Supabase Realtime sms_queue connection for ${coachingCenterId}:`, status);
+    });
+
+  return () => {
+    if (activeRealtimeChannel) {
+      try {
+        supabase.removeChannel(activeRealtimeChannel);
+      } catch (_) {}
+      activeRealtimeChannel = null;
+    }
+  };
 }
 
 /**

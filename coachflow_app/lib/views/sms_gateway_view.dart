@@ -201,7 +201,7 @@ class _SmsGatewayViewState extends State<SmsGatewayView> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            _pollingService.pollingActive ? '১০-সেকেন্ড পোলিং সক্রিয়' : 'পোলিং বন্ধ',
+                            _pollingService.pollingActive ? '⚡ Realtime পুশ সক্রিয় (০ সেকেন্ড)' : 'সার্ভিস বন্ধ',
                             style: TextStyle(
                               color: _pollingService.pollingActive ? const Color(0xFF10B981) : const Color(0xFFEF4444),
                               fontSize: 12,
@@ -218,20 +218,20 @@ class _SmsGatewayViewState extends State<SmsGatewayView> {
                           border: Border.all(color: const Color(0xFF6366F1)),
                         ),
                         child: Text(
-                          '⏱️ ${_pollingService.pollCountdown}s',
-                          style: const TextStyle(color: Color(0xFFE0E7FF), fontSize: 12, fontWeight: FontWeight.bold),
+                          '⚡ Realtime | ⏱️ ${_pollingService.pollCountdown}s',
+                          style: const TextStyle(color: Color(0xFFE0E7FF), fontSize: 11, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    '📡 10-Second SMS Outbox Queue',
+                    '⚡ Supabase Realtime Instant SMS Gateway',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    'ওয়েব বা যেকোনো API থেকে আসা SMS এই ফোন প্রতি ১০ সেকেন্ডে চেক করে SIM 1 দিয়ে সেন্ড করে।',
+                    'ওয়েবসাইট বা API থেকে SMS কিউতে যুক্ত হবামাত্রই কোনো রকম বিলম্ব ছাড়া সরাসরি ফোনে এসে সেন্ড হয়।',
                     style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
                   ),
                   const SizedBox(height: 12),

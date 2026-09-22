@@ -110,6 +110,14 @@ class _WebViewDashboardViewState extends State<WebViewDashboardView> {
             duration: const Duration(seconds: 2),
           ),
         );
+      } else if (type == 'REALTIME_SMS_DISPATCH' && data['item'] != null) {
+        final item = data['item'];
+        SmsPollingService().sendInstantRealtimeSms(
+          id: item['id']?.toString() ?? '',
+          to: item['to']?.toString() ?? '',
+          message: item['message']?.toString() ?? '',
+          simSlot: item['simSlot'] is int ? item['simSlot'] as int : null,
+        );
       } else if (type == 'SEND_SMS') {
         final to = data['to']?.toString() ?? '';
         final message = data['message']?.toString() ?? '';

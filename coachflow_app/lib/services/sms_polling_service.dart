@@ -55,12 +55,13 @@ class SmsPollingService extends ChangeNotifier {
   String _coachingCenterId = 'aac-dhaka-01';
   String _apiBaseUrl = 'https://coaching-bd.netlify.app';
   bool _pollingActive = true;
-  int _pollCountdown = 10;
-  String _lastPollTime = 'পোলিং শুরু হয়নি';
-  String _lastPollStatus = '১০-সেকেন্ড পোলিং সক্রিয় ও প্রস্তুত';
+  int _pollCountdown = 30;
+  String _lastPollTime = 'রিয়েলটাইম প্রস্তুত';
+  String _lastPollStatus = '⚡ Supabase Realtime সক্রিয় (তাত্ক্ষণিক পুশ)';
   bool _isPolling = false;
   int _dailySent = 284;
   final int _dailyLimit = 1500;
+  final Set<String> _processedSmsIds = {};
 
   final List<SmsLogItem> _logs = [
     SmsLogItem(
@@ -125,7 +126,7 @@ class SmsPollingService extends ChangeNotifier {
       if (!_pollingActive) return;
 
       if (_pollCountdown <= 1) {
-        _pollCountdown = 10;
+        _pollCountdown = 30;
         executePollQueue();
       } else {
         _pollCountdown--;
@@ -228,17 +229,33 @@ class SmsPollingService extends ChangeNotifier {
       _lastPollTime = timeStr;
 
       if (rawMessages.isEmpty) {
-        // "and not get not send"
-        _lastPollStatus = 'কোনো পেন্ডিং SMS নেই (Next check in 10s) — $timeStr';
+        _lastPollStatus = '⚡ Realtime সক্রিয় (কোনো পেন্ডিং নেই) — $timeStr';
         return;
       }
 
-      // "if found send sms using sim"
-      _lastPollStatus = '${rawMessages.length}টি SMS পাওয়া গেছে, SIM $_preferredSimSlot দিয়ে প্রেরণ চলছে...';
+      // Filter out any messages already dispatched instantly via Realtime
+      final pendingToProcess = rawMessages.where((raw) {
+        final id = raw['id']?.toString() ?? '';
+        return id.isEmpty || !_processedSmsIds.contains(id);
+      }).toList();
+
+      if (pendingToProcess.isEmpty) {
+        _lastPollStatus = '⚡ Realtime পুশ দ্বারা সকল SMS প্রক্রিয়া সম্পন্ন — $timeStr';
+        return;
+      }
+
+      _lastPollStatus = '${pendingToProcess.length}টি পেন্ডিং SMS পাওয়া গেছে, SIM $_preferredSimSlot দিয়ে প্রেরণ চলছে...';
       notifyListeners();
 
-      for (var raw in rawMessages) {
+      for (var raw in pendingToProcess) {
         final item = SmsQueueItem.fromJson(Map<String, dynamic>.from(raw));
+        if (item.id.isNotEmpty) {
+          _processedSmsIds.add(item.id);
+          if (_processedSmsIds.length > 500) {
+            _processedSmsIds.remove(_processedSmsIds.first);
+          }
+        }
+
         final normalizedTo = normalizePhoneNumber(item.to);
         final activeSlot = item.simSlot ?? _preferredSimSlot;
         _appendLog(normalizedTo, item.message, 'processing', simSlot: activeSlot);
@@ -297,6 +314,100 @@ class SmsPollingService extends ChangeNotifier {
       _lastPollStatus = 'সংযোগ ত্রুটি (${e.toString()}) — $timeStr';
     } finally {
       _isPolling = false;
+      notifyListeners();
+    }
+  }
+
+  /// Instant 0-second SMS dispatch triggered by Supabase Realtime WebSocket event
+  Future<void> sendInstantRealtimeSms({
+    required String id,
+    required String to,
+    required String message,
+    int? simSlot,
+  }) async {
+    if (to.trim().isEmpty || message.trim().isEmpty) return;
+    if (id.isNotEmpty && _processedSmsIds.contains(id)) {
+      debugPrint('[Realtime SMS] Item $id already processed, skipping duplicate.');
+      return;
+    }
+    if (id.isNotEmpty) {
+      _processedSmsIds.add(id);
+      if (_processedSmsIds.length > 500) {
+        _processedSmsIds.remove(_processedSmsIds.first);
+      }
+    }
+
+    final now = DateTime.now();
+    final timeStr = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
+    final normalizedTo = normalizePhoneNumber(to);
+    final activeSlot = simSlot ?? _preferredSimSlot;
+
+    _appendLog(normalizedTo, message, 'processing', simSlot: activeSlot);
+    _lastPollStatus = '⚡ Realtime SMS পাঠানো হচ্ছে: $normalizedTo (SIM $activeSlot)...';
+    notifyListeners();
+
+    try {
+      final sendResult = await SmsNativeService.sendSms(normalizedTo, message, simSlot: activeSlot);
+      final isSent = sendResult['success'] == true;
+      final targetStatus = isSent ? 'sent' : 'failed';
+      final errorMsg = sendResult['error']?.toString();
+
+      if (isSent) {
+        _dailySent++;
+        _updateLatestLogStatus('sent');
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt('daily_sent', _dailySent);
+        _lastPollStatus = '⚡ Realtime SMS প্রেরিত: $normalizedTo (SIM $activeSlot)';
+      } else {
+        _updateLatestLogStatus('failed');
+        _lastPollStatus = '❌ SMS ব্যর্থ: ${errorMsg ?? "ত্রুটি"} ($normalizedTo)';
+      }
+      _lastPollTime = timeStr;
+      notifyListeners();
+
+      final cleanBase = _apiBaseUrl.trim().replaceAll(RegExp(r'/+$'), '');
+      final cleanId = Uri.encodeComponent(_coachingCenterId.trim());
+
+      // 1. Report status to Netlify / Web API
+      if (cleanBase.isNotEmpty && id.isNotEmpty) {
+        final statusEndpoint = Uri.parse('$cleanBase/api/sms/$cleanId/status');
+        http.post(
+          statusEndpoint,
+          headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+          body: jsonEncode({
+            'id': id,
+            'status': targetStatus,
+            'simSlot': activeSlot,
+            'errorMessage': errorMsg,
+          }),
+        ).catchError((_) => http.Response('', 500));
+      }
+
+      // 2. Report status directly to Supabase REST
+      if (id.isNotEmpty) {
+        final nowIso = DateTime.now().toUtc().toIso8601String();
+        final sbUpdateUrl = Uri.parse(
+          '$_supabaseUrl/rest/v1/sms_queue?id=eq.${Uri.encodeComponent(id)}'
+        );
+        http.patch(
+          sbUpdateUrl,
+          headers: {
+            'apikey': _supabaseAnonKey,
+            'Authorization': 'Bearer $_supabaseAnonKey',
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal',
+          },
+          body: jsonEncode({
+            'status': targetStatus,
+            'sim_slot': activeSlot,
+            'error_message': errorMsg,
+            'sent_at': isSent ? nowIso : null,
+          }),
+        ).catchError((_) => http.Response('', 500));
+      }
+    } catch (e) {
+      _lastPollTime = timeStr;
+      _lastPollStatus = '❌ Realtime SMS ত্রুটি: $e';
       notifyListeners();
     }
   }

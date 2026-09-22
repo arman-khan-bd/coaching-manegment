@@ -429,24 +429,25 @@
       </div>
     </div>
 
-    <!-- 10-SECOND POLLING OUTBOX QUEUE MONITOR -->
+    <!-- SUPABASE REALTIME OUTBOX QUEUE MONITOR -->
     <div class="mt-6 rounded-3xl bg-slate-900/80 border border-slate-800 p-6 space-y-6">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
         <div>
           <div class="flex items-center gap-2">
             <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
             <h3 class="text-base font-bold text-white font-['Outfit']">
-              ১০-সেকেন্ড আউটবক্স পোলিং কিউ (Android SIM 1 Auto-Sender)
+              ⚡ Supabase Realtime তাত্ক্ষণিক SMS কিউ (Instant Push Gateway)
             </h3>
           </div>
           <p class="text-xs text-slate-400 mt-0.5">
-            ওয়েব বা যেকোনো API থেকে SMS রিকোয়েস্ট আসলে কিউতে জমা হয়। লগইন থাকা অ্যান্ড্রয়েড ফোন প্রতি ১০ সেকেন্ডে এই API কল করে SIM 1 দিয়ে মেসেজ সেন্ড করে।
+            ওয়েব বা যেকোনো API থেকে SMS পাঠানো হলে Supabase Realtime-এর মাধ্যমে মুহূর্তের মধ্যে (~৫০ms) অ্যান্ড্রয়েড ফোনে পুশ হয় এবং নির্ধারিত SIM দিয়ে তৎক্ষণাৎ প্রেরিত হয়।
           </p>
         </div>
 
         <div class="flex items-center gap-2">
-          <span class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-950/60 text-emerald-300 border border-emerald-500/30">
-            ১০ সেকেন্ড পোলিং সক্রিয়
+          <span class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-950/60 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>⚡ Realtime পুশ সক্রিয় (০ সেকেন্ড)</span>
           </span>
         </div>
       </div>
