@@ -105,6 +105,9 @@ class SmsPollingService extends ChangeNotifier {
     notifyListeners();
   }
 
+  static const String _supabaseUrl = 'https://qmrpvrsysbbmjxjdrzaj.supabase.co';
+  static const String _supabaseAnonKey = 'sb_publishable_ibH84sYVdp6hleVaGN_i4g_6PQX3ajJ';
+
   /// Core 10-Second Poller
   Future<void> executePollQueue() async {
     if (_coachingCenterId.trim().isEmpty || _isPolling) return;
@@ -119,18 +122,54 @@ class SmsPollingService extends ChangeNotifier {
       final cleanId = Uri.encodeComponent(_coachingCenterId.trim());
       final endpoint = Uri.parse('$cleanBase/api/sms/$cleanId');
 
-      final response = await http.get(endpoint, headers: {
-        'Accept': 'application/json',
-      }).timeout(const Duration(seconds: 7));
+      List rawMessages = [];
+      bool fetchedFromApi = false;
 
-      if (response.statusCode != 200) {
-        _lastPollTime = timeStr;
-        _lastPollStatus = 'পোলিং ত্রুটি: HTTP ${response.statusCode} ($timeStr)';
-        return;
+      // 1. Try Main Domain / Netlify Endpoint First
+      try {
+        final response = await http.get(endpoint, headers: {
+          'Accept': 'application/json',
+        }).timeout(const Duration(seconds: 5));
+
+        final bodyStr = response.body.trim();
+        if (response.statusCode == 200 && (bodyStr.startsWith('{') || bodyStr.startsWith('['))) {
+          final data = jsonDecode(bodyStr);
+          if (data is Map && data['messages'] is List) {
+            rawMessages = data['messages'] as List;
+            fetchedFromApi = true;
+          }
+        }
+      } catch (_) {
+        // Fallback to Supabase
       }
 
-      final data = jsonDecode(response.body);
-      final List rawMessages = data['messages'] as List? ?? [];
+      // 2. Direct Supabase REST Fallback if Netlify didn't return JSON
+      if (!fetchedFromApi) {
+        try {
+          final sbEndpoint = Uri.parse(
+            '$_supabaseUrl/rest/v1/sms_queue?coaching_center_id=eq.$cleanId&status=eq.pending&order=created_at.asc&limit=10'
+          );
+          final sbResp = await http.get(sbEndpoint, headers: {
+            'apikey': _supabaseAnonKey,
+            'Authorization': 'Bearer $_supabaseAnonKey',
+            'Accept': 'application/json',
+          }).timeout(const Duration(seconds: 5));
+
+          if (sbResp.statusCode == 200) {
+            final sbData = jsonDecode(sbResp.body);
+            if (sbData is List) {
+              rawMessages = sbData.map((row) => {
+                'id': row['id'],
+                'to': row['recipient_phone'],
+                'recipientName': row['recipient_name'] ?? '',
+                'message': row['message'],
+                'coachingCenterId': row['coaching_center_id'],
+                'createdAt': row['created_at'],
+              }).toList();
+            }
+          }
+        } catch (_) {}
+      }
 
       _lastPollTime = timeStr;
 
@@ -149,37 +188,50 @@ class SmsPollingService extends ChangeNotifier {
         _appendLog(item.to, item.message, 'processing');
 
         final sendResult = await SmsNativeService.sendSms(item.to, item.message, simSlot: 1);
+        final isSent = sendResult['success'] == true;
+        final targetStatus = isSent ? 'sent' : 'failed';
+        final errorMsg = sendResult['error']?.toString();
 
-        if (sendResult['success'] == true) {
+        if (isSent) {
           _dailySent++;
           _updateLatestLogStatus('sent');
-
-          // Report sent status back to API
-          final statusEndpoint = Uri.parse('$cleanBase/api/sms/$cleanId/status');
-          await http.post(
-            statusEndpoint,
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({
-              'id': item.id,
-              'status': 'sent',
-              'simSlot': 1,
-            }),
-          ).catchError((_) => http.Response('', 500));
         } else {
           _updateLatestLogStatus('failed');
-
-          final statusEndpoint = Uri.parse('$cleanBase/api/sms/$cleanId/status');
-          await http.post(
-            statusEndpoint,
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({
-              'id': item.id,
-              'status': 'failed',
-              'simSlot': 1,
-              'errorMessage': sendResult['error']?.toString() ?? 'SIM 1 send failed',
-            }),
-          ).catchError((_) => http.Response('', 500));
         }
+
+        // 1. Report status to Netlify / Web API
+        final statusEndpoint = Uri.parse('$cleanBase/api/sms/$cleanId/status');
+        http.post(
+          statusEndpoint,
+          headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+          body: jsonEncode({
+            'id': item.id,
+            'status': targetStatus,
+            'simSlot': 1,
+            'errorMessage': errorMsg,
+          }),
+        ).catchError((_) => http.Response('', 500));
+
+        // 2. Report status to Supabase REST directly
+        final nowIso = DateTime.now().toUtc().toIso8601String();
+        final sbUpdateUrl = Uri.parse(
+          '$_supabaseUrl/rest/v1/sms_queue?id=eq.${Uri.encodeComponent(item.id)}'
+        );
+        http.patch(
+          sbUpdateUrl,
+          headers: {
+            'apikey': _supabaseAnonKey,
+            'Authorization': 'Bearer $_supabaseAnonKey',
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal',
+          },
+          body: jsonEncode({
+            'status': targetStatus,
+            'sim_slot': 1,
+            'error_message': errorMsg,
+            'sent_at': isSent ? nowIso : null,
+          }),
+        ).catchError((_) => http.Response('', 500));
       }
 
       final prefs = await SharedPreferences.getInstance();

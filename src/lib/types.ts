@@ -269,7 +269,7 @@ export interface SmsQueueItem {
   recipientPhone: string;
   recipientName?: string;
   message: string;
-  status: 'pending' | 'processing' | 'sent' | 'failed';
+  status: 'pending' | 'processing' | 'sent' | 'failed' | 'cancelled';
   simSlot?: number;
   errorMessage?: string;
   createdAt: string;

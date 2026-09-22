@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 import type { SmsQueueItem } from './types';
 
-// In-memory queue store for fast local/offline fallback
+// In-memory / local-storage queue store for fast local/offline fallback
 const LOCAL_STORAGE_KEY = 'coachflow_sms_queue';
 
 function getLocalQueue(): SmsQueueItem[] {
@@ -21,6 +21,42 @@ function saveLocalQueue(items: SmsQueueItem[]) {
   } catch (e) {
     // ignore
   }
+}
+
+/**
+ * Load full SMS queue from Supabase for a coaching center
+ */
+export async function loadSmsQueueFromSupabase(coachingCenterId: string): Promise<SmsQueueItem[]> {
+  try {
+    const { data, error } = await supabase
+      .from('sms_queue')
+      .select('*')
+      .eq('coaching_center_id', coachingCenterId)
+      .order('created_at', { ascending: false })
+      .limit(100);
+
+    if (!error && data) {
+      const items: SmsQueueItem[] = data.map((row: any) => ({
+        id: row.id,
+        coachingCenterId: row.coaching_center_id,
+        recipientPhone: row.recipient_phone,
+        recipientName: row.recipient_name || '',
+        message: row.message,
+        status: (row.status as any) || 'pending',
+        simSlot: row.sim_slot || 1,
+        errorMessage: row.error_message,
+        createdAt: row.created_at,
+        sentAt: row.sent_at,
+      }));
+      // Merge with local storage
+      const local = getLocalQueue().filter((l) => l.coachingCenterId !== coachingCenterId);
+      saveLocalQueue([...items, ...local]);
+      return items;
+    }
+  } catch (e) {
+    console.warn('loadSmsQueueFromSupabase error:', e);
+  }
+  return getLocalQueue().filter((i) => i.coachingCenterId === coachingCenterId);
 }
 
 /**
@@ -47,13 +83,13 @@ export async function enqueueSmsToQueue(
     createdAt: now,
   };
 
-  // 1. Save to local storage
+  // 1. Save to local storage for immediate optimistic UI
   const localList = getLocalQueue();
-  saveLocalQueue([item, ...localList]);
+  saveLocalQueue([item, ...localList.filter((x) => x.id !== item.id)]);
 
   // 2. Sync to Supabase `sms_queue` table
   try {
-    const { error } = await supabase.from('sms_queue').insert({
+    const { error } = await supabase.from('sms_queue').upsert({
       id: item.id,
       coaching_center_id: item.coachingCenterId,
       recipient_phone: item.recipientPhone,
@@ -70,11 +106,11 @@ export async function enqueueSmsToQueue(
     console.warn('Supabase sms_queue catch:', e);
   }
 
-  // 3. Post to dev server REST API if available
+  // 3. Post to REST API (Netlify Function or Vite Dev Server)
   if (typeof window !== 'undefined') {
     fetch(`/api/sms/${encodeURIComponent(coachingCenterId)}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({
         id: item.id,
         to: item.recipientPhone,
@@ -82,11 +118,84 @@ export async function enqueueSmsToQueue(
         message: item.message,
       }),
     }).catch(() => {
-      // Dev server may not be active or remote
+      // Endpoint may not be active; Supabase handles it directly
     });
   }
 
   return { success: true, item };
+}
+
+/**
+ * Cancel an individual pending SMS in the queue
+ */
+export async function cancelSmsInQueue(
+  smsId: string,
+  coachingCenterId: string
+): Promise<boolean> {
+  // 1. Update local storage
+  const localList = getLocalQueue();
+  const updated = localList.map((i) =>
+    i.id === smsId ? { ...i, status: 'cancelled' as const, errorMessage: 'ব্যবহারকারী কর্তৃক বাতিলকৃত' } : i
+  );
+  saveLocalQueue(updated);
+
+  // 2. Notify REST API if available
+  if (typeof window !== 'undefined') {
+    fetch(`/api/sms/${encodeURIComponent(coachingCenterId)}/cancel`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ id: smsId }),
+    }).catch(() => {});
+  }
+
+  // 3. Update Supabase
+  try {
+    const { error } = await supabase
+      .from('sms_queue')
+      .update({
+        status: 'cancelled',
+        error_message: 'ওয়েবসাইট ড্যাশবোর্ড থেকে বাতিল করা হয়েছে',
+      })
+      .eq('id', smsId);
+
+    if (error) {
+      console.warn('Supabase sms_queue cancel error:', error.message);
+    }
+  } catch (e) {
+    console.warn('Supabase sms_queue cancel catch:', e);
+  }
+
+  return true;
+}
+
+/**
+ * Cancel all pending SMS messages for a coaching center
+ */
+export async function cancelAllPendingSmsInQueue(
+  coachingCenterId: string
+): Promise<boolean> {
+  const localList = getLocalQueue();
+  const updated = localList.map((i) =>
+    i.coachingCenterId === coachingCenterId && i.status === 'pending'
+      ? { ...i, status: 'cancelled' as const, errorMessage: 'একযোগে বাতিলকৃত' }
+      : i
+  );
+  saveLocalQueue(updated);
+
+  try {
+    await supabase
+      .from('sms_queue')
+      .update({
+        status: 'cancelled',
+        error_message: 'ড্যাশবোর্ড থেকে একযোগে সকল পেন্ডিং বার্তা বাতিল করা হয়েছে',
+      })
+      .eq('coaching_center_id', coachingCenterId)
+      .eq('status', 'pending');
+  } catch (e) {
+    console.warn('cancelAllPendingSms catch:', e);
+  }
+
+  return true;
 }
 
 /**
@@ -107,23 +216,26 @@ export async function fetchPendingSmsFromApi(
     createdAt: string;
   }>;
 }> {
-  // Try HTTP REST endpoint first
+  // 1. Try HTTP REST endpoint first (with Content-Type checking to ignore SPA HTML fallbacks)
   if (baseUrl || typeof window !== 'undefined') {
-    const targetUrl = `${baseUrl}/api/sms/${encodeURIComponent(coachingCenterId)}`;
+    const targetUrl = `${baseUrl.replace(/\/+$/, '')}/api/sms/${encodeURIComponent(coachingCenterId)}`;
     try {
       const resp = await fetch(targetUrl, {
         headers: { Accept: 'application/json' },
       });
-      if (resp.ok) {
+      const contentType = resp.headers.get('content-type') || '';
+      if (resp.ok && contentType.includes('application/json')) {
         const json = await resp.json();
-        return json;
+        if (json && Array.isArray(json.messages)) {
+          return json;
+        }
       }
     } catch (err) {
       // Fallback to Supabase below
     }
   }
 
-  // Fallback: Query Supabase directly
+  // 2. Direct Supabase Query Fallback
   try {
     const { data, error } = await supabase
       .from('sms_queue')
@@ -131,7 +243,7 @@ export async function fetchPendingSmsFromApi(
       .eq('coaching_center_id', coachingCenterId)
       .eq('status', 'pending')
       .order('created_at', { ascending: true })
-      .limit(10);
+      .limit(20);
 
     if (!error && data) {
       return {
@@ -151,7 +263,7 @@ export async function fetchPendingSmsFromApi(
     // ignore
   }
 
-  // Local storage fallback for local testing
+  // 3. Local storage fallback
   const localPending = getLocalQueue().filter(
     (i) => i.coachingCenterId === coachingCenterId && i.status === 'pending'
   );
@@ -191,31 +303,33 @@ export async function updateSmsStatusInApi(
   saveLocalQueue(updated);
 
   // 2. Call REST API status endpoint if reachable
-  const targetUrl = `${baseUrl}/api/sms/${encodeURIComponent(coachingCenterId)}/status`;
-  try {
-    await fetch(targetUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id: smsId,
-        status,
-        simSlot,
-        errorMessage,
-      }),
-    });
-  } catch (e) {
-    // Ignore, will also update Supabase
+  if (baseUrl || typeof window !== 'undefined') {
+    const targetUrl = `${baseUrl.replace(/\/+$/, '')}/api/sms/${encodeURIComponent(coachingCenterId)}/status`;
+    try {
+      await fetch(targetUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          id: smsId,
+          status,
+          simSlot,
+          errorMessage,
+        }),
+      });
+    } catch (e) {
+      // Ignore
+    }
   }
 
-  // 3. Update Supabase
+  // 3. Update Supabase directly
   try {
     await supabase
       .from('sms_queue')
       .update({
         status,
         sim_slot: simSlot,
-        error_message: errorMessage,
-        sent_at: now,
+        error_message: errorMessage || null,
+        sent_at: status === 'sent' ? now : null,
       })
       .eq('id', smsId);
   } catch (e) {

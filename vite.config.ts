@@ -46,14 +46,39 @@ function smsApiPlugin(): Plugin {
         }
 
         const url = req.url || '';
-        const match = url.match(/^\/api\/sms\/([^/?#]+)(?:\/(status|send))?/);
+        const match = url.match(/^\/api\/sms\/([^/?#]+)(?:\/(status|send|cancel))?/);
 
         if (!match) {
           return next();
         }
 
         const coachingCenterId = decodeURIComponent(match[1]);
-        const subAction = match[2]; // 'status' | 'send' | undefined
+        const subAction = match[2]; // 'status' | 'send' | 'cancel' | undefined
+
+        // 0. POST/DELETE /api/sms/:coaching_center_id/cancel (Cancel pending SMS)
+        if ((req.method === 'POST' || req.method === 'DELETE') && subAction === 'cancel') {
+          let body = '';
+          req.on('data', (chunk) => {
+            body += chunk;
+          });
+          req.on('end', () => {
+            try {
+              const data = JSON.parse(body || '{}');
+              const target = memoryQueue.find((q) => q.id === data.id);
+              if (target) {
+                target.status = 'failed';
+                target.errorMessage = 'Cancelled by user';
+              }
+              res.setHeader('Content-Type', 'application/json');
+              res.statusCode = 200;
+              res.end(JSON.stringify({ success: true, updated: Boolean(target), status: 'cancelled' }));
+            } catch (err: any) {
+              res.statusCode = 400;
+              res.end(JSON.stringify({ error: 'Invalid JSON body', details: err.message }));
+            }
+          });
+          return;
+        }
 
         // 1. POST /api/sms/:coaching_center_id/status (Update sent/failed status from Android)
         if (req.method === 'POST' && subAction === 'status') {

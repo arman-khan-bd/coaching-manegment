@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount, onDestroy } from 'svelte';
   import {
     smsAccount,
     smsTemplates,
@@ -13,6 +14,9 @@
     addSmsTemplate,
     smsQueue,
     instituteSettings,
+    cancelSms,
+    cancelAllPendingSms,
+    refreshSmsQueue,
   } from '../store';
   import { enqueueSmsToQueue } from '../smsQueueApi';
   import Badge from '../components/Badge.svelte';
@@ -33,7 +37,22 @@
     CheckCircle2,
     Clock,
     RefreshCw,
+    XCircle,
+    Trash2,
+    Ban,
   } from 'lucide-svelte';
+
+  let pollIntervalTimer: any;
+  onMount(() => {
+    refreshSmsQueue();
+    pollIntervalTimer = setInterval(() => {
+      refreshSmsQueue();
+    }, 6000);
+  });
+
+  onDestroy(() => {
+    if (pollIntervalTimer) clearInterval(pollIntervalTimer);
+  });
 
   import SmsTemplateManagerView from './SmsTemplateManagerView.svelte';
 
@@ -508,13 +527,36 @@
 
       <!-- Modern Bordered List View: Active Outbox Queue Items -->
       <div class="space-y-3">
-        <div class="flex items-center justify-between text-xs text-slate-400">
-          <span class="font-bold text-slate-300">
-            রিয়েল-টাইম আউটবক্স কিউ ({$smsQueue.length} টি রেকর্ড)
-          </span>
-          <span class="text-[11px] text-emerald-400">
-            {pendingQueueItems.length} টি অপেক্ষমাণ (১০ সেকেন্ডের মধ্যে SIM 1 পাঠাবে)
-          </span>
+        <div class="flex items-center justify-between text-xs text-slate-400 flex-wrap gap-2">
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-slate-300">
+              রিয়েল-টাইম আউটবক্স কিউ ({$smsQueue.length} টি রেকর্ড)
+            </span>
+            <button
+              type="button"
+              class="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+              title="কিউ রিফ্রেশ করুন"
+              on:click={() => refreshSmsQueue()}
+            >
+              <RefreshCw class="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <span class="text-[11px] text-emerald-400">
+              {pendingQueueItems.length} টি অপেক্ষমাণ (১০ সেকেন্ডের মধ্যে SIM 1 পাঠাবে)
+            </span>
+            {#if pendingQueueItems.length > 0}
+              <button
+                type="button"
+                class="px-2 py-1 rounded-lg text-[11px] font-semibold bg-rose-500/10 text-rose-300 border border-rose-500/30 hover:bg-rose-500/20 transition-all flex items-center gap-1 shadow-sm"
+                on:click={cancelAllPendingSms}
+              >
+                <Trash2 class="w-3 h-3 text-rose-400" />
+                <span>সব পেন্ডিং বাতিল</span>
+              </button>
+            {/if}
+          </div>
         </div>
 
         {#if $smsQueue.length === 0}
@@ -529,13 +571,16 @@
                   <div class="w-8 h-8 rounded-xl shrink-0 flex items-center justify-center font-bold text-xs
                     {item.status === 'pending' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
                      item.status === 'sent' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
+                     item.status === 'cancelled' ? 'bg-slate-800 text-slate-400 border border-slate-700' :
                      'bg-rose-500/20 text-rose-300 border border-rose-500/30'}">
                     {#if item.status === 'pending'}
                       ⏳
                     {:else if item.status === 'sent'}
                       ✓
-                    {:else}
+                    {:else if item.status === 'cancelled'}
                       ✕
+                    {:else}
+                      !
                     {/if}
                   </div>
 
@@ -555,6 +600,9 @@
                       {#if item.sentAt}
                         • SIM 1 ডেলিভারি: {new Date(item.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                       {/if}
+                      {#if item.errorMessage}
+                        • নোট: {item.errorMessage}
+                      {/if}
                     </span>
                   </div>
                 </div>
@@ -563,11 +611,25 @@
                   {#if item.status === 'pending'}
                     <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 flex items-center gap-1">
                       <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
-                      অপেক্ষমাণ (ফোন পোলিং করবে)
+                      অপেক্ষমাণ
                     </span>
+                    <button
+                      type="button"
+                      class="px-2.5 py-1 rounded-xl text-[11px] font-semibold bg-rose-500/15 text-rose-300 border border-rose-500/40 hover:bg-rose-500/30 transition-all flex items-center gap-1.5 shadow-sm"
+                      title="এই SMS বাতিল করুন"
+                      on:click={() => cancelSms(item.id)}
+                    >
+                      <XCircle class="w-3.5 h-3.5 text-rose-400" />
+                      <span>বাতিল করুন</span>
+                    </button>
                   {:else if item.status === 'sent'}
                     <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
                       SIM 1 দিয়ে প্রেরিত (৳0.00)
+                    </span>
+                  {:else if item.status === 'cancelled'}
+                    <span class="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-slate-800 text-slate-400 border border-slate-700 flex items-center gap-1">
+                      <Ban class="w-3 h-3 text-slate-400" />
+                      বাতিলকৃত
                     </span>
                   {:else}
                     <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30">

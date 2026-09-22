@@ -34,7 +34,12 @@ import {
   syncInstituteSettingsToDb,
   loadInstituteSettingsFromDb,
 } from './supabase';
-import { enqueueSmsToQueue } from './smsQueueApi';
+import {
+  enqueueSmsToQueue,
+  cancelSmsInQueue,
+  cancelAllPendingSmsInQueue,
+  loadSmsQueueFromSupabase,
+} from './smsQueueApi';
 
 // ==========================================
 // NAVIGATION & AUTH STORES
@@ -2047,6 +2052,60 @@ export function sendSms(
         lastSyncTime: 'এইমাত্র',
       },
     }));
+  }
+}
+
+// Cancel a pending SMS from Outbox Queue
+export async function cancelSms(smsId: string) {
+  let coachingId = 'aac-dhaka-01';
+  const unsub = instituteSettings.subscribe((s) => {
+    if (s?.coachingCenterId) coachingId = s.coachingCenterId;
+  });
+  unsub();
+
+  smsQueue.update((q) =>
+    q.map((item) =>
+      item.id === smsId
+        ? { ...item, status: 'cancelled' as const, errorMessage: 'ব্যবহারকারী কর্তৃক বাতিলকৃত' }
+        : item
+    )
+  );
+
+  await cancelSmsInQueue(smsId, coachingId);
+  showToast('info', 'SMS বাতিল সম্পন্ন', 'পেন্ডিং SMS-টি সফলভাবে বাতিল করা হয়েছে।');
+}
+
+// Cancel All pending SMS from Outbox Queue
+export async function cancelAllPendingSms() {
+  let coachingId = 'aac-dhaka-01';
+  const unsub = instituteSettings.subscribe((s) => {
+    if (s?.coachingCenterId) coachingId = s.coachingCenterId;
+  });
+  unsub();
+
+  smsQueue.update((q) =>
+    q.map((item) =>
+      item.coachingCenterId === coachingId && item.status === 'pending'
+        ? { ...item, status: 'cancelled' as const, errorMessage: 'একযোগে বাতিলকৃত' }
+        : item
+    )
+  );
+
+  await cancelAllPendingSmsInQueue(coachingId);
+  showToast('info', 'সকল পেন্ডিং SMS বাতিল', 'এই কোচিং সেন্টারের সব পেন্ডিং মেসেজ সফলভাবে বাতিল করা হলো।');
+}
+
+// Reload live SMS queue from Supabase
+export async function refreshSmsQueue() {
+  let coachingId = 'aac-dhaka-01';
+  const unsub = instituteSettings.subscribe((s) => {
+    if (s?.coachingCenterId) coachingId = s.coachingCenterId;
+  });
+  unsub();
+
+  const items = await loadSmsQueueFromSupabase(coachingId);
+  if (items && items.length > 0) {
+    smsQueue.set(items);
   }
 }
 
