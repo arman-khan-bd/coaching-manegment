@@ -171,7 +171,7 @@ class _WebViewDashboardViewState extends State<WebViewDashboardView> {
                   decoration: BoxDecoration(
                     color: const Color(0xFF020617),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.parseBorder(Border.all(color: const Color(0xFF1E293B))),
+                    border: Border.all(color: const Color(0xFF1E293B)),
                   ),
                   child: Text(
                     _currentUrl,
