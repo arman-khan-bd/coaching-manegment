@@ -24,7 +24,8 @@ create index if not exists idx_sms_queue_created_at on public.sms_queue(created_
 -- Enable Row Level Security (RLS)
 alter table public.sms_queue enable row level security;
 
--- Permissive policy for demo and gateway integration
+-- Permissive policy for demo and gateway integration (idempotent)
+drop policy if exists "Allow all operations on sms_queue" on public.sms_queue;
 create policy "Allow all operations on sms_queue"
   on public.sms_queue
   for all
@@ -33,5 +34,16 @@ create policy "Allow all operations on sms_queue"
 
 -- Enable Supabase Realtime CDC publication for instant WebSocket push
 alter table public.sms_queue replica identity full;
-alter publication supabase_realtime add table public.sms_queue;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables 
+    where pubname = 'supabase_realtime' 
+    and schemaname = 'public' 
+    and tablename = 'sms_queue'
+  ) then
+    alter publication supabase_realtime add table public.sms_queue;
+  end if;
+end $$;
 
