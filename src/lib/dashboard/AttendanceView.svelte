@@ -161,8 +161,8 @@
     </label>
   </div>
 
-  <!-- Student Roster Table -->
-  <div class="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+  <!-- Student Roster Table (Desktop: table, Mobile: Android cards) -->
+  <div class="hidden md:block bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
     <table class="w-full text-left text-xs">
       <thead class="bg-slate-950/70 border-b border-slate-800 text-slate-400 uppercase font-semibold text-[11px] tracking-wider">
         <tr>
@@ -226,5 +226,64 @@
         {/each}
       </tbody>
     </table>
+  </div>
+
+  <!-- Mobile Android Attendance Cards (Visible on mobile only) -->
+  <div class="block md:hidden space-y-2.5">
+    {#each batchStudents as s}
+      {@const currentStatus = studentStatuses[s.id] || 'present'}
+      <div class="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-sm flex flex-col gap-2.5 {currentStatus === 'absent' ? 'border-rose-500/40 bg-rose-950/10' : ''}">
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2.5">
+            <img src={s.photo} alt={s.name} class="w-9 h-9 rounded-xl object-cover border border-slate-700 shrink-0" />
+            <div>
+              <div class="font-bold text-white text-xs leading-tight">{s.name}</div>
+              <div class="text-[11px] text-slate-400 mt-0.5">
+                <span class="text-indigo-400 font-mono font-bold">রোল: {s.rollNo}</span>
+              </div>
+            </div>
+          </div>
+          <span class="text-[10px] px-2 py-0.5 rounded-full font-bold
+            {currentStatus === 'present' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' :
+             currentStatus === 'late' ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30' :
+             'bg-rose-500/15 text-rose-400 border border-rose-500/30'}">
+            {currentStatus === 'present' ? 'উপস্থিত' : currentStatus === 'late' ? 'দেরি' : 'অনুপস্থিত'}
+          </span>
+        </div>
+
+        <!-- Android 3-Segment Button Bar -->
+        <div class="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-slate-950/80 border border-slate-800/80">
+          <button
+            type="button"
+            class="py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition-all
+            {currentStatus === 'present' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}"
+            on:click={() => toggleStudentStatus(s.id, 'present')}
+          >
+            <CheckCircle2 class="w-3.5 h-3.5" />
+            <span>উপস্থিত</span>
+          </button>
+
+          <button
+            type="button"
+            class="py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition-all
+            {currentStatus === 'late' ? 'bg-amber-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}"
+            on:click={() => toggleStudentStatus(s.id, 'late')}
+          >
+            <Clock class="w-3.5 h-3.5" />
+            <span>দেরি</span>
+          </button>
+
+          <button
+            type="button"
+            class="py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition-all
+            {currentStatus === 'absent' ? 'bg-rose-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}"
+            on:click={() => toggleStudentStatus(s.id, 'absent')}
+          >
+            <XCircle class="w-3.5 h-3.5" />
+            <span>অনুপস্থিত</span>
+          </button>
+        </div>
+      </div>
+    {/each}
   </div>
 </div>

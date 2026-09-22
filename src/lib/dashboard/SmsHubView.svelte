@@ -10,6 +10,7 @@
     buySmsPack,
     toggleAndroidGateway,
     showToast,
+    addSmsTemplate,
   } from '../store';
   import Badge from '../components/Badge.svelte';
   import Modal from '../components/Modal.svelte';
@@ -49,9 +50,11 @@
   $: gateway = $smsAccount.androidGateway;
   $: cloudBalance = $smsAccount.cloudBalance;
 
-  // Character calculation
+  // Character & SMS Part calculation
   $: charCount = messageContent.length;
-  $: smsParts = Math.ceil(charCount / 160) || 1;
+  $: isBanglaMsg = /[\u0980-\u09FF]/.test(messageContent);
+  $: partLimit = isBanglaMsg ? 70 : 160;
+  $: smsParts = Math.ceil(charCount / partLimit) || 1;
 
   function insertVariable(varName: string) {
     messageContent += ` ${varName}`;
@@ -91,6 +94,25 @@
   function copyToClipboard(text: string, label: string) {
     navigator.clipboard.writeText(text);
     showToast('info', 'Copied to Clipboard', `${label} is now in your clipboard.`);
+  }
+
+  function saveCurrentAsTemplate() {
+    if (!messageContent.trim()) {
+      showToast('error', 'মেসেজ খালি', 'টেমপ্লেট হিসেবে সংরক্ষণ করতে মেসেজ লিখুন।');
+      return;
+    }
+    const title = prompt('নতুন SMS টেমপ্লেটের নাম / শিরোনাম দিন:', 'কাস্টম ক্যাম্পেইন টেমপ্লেট');
+    if (!title || !title.trim()) return;
+
+    addSmsTemplate({
+      title: title.trim(),
+      category: 'general',
+      eventType: `custom_${Date.now().toString(36)}`,
+      contentBangla: messageContent.trim(),
+      contentEnglish: messageContent.trim(),
+      variables: ['{student_name}', '{guardian_name}', '{due_amount}', '{batch_name}'],
+      activeLanguage: /[\u0980-\u09FF]/.test(messageContent) ? 'bangla' : 'english',
+    });
   }
 </script>
 
@@ -470,18 +492,55 @@
         </div>
       {/if}
 
-      <!-- Message Content -->
+      <!-- Message Content & Template Shortcuts -->
       <div>
-        <div class="flex items-center justify-between mb-1.5">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
           <label for="compose-textarea" class="font-semibold text-slate-300">Message Text Body</label>
-          <span class="text-slate-400 text-[11px] font-mono">{charCount} chars • {smsParts} SMS Part</span>
+
+          <div class="flex items-center gap-2">
+            <!-- Select Template Dropdown -->
+            <select
+              aria-label="Load from Template"
+              class="px-2.5 py-1 rounded-xl bg-slate-950 border border-slate-800 text-indigo-300 hover:border-indigo-500/50 text-[11px] focus:outline-none"
+              on:change={(e) => {
+                const id = e.currentTarget.value;
+                if (!id) return;
+                const found = $smsTemplates.find((t) => t.id === id);
+                if (found) {
+                  messageContent = found.activeLanguage === 'english' ? found.contentEnglish : found.contentBangla;
+                  showToast('info', 'টেমপ্লেট লোড হয়েছে', `'${found.title}' মেসেজ বক্সে যুক্ত হয়েছে।`);
+                }
+              }}
+            >
+              <option value="">📂 Load Saved Template ({$smsTemplates.length})</option>
+              {#each $smsTemplates as tpl}
+                <option value={tpl.id}>{tpl.title}</option>
+              {/each}
+            </select>
+
+            <!-- Save as Template Button -->
+            <button
+              type="button"
+              class="px-2.5 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-slate-700 hover:border-emerald-500/40 text-[11px] font-semibold transition-all flex items-center gap-1"
+              on:click={saveCurrentAsTemplate}
+              title="বর্তমান টেক্সটকে একটি নতুন SMS টেমপ্লেট হিসেবে সংরক্ষণ করুন"
+            >
+              <span>+ Save as Template</span>
+            </button>
+          </div>
         </div>
-        <textarea
-          id="compose-textarea"
-          rows="4"
-          bind:value={messageContent}
-          class="w-full p-3 rounded-2xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 text-xs leading-relaxed"
-        ></textarea>
+
+        <div class="relative">
+          <textarea
+            id="compose-textarea"
+            rows="4"
+            bind:value={messageContent}
+            class="w-full p-3 rounded-2xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 text-xs leading-relaxed"
+          ></textarea>
+          <div class="flex items-center justify-between text-[11px] text-slate-400 font-mono mt-1 px-1">
+            <span>{charCount} chars • {smsParts} SMS Part ({isBanglaMsg ? 'Unicode/Bangla 70 chars' : 'ASCII 160 chars'})</span>
+          </div>
+        </div>
       </div>
 
       <!-- Placeholder Helper Tags -->

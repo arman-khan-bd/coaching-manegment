@@ -221,8 +221,8 @@
     </div>
   </div>
 
-  <!-- Students Table -->
-  <div class="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+  <!-- Students Table (Desktop: list view table, Mobile: Android cards) -->
+  <div class="hidden md:block bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
     <div class="overflow-x-auto">
       <table class="w-full text-left text-xs">
         <thead class="bg-slate-950/70 border-b border-slate-800 text-slate-400 uppercase font-semibold text-[11px] tracking-wider">
@@ -323,6 +323,90 @@
         </tbody>
       </table>
     </div>
+  </div>
+
+  <!-- Mobile Android App Student Cards (Visible on mobile only) -->
+  <div class="block md:hidden space-y-3">
+    {#each filteredStudents as s}
+      <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-md flex flex-col gap-3">
+        <div class="flex items-start justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <img src={s.photo} alt={s.name} class="w-12 h-12 rounded-xl object-cover border border-slate-700 shrink-0" />
+            <div>
+              <div class="font-bold text-white text-sm leading-tight">{s.name}</div>
+              <div class="text-[11px] text-slate-400 mt-1 flex items-center gap-2">
+                <span class="text-indigo-400 font-bold font-mono">রোল: {s.rollNo}</span>
+                <span>•</span>
+                <span class="text-slate-300 font-medium">{s.bloodGroup}</span>
+              </div>
+            </div>
+          </div>
+          <div>
+            {#if s.feesDue === 0}
+              <Badge variant="success" size="sm">পরিশোধিত</Badge>
+            {:else}
+              <Badge variant="danger" size="sm">৳{s.feesDue.toLocaleString()} বকেয়া</Badge>
+            {/if}
+          </div>
+        </div>
+
+        <!-- Batches Chips -->
+        <div class="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-800/70">
+          <span class="text-[10px] text-slate-400">ব্যাচ:</span>
+          {#each s.batchIds as bid}
+            {@const batchObj = $batches.find((b) => b.id === bid)}
+            {#if batchObj}
+              <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
+                {batchObj.name}
+              </span>
+            {/if}
+          {/each}
+        </div>
+
+        <!-- Guardian Details & 1-Tap Mobile Actions -->
+        <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-800/70 text-xs">
+          <div>
+            <div class="text-[10px] text-slate-400">অভিভাবক ({s.guardianName})</div>
+            <a href="tel:{s.guardianPhone}" class="text-[11px] font-semibold text-emerald-400 hover:underline">
+              {s.guardianPhone}
+            </a>
+          </div>
+
+          <div class="flex items-center gap-1.5">
+            <button
+              type="button"
+              class="px-2.5 py-1.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/40 font-semibold text-xs flex items-center gap-1"
+              on:click={() => handleOpenSms(s)}
+            >
+              <MessageSquare class="w-3.5 h-3.5 text-emerald-400" />
+              <span>SMS</span>
+            </button>
+            <button
+              type="button"
+              class="p-2 rounded-xl bg-indigo-600/15 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30"
+              title="আইডি কার্ড"
+              on:click={() => handleOpenCard(s)}
+            >
+              <QrCode class="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              class="p-2 rounded-xl bg-rose-600/10 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-500/20"
+              title="মুছুন"
+              on:click={() => deleteStudent(s.id)}
+            >
+              <Trash2 class="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+    {/each}
+
+    {#if filteredStudents.length === 0}
+      <div class="text-center py-8 text-slate-400 text-xs bg-slate-900/40 rounded-2xl border border-slate-800">
+        কোনো শিক্ষার্থী পাওয়া যায়নি
+      </div>
+    {/if}
   </div>
 </div>
 

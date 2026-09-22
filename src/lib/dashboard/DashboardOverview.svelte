@@ -24,6 +24,13 @@
     UserCheck,
     TrendingUp,
     Printer,
+    QrCode,
+    BookOpen,
+    Settings,
+    MessageSquare,
+    Sparkles,
+    Radio,
+    ChevronRight,
   } from 'lucide-svelte';
 
   $: totalStudents = $students.length;
@@ -36,6 +43,81 @@
   $: todayRecords = $attendanceRecords.filter((r) => r.date === today);
   $: presentCount = todayRecords.filter((r) => r.status === 'present').length;
   $: absentCount = todayRecords.filter((r) => r.status === 'absent').length;
+
+  const quickActionCards = [
+    {
+      title: 'নতুন ভর্তি',
+      subtitle: 'Admit Student',
+      route: '/dashboard/students',
+      icon: Plus,
+      color: 'from-blue-600 to-indigo-600',
+      shadow: 'shadow-blue-600/25',
+      badge: 'ভর্তি ফরম',
+    },
+    {
+      title: 'হাজিরা গ্রহণ',
+      subtitle: 'Daily Attendance',
+      route: '/dashboard/attendance',
+      icon: CalendarCheck,
+      color: 'from-emerald-600 to-teal-600',
+      shadow: 'shadow-emerald-600/25',
+      badge: 'লাইভ',
+    },
+    {
+      title: 'এসএমএস পাঠান',
+      subtitle: 'Broadcast SMS',
+      route: '/dashboard/sms',
+      icon: MessageSquare,
+      color: 'from-cyan-600 to-blue-600',
+      shadow: 'shadow-cyan-600/25',
+      badge: 'সিম গেটওয়ে',
+    },
+    {
+      title: 'ফি ও রসিদ',
+      subtitle: 'Fee Invoicing',
+      route: '/dashboard/fees',
+      icon: CreditCard,
+      color: 'from-amber-500 to-orange-600',
+      shadow: 'shadow-amber-600/25',
+      badge: 'বিকাশ/নগদ',
+    },
+    {
+      title: 'আইডি কার্ড',
+      subtitle: 'Print ID Cards',
+      route: '/dashboard/idcards',
+      icon: QrCode,
+      color: 'from-purple-600 to-pink-600',
+      shadow: 'shadow-purple-600/25',
+      badge: 'A4 শিট',
+    },
+    {
+      title: 'সিলেবাস ও রুটিন',
+      subtitle: 'Exam & Classes',
+      route: '/dashboard/syllabus-routine',
+      icon: BookOpen,
+      color: 'from-indigo-600 to-violet-600',
+      shadow: 'shadow-indigo-600/25',
+      badge: 'প্রিন্ট রেডি',
+    },
+    {
+      title: 'এসএমএস টেমপ্লেট',
+      subtitle: 'Preset Templates',
+      route: '/dashboard/sms-templates',
+      icon: Sparkles,
+      color: 'from-teal-600 to-emerald-600',
+      shadow: 'shadow-teal-600/25',
+      badge: 'বাংলা/Eng',
+    },
+    {
+      title: 'ইনস্টিটিউট সেটিংস',
+      subtitle: 'Center Config',
+      route: '/dashboard/settings',
+      icon: Settings,
+      color: 'from-slate-700 to-slate-900',
+      shadow: 'shadow-slate-700/25',
+      badge: 'ম্যানেজার',
+    },
+  ];
 
   const todayBatches = [
     {
@@ -68,25 +150,66 @@
   ];
 </script>
 
-<div class="space-y-6">
-  <!-- Institute Banner & Quick Actions -->
-  <div class="rounded-3xl p-6 sm:p-8 bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border border-slate-800 shadow-xl relative overflow-hidden">
+<div class="space-y-4 sm:space-y-6">
+  <!-- Mobile Android App Top Card (Visible on Mobile) -->
+  <div class="block md:hidden">
+    <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-900/90 via-slate-900 to-slate-950 border border-indigo-500/30 p-4 shadow-xl">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            লাইভ সিম গেটওয়ে
+          </span>
+          <span class="text-[11px] text-indigo-300 font-medium">সেশন {$instituteSettings.academicYear}</span>
+        </div>
+        <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+          {$instituteSettings.currency} কারেন্সি
+        </span>
+      </div>
+
+      <h1 class="text-xl font-black text-white font-['Outfit'] tracking-tight">
+        {$instituteSettings.name}
+      </h1>
+      <p class="text-xs text-slate-300 mt-1 line-clamp-1">
+        {$instituteSettings.tagline}
+      </p>
+
+      <!-- Android Mini Summary Bar -->
+      <div class="mt-3.5 pt-3 border-t border-slate-800/80 grid grid-cols-3 gap-2 text-center text-xs">
+        <div class="bg-slate-950/50 p-2 rounded-xl border border-slate-800/60">
+          <div class="text-[10px] text-slate-400 font-medium">মোট শিক্ষার্থী</div>
+          <div class="text-base font-extrabold text-white font-['Outfit']">{totalStudents}</div>
+        </div>
+        <div class="bg-slate-950/50 p-2 rounded-xl border border-slate-800/60">
+          <div class="text-[10px] text-slate-400 font-medium">আদায়কৃত ফি</div>
+          <div class="text-base font-extrabold text-emerald-400 font-['Outfit']">৳{(totalCollected/1000).toFixed(0)}k</div>
+        </div>
+        <div class="bg-slate-950/50 p-2 rounded-xl border border-slate-800/60">
+          <div class="text-[10px] text-slate-400 font-medium">আজকের SMS</div>
+          <div class="text-base font-extrabold text-cyan-400 font-['Outfit']">{$smsAccount.androidGateway.sim1DailySent}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Desktop Institute Banner (Hidden on Mobile) -->
+  <div class="hidden md:block rounded-3xl p-6 sm:p-8 bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border border-slate-800 shadow-xl relative overflow-hidden">
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
       <div>
         <div class="flex items-center gap-2 text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-2">
-          <span>Academic Session {$instituteSettings.academicYear}</span>
+          <span>অ্যাকাডেমিক সেশন {$instituteSettings.academicYear}</span>
           <span>•</span>
-          <span class="text-emerald-400">All Systems Synced</span>
+          <span class="text-emerald-400">সকল সিস্টেম ক্লাউড ও অ্যান্ড্রোয়েড সিঙ্কড</span>
         </div>
         <h1 class="text-2xl sm:text-3xl font-extrabold text-white font-['Outfit']">
-          Welcome back to {$instituteSettings.name}
+          স্বাগতম - {$instituteSettings.name}
         </h1>
         <p class="text-xs sm:text-sm text-slate-300 mt-1.5 max-w-xl">
-          {$instituteSettings.tagline}. Today has 3 scheduled batch sessions and 148 automated parent SMS dispatched.
+          {$instituteSettings.tagline}। আজকের শিডিউলে ৩টি ব্যাচ ক্লাস ও স্বয়ংক্রিয় অভিভাবক এসএমএস সেবা চালু রয়েছে।
         </p>
       </div>
 
-      <!-- Quick Action Buttons -->
+      <!-- Quick Action Buttons on Desktop -->
       <div class="flex flex-wrap items-center gap-2.5">
         <button
           type="button"
@@ -94,7 +217,7 @@
           on:click={() => navigate('/dashboard/students')}
         >
           <Plus class="w-4 h-4" />
-          <span>Admit Student</span>
+          <span>নতুন শিক্ষার্থী ভর্তি</span>
         </button>
 
         <button
@@ -103,7 +226,7 @@
           on:click={() => navigate('/dashboard/attendance')}
         >
           <CalendarCheck class="w-4 h-4" />
-          <span>Mark Attendance</span>
+          <span>ডিজিটাল হাজিরা</span>
         </button>
 
         <button
@@ -112,76 +235,120 @@
           on:click={() => navigate('/dashboard/sms')}
         >
           <Smartphone class="w-4 h-4 text-emerald-400" />
-          <span>Send SMS Alert</span>
+          <span>এসএমএস হাব</span>
         </button>
       </div>
     </div>
   </div>
 
-  <!-- Key Metrics Row -->
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+  <!-- Android App Style Quick Action Cards (Highlighted on Mobile & Desktop) -->
+  <div>
+    <div class="flex items-center justify-between mb-3">
+      <div class="flex items-center gap-2">
+        <div class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></div>
+        <h2 class="text-sm sm:text-base font-bold text-white font-['Outfit'] tracking-tight">
+          কুইক অ্যাকশন মেনু (Quick Actions)
+        </h2>
+      </div>
+      <span class="text-[11px] text-slate-400 font-medium">অ্যান্ড্রয়েড অ্যাপ স্টাইল বোতাম</span>
+    </div>
+
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3.5">
+      {#each quickActionCards as card}
+        <button
+          type="button"
+          class="group relative overflow-hidden text-left p-3.5 rounded-2xl bg-slate-900/90 hover:bg-slate-850 border border-slate-800 hover:border-indigo-500/50 transition-all duration-200 shadow-md hover:shadow-lg active:scale-[0.98] flex flex-col justify-between min-h-[108px] sm:min-h-[120px]"
+          on:click={() => navigate(card.route)}
+        >
+          <div class="flex items-start justify-between w-full">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br {card.color} text-white flex items-center justify-center shadow-lg {card.shadow} group-hover:scale-105 transition-transform">
+              <svelte:component this={card.icon} class="w-5 h-5" />
+            </div>
+            <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-slate-800/80 text-indigo-300 border border-slate-700/60">
+              {card.badge}
+            </span>
+          </div>
+
+          <div class="mt-2.5">
+            <div class="text-xs sm:text-sm font-bold text-white group-hover:text-indigo-300 transition-colors flex items-center justify-between">
+              <span>{card.title}</span>
+              <ChevronRight class="w-3.5 h-3.5 text-slate-500 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all" />
+            </div>
+            <div class="text-[10px] text-slate-400 mt-0.5 truncate">
+              {card.subtitle}
+            </div>
+          </div>
+        </button>
+      {/each}
+    </div>
+  </div>
+
+  <!-- Key Metrics Row (2 columns on mobile, 4 columns on desktop) -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
     <!-- Enrolled Students -->
-    <div class="p-5 rounded-2xl bg-slate-900/70 border border-slate-800 hover:border-indigo-500/40 transition-colors">
+    <div class="p-3.5 sm:p-5 rounded-2xl bg-slate-900/70 border border-slate-800 hover:border-indigo-500/40 transition-colors">
       <div class="flex items-center justify-between">
-        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Enrolled Students</span>
-        <div class="p-2.5 rounded-xl bg-indigo-500/15 text-indigo-400">
-          <Users class="w-5 h-5" />
+        <span class="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wide">শিক্ষার্থী</span>
+        <div class="p-2 sm:p-2.5 rounded-xl bg-indigo-500/15 text-indigo-400">
+          <Users class="w-4 h-4 sm:w-5 sm:h-5" />
         </div>
       </div>
-      <div class="mt-3 flex items-baseline gap-2">
-        <span class="text-3xl font-bold text-white font-['Outfit']">{totalStudents}</span>
-        <span class="text-xs font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">+14% MoM</span>
+      <div class="mt-2 sm:mt-3 flex flex-wrap items-baseline gap-1.5">
+        <span class="text-2xl sm:text-3xl font-bold text-white font-['Outfit']">{totalStudents}</span>
+        <span class="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full border border-emerald-500/20">ভর্তি সক্রিয়</span>
       </div>
-      <p class="text-[11px] text-slate-400 mt-2">Active across 4 academic courses</p>
+      <p class="text-[10px] sm:text-[11px] text-slate-400 mt-1.5 truncate">সকল ব্যাচ মিলিয়ে</p>
     </div>
 
     <!-- Active Batches -->
-    <div class="p-5 rounded-2xl bg-slate-900/70 border border-slate-800 hover:border-violet-500/40 transition-colors">
+    <div class="p-3.5 sm:p-5 rounded-2xl bg-slate-900/70 border border-slate-800 hover:border-violet-500/40 transition-colors">
       <div class="flex items-center justify-between">
-        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Active Batches</span>
-        <div class="p-2.5 rounded-xl bg-violet-500/15 text-violet-400">
-          <Layers class="w-5 h-5" />
+        <span class="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wide">সক্রিয় ব্যাচ</span>
+        <div class="p-2 sm:p-2.5 rounded-xl bg-violet-500/15 text-violet-400">
+          <Layers class="w-4 h-4 sm:w-5 sm:h-5" />
         </div>
       </div>
-      <div class="mt-3 flex items-baseline gap-2">
-        <span class="text-3xl font-bold text-white font-['Outfit']">{activeBatches} Batches</span>
+      <div class="mt-2 sm:mt-3 flex items-baseline gap-1.5">
+        <span class="text-2xl sm:text-3xl font-bold text-white font-['Outfit']">{activeBatches}</span>
+        <span class="text-[10px] text-violet-300 font-medium">ব্যাচসমূহ</span>
       </div>
-      <div class="mt-2 flex items-center justify-between text-[11px] text-slate-400">
-        <span>Capacity Occupancy:</span>
-        <span class="font-bold text-indigo-300">82% Filled</span>
+      <div class="mt-1.5 flex items-center justify-between text-[10px] sm:text-[11px] text-slate-400">
+        <span>ধারণক্ষমতা:</span>
+        <span class="font-bold text-indigo-300">৮২% পূর্ণ</span>
       </div>
     </div>
 
     <!-- Tuition Collections -->
-    <div class="p-5 rounded-2xl bg-slate-900/70 border border-slate-800 hover:border-amber-500/40 transition-colors">
+    <div class="p-3.5 sm:p-5 rounded-2xl bg-slate-900/70 border border-slate-800 hover:border-amber-500/40 transition-colors">
       <div class="flex items-center justify-between">
-        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Collections (Month)</span>
-        <div class="p-2.5 rounded-xl bg-amber-500/15 text-amber-400">
-          <CreditCard class="w-5 h-5" />
+        <span class="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wide">ফি আদায়</span>
+        <div class="p-2 sm:p-2.5 rounded-xl bg-amber-500/15 text-amber-400">
+          <CreditCard class="w-4 h-4 sm:w-5 sm:h-5" />
         </div>
       </div>
-      <div class="mt-3 flex items-baseline gap-2">
-        <span class="text-3xl font-bold text-white font-['Outfit']">৳{totalCollected.toLocaleString()}</span>
-        <span class="text-xs text-rose-400 font-medium">৳{totalDue.toLocaleString()} বকেয়া</span>
+      <div class="mt-2 sm:mt-3 flex flex-wrap items-baseline gap-1.5">
+        <span class="text-xl sm:text-3xl font-bold text-white font-['Outfit']">৳{totalCollected.toLocaleString()}</span>
       </div>
-      <p class="text-[11px] text-slate-400 mt-2">বিকাশ ও নগদে প্রাপ্ত সাম্প্রতিক কালেকশন</p>
+      <div class="mt-1.5 text-[10px] sm:text-[11px] text-rose-400 font-medium truncate">
+        বকেয়া: ৳{totalDue.toLocaleString()}
+      </div>
     </div>
 
     <!-- Dual SMS Status -->
-    <div class="p-5 rounded-2xl bg-slate-900/70 border border-slate-800 hover:border-emerald-500/40 transition-colors">
+    <div class="p-3.5 sm:p-5 rounded-2xl bg-slate-900/70 border border-slate-800 hover:border-emerald-500/40 transition-colors">
       <div class="flex items-center justify-between">
-        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wide">SMS Engine (Own SIM)</span>
-        <div class="p-2.5 rounded-xl bg-emerald-500/15 text-emerald-400">
-          <Smartphone class="w-5 h-5" />
+        <span class="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wide">SMS সিম ইঞ্জিন</span>
+        <div class="p-2 sm:p-2.5 rounded-xl bg-emerald-500/15 text-emerald-400">
+          <Smartphone class="w-4 h-4 sm:w-5 sm:h-5" />
         </div>
       </div>
-      <div class="mt-3 flex items-baseline gap-2">
-        <span class="text-3xl font-bold text-white font-['Outfit']">{$smsAccount.androidGateway.sim1DailySent}</span>
-        <span class="text-xs text-slate-400">/ {$smsAccount.androidGateway.sim1DailyLimit} sent today</span>
+      <div class="mt-2 sm:mt-3 flex items-baseline gap-1.5">
+        <span class="text-2xl sm:text-3xl font-bold text-white font-['Outfit']">{$smsAccount.androidGateway.sim1DailySent}</span>
+        <span class="text-[10px] text-slate-400">/ {$smsAccount.androidGateway.sim1DailyLimit}</span>
       </div>
-      <div class="mt-2 flex items-center justify-between text-[11px] text-emerald-400">
-        <span>Extra Carrier Cost:</span>
-        <span class="font-bold">৳0.00 (Own SIM)</span>
+      <div class="mt-1.5 flex items-center justify-between text-[10px] sm:text-[11px] text-emerald-400">
+        <span>খরচ:</span>
+        <span class="font-bold">৳০.০০ (নিজস্ব সিম)</span>
       </div>
     </div>
   </div>

@@ -123,19 +123,98 @@ export const subscriptionPlans: SubscriptionPlan[] = [
 // ==========================================
 // INSTITUTE SETTINGS STORE (BANGLADESH CONFIGURED)
 // ==========================================
-export const instituteSettings = writable<InstituteSettings>({
+export const defaultInstituteSettings: InstituteSettings = {
+  // 1. General & Brand
   name: 'এপেক্স অ্যাকাডেমিক কেয়ার (ফার্মগেট শাখা)',
+  nameEnglish: 'Apex Academic Care (Farmgate Branch)',
   tagline: 'HSC বিজ্ঞান, বুয়েট ইঞ্জিনিয়ারিং ও মেডিকেল ভর্তি পরীক্ষার সেরা প্ল্যাটফর্ম',
+  establishedYear: '২০১৮',
+  regNumber: 'TRAD/DSCC/019283/2021',
+  branchName: 'ফার্মগেট প্রধান ক্যাম্পাস',
+  branchCode: 'FGT-01',
+  logo: 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=150&auto=format&fit=crop&q=80',
+
+  // 2. Contact & Campus
   email: 'director@apexacademicbd.com',
   phone: '+880 1711-456789',
+  alternatePhone: '+880 1819-123456',
+  website: 'https://apexacademicbd.com',
   address: 'গ্রিন সুপার মার্কেট, ৩য় তলা, ফার্মগেট, ঢাকা-১২১৫',
-  logo: 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=150&auto=format&fit=crop&q=80',
+  division: 'ঢাকা',
+  district: 'ঢাকা',
+  thana: 'তেজগাঁও',
+  googleMapsUrl: 'https://maps.google.com/?q=Farmgate+Dhaka',
+
+  // 3. Authorization, Seal & Signatures
+  directorName: 'ইঞ্জি. মোঃ সাইফুল ইসলাম',
+  directorDesignation: 'নির্বাহী পরিচালক ও প্রতিষ্ঠাতা',
+  directorSignature: 'Md. Saiful Islam',
+  academicCoordinator: 'ড. তানভীর আহমেদ (অ্যাকাডেমিক কো-অর্ডিনেটর)',
+  officialSealText: 'APEX ACADEMIC CARE • SEAL OF EXCELLENCE • DHAKA-1215',
+
+  // 4. Financial & Payment Accounts
+  bkashMerchant: '01711-456789',
+  nagadMerchant: '01819-123456',
+  rocketNumber: '01711-456789-7',
+  bankAccountName: 'Apex Academic Care BD Ltd.',
+  bankName: 'Dutch-Bangla Bank PLC',
+  bankBranch: 'Farmgate Branch, Dhaka',
+  bankAccountNumber: '126.120.0049281',
+  bankRouting: '090271829',
+  receiptHeaderNote: 'সকল পেমেন্টের মানি রিসিট সংরক্ষণ করুন। কোচিং কর্তৃপক্ষের অনুমতি ব্যতীত ফি অফেরতযোগ্য।',
+  receiptFooterNote: 'ধন্যবাদান্তে: এপেক্স অ্যাকাডেমিক কেয়ার হিসাব শাখা। জরুরি হেল্পলাইন: +880 1711-456789।',
+
+  // 5. Academic & Operations
   currency: 'BDT',
   currencySymbol: '৳',
-  defaultSmsGateway: 'android',
   academicYear: '২০২৬-২০২৭',
   timezone: 'Asia/Dhaka (GMT+6)',
-});
+  weeklyHolidays: 'শুক্রবার (Friday)',
+  classDurationMinutes: 90,
+  admissionFeeDefault: 2000,
+
+  // 6. SMS & Automation
+  defaultSmsGateway: 'android',
+  smsSenderId: 'APEXCARE',
+  autoSmsOnAdmission: true,
+  autoSmsOnAttendance: true,
+  autoSmsOnFeePayment: true,
+  autoSmsOnExamResult: true,
+  preferredSmsLanguage: 'bangla',
+
+  // 7. ID Card & Prefixes
+  idCardPrefix: 'AAC-',
+  idCardValidity: 'ডিসেম্বর ২০২৬ পর্যন্ত',
+  showBloodGroupOnId: true,
+  showGuardianPhoneOnId: true,
+  showBarcodeOnId: true,
+};
+
+function loadStoredSettings(): InstituteSettings {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('coachflow_institute_settings');
+    if (saved) {
+      try {
+        return { ...defaultInstituteSettings, ...JSON.parse(saved) };
+      } catch (e) {
+        console.error('Failed to parse institute settings from localStorage', e);
+      }
+    }
+  }
+  return defaultInstituteSettings;
+}
+
+export const instituteSettings = writable<InstituteSettings>(loadStoredSettings());
+
+if (typeof window !== 'undefined') {
+  instituteSettings.subscribe((val) => {
+    try {
+      localStorage.setItem('coachflow_institute_settings', JSON.stringify(val));
+    } catch (e) {
+      // ignore
+    }
+  });
+}
 
 // ==========================================
 // COURSES & UNITS STORE (NCTB & ADMISSION CURRICULUMS)
@@ -612,7 +691,7 @@ export const smsAccount = writable<SmsAccount>({
   },
 });
 
-export const smsTemplates = writable<SmsTemplate[]>([
+export const initialSmsTemplates: SmsTemplate[] = [
   {
     id: 'tpl-1',
     title: 'দৈনিক ক্লাসে অনুপস্থিতি সতর্কতা',
@@ -701,7 +780,36 @@ export const smsTemplates = writable<SmsTemplate[]>([
     activeLanguage: 'bangla',
     content: 'বিজ্ঞপ্তি: {holiday_occasion} উপলক্ষে আগামী {holiday_date} তারিখে সকল ক্লাস বন্ধ থাকবে। - {institute_name}',
   },
-]);
+];
+
+function loadStoredTemplates(): SmsTemplate[] {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('coachflow_sms_templates');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      } catch (e) {
+        console.error('Failed to parse sms templates from localStorage', e);
+      }
+    }
+  }
+  return initialSmsTemplates;
+}
+
+export const smsTemplates = writable<SmsTemplate[]>(loadStoredTemplates());
+
+if (typeof window !== 'undefined') {
+  smsTemplates.subscribe((val) => {
+    try {
+      localStorage.setItem('coachflow_sms_templates', JSON.stringify(val));
+    } catch (e) {
+      // ignore
+    }
+  });
+}
 
 export const smsLogs = writable<SmsLog[]>([
   {
@@ -943,15 +1051,38 @@ export function toggleAndroidGateway() {
 // ==========================================
 // SMS TEMPLATE CRUD ACTIONS
 // ==========================================
-export function addSmsTemplate(data: Omit<SmsTemplate, 'id'>) {
+export function addSmsTemplate(data: Omit<SmsTemplate, 'id'>): SmsTemplate {
+  const rawBn = data.contentBangla?.trim() || '';
+  const rawEn = data.contentEnglish?.trim() || '';
+  const bn = rawBn || rawEn || 'সম্মানিত অভিভাবক, একাডেমি থেকে জরুরি নোটিশ।';
+  const en = rawEn || rawBn || 'Dear Guardian, urgent notice from the academy.';
+  const activeLang = data.activeLanguage || (rawBn ? 'bangla' : 'english');
+
+  let vars = data.variables;
+  if (!vars || vars.length === 0) {
+    const combined = `${bn} ${en}`;
+    const matches = combined.match(/\{[a-zA-Z0-9_]+\}/g) || [];
+    vars = Array.from(new Set(matches));
+    if (vars.length === 0) {
+      vars = ['{student_name}', '{institute_name}', '{institute_phone}'];
+    }
+  }
+
   const newTpl: SmsTemplate = {
-    id: `tpl-${Date.now()}`,
-    ...data,
-    activeLanguage: data.activeLanguage || 'bangla',
-    content: data.activeLanguage === 'english' ? data.contentEnglish : data.contentBangla,
+    id: `tpl-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    title: data.title?.trim() || 'নতুন SMS টেমপ্লেট',
+    category: data.category || 'general',
+    eventType: data.eventType?.trim() || `${data.category || 'general'}_${Date.now().toString(36)}`,
+    contentBangla: bn,
+    contentEnglish: en,
+    variables: vars,
+    activeLanguage: activeLang,
+    content: activeLang === 'english' ? en : bn,
   };
+
   smsTemplates.update((all) => [newTpl, ...all]);
   showToast('success', 'নতুন SMS টেমপ্লেট সংরক্ষিত', `'${newTpl.title}' সফলভাবে যুক্ত হয়েছে।`);
+  return newTpl;
 }
 
 export function updateSmsTemplate(id: string, updates: Partial<SmsTemplate>) {

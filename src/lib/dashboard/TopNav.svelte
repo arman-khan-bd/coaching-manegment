@@ -40,21 +40,42 @@
     navigate('/login');
     showToast('info', 'Logged Out', 'You have been signed out of your academy session.');
   }
+  const pageTitles: Record<string, { bn: string; en: string }> = {
+    overview: { bn: 'ড্যাশবোর্ড', en: 'Dashboard' },
+    students: { bn: 'শিক্ষার্থী তালিকা', en: 'Students' },
+    idcards: { bn: 'আইডি কার্ড স্টুডিও', en: 'ID Cards' },
+    teachers: { bn: 'শিক্ষক ও স্টাফ', en: 'Teachers' },
+    academics: { bn: 'কোর্স ও ব্যাচ', en: 'Academics' },
+    syllabus_routine: { bn: 'সিলেবাস ও রুটিন', en: 'Routine' },
+    attendance: { bn: 'ব্যাচ হাজিরা', en: 'Attendance' },
+    sms: { bn: 'এসএমএস হাব', en: 'SMS Hub' },
+    sms_templates: { bn: 'এসএমএস টেমপ্লেট', en: 'Templates' },
+    fees: { bn: 'ফি ও রসিদ', en: 'Invoicing' },
+    exams: { bn: 'পরীক্ষা ও ফলাফল', en: 'Exams' },
+    settings: { bn: 'ইনস্টিটিউট সেটিংস', en: 'Settings' },
+  };
 </script>
 
-<header class="sticky top-0 z-20 h-16 bg-slate-900/90 border-b border-slate-800 backdrop-blur-xl px-4 sm:px-6 flex items-center justify-between gap-4">
-  <!-- Left: Mobile Menu & Search -->
-  <div class="flex items-center gap-3 flex-1 max-w-md">
+<header class="sticky top-0 z-20 h-16 bg-slate-900/95 border-b border-slate-800 backdrop-blur-xl px-3 sm:px-6 flex items-center justify-between gap-3">
+  <!-- Left: Mobile Menu & Android Title / Desktop Search -->
+  <div class="flex items-center gap-2.5 flex-1 min-w-0">
     <button
       type="button"
-      class="p-2 rounded-xl text-slate-400 hover:text-white md:hidden hover:bg-slate-800 transition-colors"
+      class="p-2 rounded-xl text-slate-400 hover:text-white md:hidden hover:bg-slate-800 transition-colors shrink-0"
       on:click={toggleMobile}
       aria-label="Open sidebar"
     >
       <Menu class="w-5 h-5" />
     </button>
 
-    <div class="relative w-full hidden sm:block">
+    <!-- Mobile Native Android App Bar Title (sm:hidden) -->
+    <div class="sm:hidden flex flex-col min-w-0">
+      <span class="text-xs font-bold text-white truncate">{pageTitles[$activeTab]?.bn || 'ড্যাশবোর্ড'}</span>
+      <span class="text-[10px] text-indigo-400 truncate">{$instituteSettings.name}</span>
+    </div>
+
+    <!-- Desktop Search (hidden on mobile) -->
+    <div class="relative w-full hidden sm:block max-w-md">
       <Search class="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
       <input
         type="text"

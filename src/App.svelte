@@ -33,7 +33,8 @@
 
   import { onMount } from 'svelte';
   import { initSupabaseAuth } from './lib/supabase';
-  import { initRouter } from './lib/router';
+  import { initRouter, navigate } from './lib/router';
+  import { LayoutDashboard, Users, CalendarClock, Smartphone, Grid } from 'lucide-svelte';
 
   let isMobileSidebarOpen = false;
 
@@ -107,7 +108,7 @@
       <div class="flex-1 flex flex-col md:pl-64 min-w-0 transition-all duration-300">
         <TopNav toggleMobile={toggleMobileSidebar} />
 
-        <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+        <main class="flex-1 p-3 sm:p-6 lg:p-8 pb-24 md:pb-8 max-w-7xl w-full mx-auto">
           {#if $activeTab === 'overview'}
             <DashboardOverview />
           {:else if $activeTab === 'students'}
@@ -134,6 +135,76 @@
             <SettingsView />
           {/if}
         </main>
+
+        <!-- Android App Style Bottom Navigation Bar (md:hidden) -->
+        <nav class="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-slate-900/95 border-t border-slate-800 backdrop-blur-xl px-2 py-1.5 flex items-center justify-around shadow-2xl">
+          <button
+            type="button"
+            class="flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all {$activeTab === 'overview' ? 'text-indigo-400 font-bold scale-105' : 'text-slate-400 hover:text-white'}"
+            on:click={() => navigate('/dashboard/overview')}
+          >
+            <div class="relative">
+              <LayoutDashboard class="w-5 h-5" />
+              {#if $activeTab === 'overview'}
+                <span class="w-1 h-1 rounded-full bg-indigo-400 absolute -bottom-1 left-1/2 -translate-x-1/2"></span>
+              {/if}
+            </div>
+            <span class="text-[10px]">হোম</span>
+          </button>
+
+          <button
+            type="button"
+            class="flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all {$activeTab === 'students' ? 'text-indigo-400 font-bold scale-105' : 'text-slate-400 hover:text-white'}"
+            on:click={() => navigate('/dashboard/students')}
+          >
+            <div class="relative">
+              <Users class="w-5 h-5" />
+              {#if $activeTab === 'students'}
+                <span class="w-1 h-1 rounded-full bg-indigo-400 absolute -bottom-1 left-1/2 -translate-x-1/2"></span>
+              {/if}
+            </div>
+            <span class="text-[10px]">শিক্ষার্থী</span>
+          </button>
+
+          <button
+            type="button"
+            class="flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all {$activeTab === 'syllabus_routine' ? 'text-indigo-400 font-bold scale-105' : 'text-slate-400 hover:text-white'}"
+            on:click={() => navigate('/dashboard/syllabus-routine')}
+          >
+            <div class="relative">
+              <CalendarClock class="w-5 h-5" />
+              {#if $activeTab === 'syllabus_routine'}
+                <span class="w-1 h-1 rounded-full bg-indigo-400 absolute -bottom-1 left-1/2 -translate-x-1/2"></span>
+              {/if}
+            </div>
+            <span class="text-[10px]">রুটিন</span>
+          </button>
+
+          <button
+            type="button"
+            class="flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all {$activeTab === 'sms' ? 'text-emerald-400 font-bold scale-105' : 'text-slate-400 hover:text-white'}"
+            on:click={() => navigate('/dashboard/sms')}
+          >
+            <div class="relative">
+              <Smartphone class="w-5 h-5" />
+              {#if $activeTab === 'sms'}
+                <span class="w-1 h-1 rounded-full bg-emerald-400 absolute -bottom-1 left-1/2 -translate-x-1/2"></span>
+              {/if}
+            </div>
+            <span class="text-[10px]">SMS হাব</span>
+          </button>
+
+          <button
+            type="button"
+            class="flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all text-slate-400 hover:text-white"
+            on:click={toggleMobileSidebar}
+          >
+            <div class="relative">
+              <Grid class="w-5 h-5" />
+            </div>
+            <span class="text-[10px]">মেনু কার্ড</span>
+          </button>
+        </nav>
       </div>
     </div>
   {/if}

@@ -123,6 +123,65 @@
   $: formBanglaStats = calcParts(formContentBangla, true);
   $: formEnglishStats = calcParts(formContentEnglish, false);
 
+  // Sample Presets for Quick 1-Click Creation
+  const presetTemplates = [
+    {
+      title: 'ভর্তি নিশ্চিতকরণ ও শুভেচ্ছা বার্তা',
+      category: 'general' as const,
+      eventType: 'admission_welcome',
+      contentBangla: 'অভিনন্দন! {student_name} এপেক্স অ্যাকাডেমিক কেয়ারে {course_name}-এ সফলভাবে ভর্তি হয়েছে। রোল: {receipt_no}। হেল্পলাইন: {institute_phone}। - {institute_name}',
+      contentEnglish: 'Congratulations! {student_name} has successfully enrolled in {course_name} at {institute_name}. Roll/Receipt: {receipt_no}. Hotline: {institute_phone}.',
+    },
+    {
+      title: 'জরুরি ক্লাসে অনুপস্থিতি নোটিশ',
+      category: 'attendance' as const,
+      eventType: 'attendance_alert',
+      contentBangla: 'সম্মানিত অভিভাবক, {student_name} আজ {batch_name}-এর ক্লাসে উপস্থিত ছিল না। বিস্তারিত জানতে দ্রুত কল করুন: {institute_phone}। - {institute_name}',
+      contentEnglish: 'Dear Guardian, {student_name} was ABSENT from {batch_name} session today. Contact academy desk: {institute_phone}. - {institute_name}',
+    },
+    {
+      title: 'মাসিক টিউশন ফি বকেয়া তাগাদা',
+      category: 'fees' as const,
+      eventType: 'fee_reminder',
+      contentBangla: 'সম্মানিত অভিভাবক, {student_name}-এর বকেয়া ফি ৳{due_amount} পরিশোধের শেষ তারিখ {due_date}। বিকাশ মার্চেন্ট: 01711-456789। - {institute_name}',
+      contentEnglish: 'Dear Guardian, tuition fee of BDT {due_amount} for {student_name} is due on {due_date}. bKash Merchant: 01711-456789. - {institute_name}',
+    },
+    {
+      title: 'মডেল টেস্ট ফলাফল ও গ্রেডশিট',
+      category: 'exams' as const,
+      eventType: 'exam_results',
+      contentBangla: 'ফলাফল: {exam_title} পরীক্ষায় {student_name} {total_marks}-এ {marks_obtained} নম্বর (গ্রেড: {grade}) অর্জন করেছে। - {institute_name}',
+      contentEnglish: 'Result: {student_name} secured {marks_obtained}/{total_marks} (Grade: {grade}) in {exam_title}. - {institute_name}',
+    },
+  ];
+
+  function loadPreset(preset: typeof presetTemplates[0]) {
+    formTitle = preset.title;
+    formCategory = preset.category;
+    formEventType = preset.eventType;
+    formContentBangla = preset.contentBangla;
+    formContentEnglish = preset.contentEnglish;
+    showToast('info', 'নমুনা টেমপ্লেট লোড হয়েছে', `'${preset.title}' এর ডাটা ফর্মে লোড করা হয়েছে।`);
+  }
+
+  function copyBnToEn() {
+    if (!formContentBangla.trim()) {
+      showToast('warning', 'বাংলা টেক্সট খালি', 'কপি করার জন্য প্রথমে বাংলা মেসেজ লিখুন।');
+      return;
+    }
+    formContentEnglish = formContentBangla;
+    showToast('info', 'কপি সম্পন্ন', 'বাংলা মেসেজটি ইংরেজিতে কপি করা হয়েছে।');
+  }
+
+  function copyEnToBn() {
+    if (!formContentEnglish.trim()) {
+      showToast('warning', 'ইংরেজি টেক্সট খালি', 'কপি করার জন্য প্রথমে ইংরেজি মেসেজ লিখুন।');
+      return;
+    }
+    formContentBangla = formContentEnglish;
+    showToast('info', 'কপি সম্পন্ন', 'ইংরেজি মেসেজটি বাংলায় কপি করা হয়েছে।');
+  }
+
   // Open Create Modal
   function openCreateModal() {
     editingTemplateId = null;
@@ -142,8 +201,8 @@
     formTitle = tpl.title;
     formCategory = tpl.category;
     formEventType = tpl.eventType;
-    formContentBangla = tpl.contentBangla;
-    formContentEnglish = tpl.contentEnglish;
+    formContentBangla = tpl.contentBangla || tpl.content || '';
+    formContentEnglish = tpl.contentEnglish || tpl.content || '';
     formDefaultLang = tpl.activeLanguage || 'bangla';
     activeTextareaTarget = 'bangla';
     isEditModalOpen = true;
@@ -152,9 +211,9 @@
   // Insert Variable Chip into targeted textarea
   function insertVariable(tag: string) {
     if (activeTextareaTarget === 'bangla') {
-      formContentBangla += ` ${tag}`;
+      formContentBangla = (formContentBangla ? formContentBangla + ' ' : '') + tag;
     } else {
-      formContentEnglish += ` ${tag}`;
+      formContentEnglish = (formContentEnglish ? formContentEnglish + ' ' : '') + tag;
     }
   }
 
@@ -162,7 +221,8 @@
   function extractVariables(bnText: string, enText: string): string[] {
     const combined = `${bnText} ${enText}`;
     const matches = combined.match(/\{[a-zA-Z0-9_]+\}/g) || [];
-    return Array.from(new Set(matches));
+    const unique = Array.from(new Set(matches));
+    return unique.length > 0 ? unique : ['{student_name}', '{institute_name}', '{institute_phone}'];
   }
 
   // Save / Update Handler
@@ -171,20 +231,28 @@
       showToast('error', 'শিরোনাম আবশ্যক', 'অনুগ্রহ করে টেমপ্লেটের শিরোনাম লিখুন।');
       return;
     }
-    if (!formContentBangla.trim() || !formContentEnglish.trim()) {
-      showToast('error', 'উভয় ভাষার কন্টেন্ট প্রয়োজন', 'একই সেকশনের জন্য বাংলা ও ইংরেজি উভয় টেক্সট পূরণ করতে হবে।');
+
+    const hasBn = !!formContentBangla.trim();
+    const hasEn = !!formContentEnglish.trim();
+
+    if (!hasBn && !hasEn) {
+      showToast('error', 'মেসেজ কন্টেন্ট প্রয়োজন', 'অন্তত বাংলা অথবা ইংরেজি যেকোনো একটি মেসেজ ফরম্যাট লিখুন।');
       return;
     }
 
-    const vars = extractVariables(formContentBangla, formContentEnglish);
+    // Auto-fallback: if one language is provided and the other is blank, mirror it
+    const finalBn = hasBn ? formContentBangla.trim() : formContentEnglish.trim();
+    const finalEn = hasEn ? formContentEnglish.trim() : formContentBangla.trim();
+
+    const vars = extractVariables(finalBn, finalEn);
 
     if (editingTemplateId) {
       updateSmsTemplate(editingTemplateId, {
         title: formTitle.trim(),
         category: formCategory,
         eventType: formEventType.trim() || `${formCategory}_notice`,
-        contentBangla: formContentBangla.trim(),
-        contentEnglish: formContentEnglish.trim(),
+        contentBangla: finalBn,
+        contentEnglish: finalEn,
         variables: vars,
         activeLanguage: formDefaultLang,
       });
@@ -192,9 +260,9 @@
       addSmsTemplate({
         title: formTitle.trim(),
         category: formCategory,
-        eventType: formEventType.trim() || `${formCategory}_custom`,
-        contentBangla: formContentBangla.trim(),
-        contentEnglish: formContentEnglish.trim(),
+        eventType: formEventType.trim() || `${formCategory}_${Date.now().toString(36)}`,
+        contentBangla: finalBn,
+        contentEnglish: finalEn,
         variables: vars,
         activeLanguage: formDefaultLang,
       });
@@ -647,6 +715,26 @@
       </div>
     </div>
 
+    <!-- Quick Preset Templates Bar -->
+    <div class="p-3 rounded-2xl bg-indigo-950/30 border border-indigo-500/20 space-y-1.5">
+      <div class="flex items-center gap-1.5 text-[11px] font-semibold text-indigo-300">
+        <Sparkles class="w-3.5 h-3.5 text-amber-400" />
+        <span>১-ক্লিকে নমুনা টেমপ্লেট লোড করুন:</span>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        {#each presetTemplates as preset}
+          <button
+            type="button"
+            class="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-indigo-900/60 border border-slate-800 hover:border-indigo-500/40 text-slate-300 hover:text-white text-[11px] transition-all flex items-center gap-1"
+            on:click={() => loadPreset(preset)}
+          >
+            <span>⚡</span>
+            <span>{preset.title}</span>
+          </button>
+        {/each}
+      </div>
+    </div>
+
     <!-- Dynamic Variable Tag Insertion Library -->
     <div class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
       <div class="flex items-center justify-between">
@@ -711,6 +799,27 @@
       ></textarea>
     </div>
 
+    <!-- Quick Synchronize Bar between Bangla and English -->
+    <div class="flex items-center justify-between px-2 py-1 bg-slate-950/60 rounded-xl border border-slate-800 text-[11px]">
+      <span class="text-slate-400">দ্বিভাষিক দ্রুত কপি ও সিঙ্ক:</span>
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          class="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-emerald-300 border border-slate-800 transition-colors"
+          on:click={copyBnToEn}
+        >
+          ↓ বাংলা লেখা ইংরেজিতে কপি
+        </button>
+        <button
+          type="button"
+          class="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-indigo-300 border border-slate-800 transition-colors"
+          on:click={copyEnToBn}
+        >
+          ↑ ইংরেজি লেখা বাংলায় কপি
+        </button>
+      </div>
+    </div>
+
     <!-- ENGLISH TEXTAREA -->
     <div class="space-y-1.5">
       <div class="flex items-center justify-between">
@@ -730,6 +839,9 @@
         placeholder="Dear Guardian, notice regarding {student_name}..."
         class="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 text-xs leading-relaxed font-sans"
       ></textarea>
+      <p class="text-[10px] text-slate-500">
+        * টিপস: যেকোনো একটি ভাষা পূরণ করলেই অপরটি স্বয়ংক্রিয়ভাবে পূরণ হবে।
+      </p>
     </div>
 
     <!-- Modal Actions -->

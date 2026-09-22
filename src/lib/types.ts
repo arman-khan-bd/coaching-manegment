@@ -182,17 +182,70 @@ export interface SmsTemplate {
 }
 
 export interface InstituteSettings {
+  // 1. General & Brand
   name: string;
+  nameEnglish?: string;
   tagline: string;
+  establishedYear?: string;
+  regNumber?: string;
+  branchName?: string;
+  branchCode?: string;
+  logo: string;
+
+  // 2. Contact & Campus
   email: string;
   phone: string;
+  alternatePhone?: string;
+  website?: string;
   address: string;
-  logo: string;
+  division?: string;
+  district?: string;
+  thana?: string;
+  googleMapsUrl?: string;
+
+  // 3. Authorization, Seal & Signatures
+  directorName?: string;
+  directorDesignation?: string;
+  directorSignature?: string;
+  academicCoordinator?: string;
+  officialSealText?: string;
+
+  // 4. Financial & Payment Accounts
+  bkashMerchant?: string;
+  nagadMerchant?: string;
+  rocketNumber?: string;
+  bankAccountName?: string;
+  bankName?: string;
+  bankBranch?: string;
+  bankAccountNumber?: string;
+  bankRouting?: string;
+  receiptHeaderNote?: string;
+  receiptFooterNote?: string;
+
+  // 5. Academic & Operations
   currency: string;
   currencySymbol: string;
-  defaultSmsGateway: 'cloud' | 'android';
   academicYear: string;
   timezone: string;
+  weeklyHolidays?: string;
+  classDurationMinutes?: number;
+  admissionFeeDefault?: number;
+
+  // 6. SMS & Automation
+  defaultSmsGateway: 'cloud' | 'android';
+  smsSenderId?: string;
+  autoSmsOnAdmission?: boolean;
+  autoSmsOnAttendance?: boolean;
+  autoSmsOnFeePayment?: boolean;
+  autoSmsOnExamResult?: boolean;
+  preferredSmsLanguage?: 'bangla' | 'english';
+
+  // 7. ID Card & Prefixes
+  idCardPrefix?: string;
+  idCardValidity?: string;
+  showBloodGroupOnId?: boolean;
+  showGuardianPhoneOnId?: boolean;
+  showBarcodeOnId?: boolean;
 }
 
 export interface ToastMessage {

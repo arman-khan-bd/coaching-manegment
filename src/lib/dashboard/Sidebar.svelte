@@ -28,7 +28,11 @@
     QrCode,
     FileText,
     CalendarClock,
+    X,
+    Sparkles,
+    CheckCircle2,
   } from 'lucide-svelte';
+  import { navigate } from '../router';
 
   export let isMobileOpen: boolean = false;
   export let closeMobile: () => void = () => {};
@@ -37,48 +41,58 @@
   $: batchCount = $batches.length;
   $: gateway = $smsAccount.androidGateway;
 
-  const navItems = [
-    { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'students', label: 'Students', icon: Users, badge: studentCount },
-    { id: 'idcards', label: 'ID Cards Studio', icon: QrCode, badge: 'Bulk' },
-    { id: 'teachers', label: 'Faculty & Teachers', icon: UserCheck },
-    { id: 'academics', label: 'Courses & Batches', icon: BookOpen, badge: batchCount },
-    { id: 'syllabus_routine', label: 'Syllabus & Routine', icon: CalendarClock, badge: 'Print' },
-    { id: 'attendance', label: 'Batch Attendance', icon: CalendarCheck, pulse: true },
-    { id: 'sms', label: 'Dual SMS Hub', icon: Smartphone, highlight: true },
-    { id: 'sms_templates', label: 'SMS Templates', icon: FileText, badge: 'বাং/EN' },
-    { id: 'fees', label: 'Fees & Invoicing', icon: CreditCard },
-    { id: 'exams', label: 'Exams & Marks', icon: Award },
-    { id: 'settings', label: 'Institute Settings', icon: Settings },
+  interface NavItem {
+    id: string;
+    slug: string;
+    label: string;
+    labelBn: string;
+    icon: any;
+    color: 'indigo' | 'blue' | 'purple' | 'rose' | 'sky' | 'teal' | 'emerald' | 'pink' | 'amber' | 'orange' | 'slate';
+    badge?: string | number;
+    pulse?: boolean;
+    highlight?: boolean;
+  }
+
+  const navItems: NavItem[] = [
+    { id: 'overview', slug: 'overview', label: 'Dashboard', labelBn: 'ড্যাশবোর্ড', icon: LayoutDashboard, color: 'indigo' },
+    { id: 'students', slug: 'students', label: 'Students', labelBn: 'শিক্ষার্থী', icon: Users, badge: studentCount, color: 'blue' },
+    { id: 'idcards', slug: 'idcards', label: 'ID Cards Studio', labelBn: 'আইডি কার্ড স্টুডিও', icon: QrCode, badge: 'Bulk', color: 'purple' },
+    { id: 'teachers', slug: 'teachers', label: 'Faculty & Teachers', labelBn: 'শিক্ষক ও স্টাফ', icon: UserCheck, color: 'rose' },
+    { id: 'academics', slug: 'academics', label: 'Courses & Batches', labelBn: 'কোর্স ও ব্যাচ', icon: BookOpen, badge: batchCount, color: 'sky' },
+    { id: 'syllabus_routine', slug: 'syllabus-routine', label: 'Syllabus & Routine', labelBn: 'সিলেবাস ও রুটিন', icon: CalendarClock, badge: 'Print', color: 'teal' },
+    { id: 'attendance', slug: 'attendance', label: 'Batch Attendance', labelBn: 'হাজিরা খাতা', icon: CalendarCheck, pulse: true, color: 'emerald' },
+    { id: 'sms', slug: 'sms', label: 'Dual SMS Hub', labelBn: 'এসএমএস গেটওয়ে', icon: Smartphone, highlight: true, color: 'emerald' },
+    { id: 'sms_templates', slug: 'sms-templates', label: 'SMS Templates', labelBn: 'এসএমএস টেমপ্লেট', icon: FileText, badge: 'বাং/EN', color: 'pink' },
+    { id: 'fees', slug: 'fees', label: 'Fees & Invoicing', labelBn: 'ফি ও রসিদ', icon: CreditCard, color: 'amber' },
+    { id: 'exams', slug: 'exams', label: 'Exams & Marks', labelBn: 'পরীক্ষা ও রেজাল্ট', icon: Award, color: 'orange' },
+    { id: 'settings', slug: 'settings', label: 'Institute Settings', labelBn: 'ইনস্টিটিউট সেটিংস', icon: Settings, color: 'slate' },
   ];
 
-  import { navigate } from '../router';
-
-  const tabSlugMap: Record<string, string> = {
-    overview: 'overview',
-    students: 'students',
-    idcards: 'idcards',
-    teachers: 'teachers',
-    academics: 'academics',
-    syllabus_routine: 'syllabus-routine',
-    attendance: 'attendance',
-    sms: 'sms',
-    sms_templates: 'sms-templates',
-    fees: 'fees',
-    exams: 'exams',
-    settings: 'settings',
+  const colorStyles: Record<string, { bg: string; text: string; border: string; glow: string }> = {
+    indigo: { bg: 'bg-indigo-500/15', text: 'text-indigo-400', border: 'border-indigo-500/30', glow: 'shadow-indigo-500/20' },
+    blue: { bg: 'bg-blue-500/15', text: 'text-blue-400', border: 'border-blue-500/30', glow: 'shadow-blue-500/20' },
+    purple: { bg: 'bg-purple-500/15', text: 'text-purple-400', border: 'border-purple-500/30', glow: 'shadow-purple-500/20' },
+    rose: { bg: 'bg-rose-500/15', text: 'text-rose-400', border: 'border-rose-500/30', glow: 'shadow-rose-500/20' },
+    sky: { bg: 'bg-sky-500/15', text: 'text-sky-400', border: 'border-sky-500/30', glow: 'shadow-sky-500/20' },
+    teal: { bg: 'bg-teal-500/15', text: 'text-teal-400', border: 'border-teal-500/30', glow: 'shadow-teal-500/20' },
+    emerald: { bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/30', glow: 'shadow-emerald-500/20' },
+    pink: { bg: 'bg-pink-500/15', text: 'text-pink-400', border: 'border-pink-500/30', glow: 'shadow-pink-500/20' },
+    amber: { bg: 'bg-amber-500/15', text: 'text-amber-400', border: 'border-amber-500/30', glow: 'shadow-amber-500/20' },
+    orange: { bg: 'bg-orange-500/15', text: 'text-orange-400', border: 'border-orange-500/30', glow: 'shadow-orange-500/20' },
+    slate: { bg: 'bg-slate-700/30', text: 'text-slate-300', border: 'border-slate-600/40', glow: 'shadow-slate-500/20' },
   };
 
-  function selectTab(id: string) {
-    const slug = tabSlugMap[id] || id;
+  function selectTab(slug: string) {
     navigate(`/dashboard/${slug}`);
     closeMobile();
   }
 </script>
 
+<!-- ======================================================== -->
+<!-- 1. DESKTOP VIEW: CLASSIC LIST VIEW SIDEBAR (md:flex) -->
+<!-- ======================================================== -->
 <aside
-  class="fixed inset-y-0 left-0 z-30 w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between transition-transform duration-300 md:translate-x-0
-  {isMobileOpen ? 'translate-x-0' : '-translate-x-full'}"
+  class="hidden md:flex fixed inset-y-0 left-0 z-30 w-64 bg-slate-900 border-r border-slate-800 flex-col justify-between"
 >
   <div>
     <!-- Institute Header -->
@@ -94,7 +108,7 @@
       </div>
     </div>
 
-    <!-- Navigation List -->
+    <!-- Desktop Navigation List (List View as requested) -->
     <nav class="p-3 space-y-1 overflow-y-auto max-h-[calc(100vh-230px)]">
       {#each navItems as item}
         <button
@@ -103,7 +117,7 @@
           {$activeTab === item.id
             ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
             : 'text-slate-400 hover:text-white hover:bg-slate-800/70'}"
-          on:click={() => selectTab(item.id)}
+          on:click={() => selectTab(item.slug)}
         >
           <div class="flex items-center gap-3">
             <svelte:component
@@ -168,3 +182,124 @@
     </button>
   </div>
 </aside>
+
+<!-- ======================================================== -->
+<!-- 2. MOBILE MENU DRAWER: ANDROID APP CARD BUTTONS (md:hidden) -->
+<!-- ======================================================== -->
+{#if isMobileOpen}
+  <div
+    role="dialog"
+    aria-modal="true"
+    class="md:hidden fixed inset-0 z-50 flex flex-col bg-slate-950/98 backdrop-blur-2xl animate-in fade-in duration-200"
+  >
+    <!-- Android App Bar Header -->
+    <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/90 shadow-md">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white shadow-lg shadow-indigo-600/30">
+          <GraduationCap class="w-6 h-6" />
+        </div>
+        <div>
+          <h2 class="text-sm font-bold text-white font-['Outfit'] line-clamp-1">{$instituteSettings.name}</h2>
+          <span class="text-[11px] text-indigo-400 font-medium">মোবাইল অ্যাপ ড্যাশবোর্ড মেনু</span>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        class="w-9 h-9 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition-colors"
+        on:click={closeMobile}
+        aria-label="Close menu"
+      >
+        <X class="w-5 h-5" />
+      </button>
+    </div>
+
+    <!-- Section Heading -->
+    <div class="px-5 pt-4 pb-2 flex items-center justify-between">
+      <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+        <Sparkles class="w-3.5 h-3.5 text-indigo-400" />
+        <span>অ্যাপ মডিউল ও মেনু কার্ডস</span>
+      </div>
+      <span class="text-[11px] text-slate-500">{navItems.length} টি ফিচার</span>
+    </div>
+
+    <!-- Android Style Card Buttons Grid (2-columns on mobile!) -->
+    <div class="flex-1 overflow-y-auto p-4 space-y-4">
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {#each navItems as item}
+          {@const style = colorStyles[item.color] || colorStyles.indigo}
+          {@const isActive = $activeTab === item.id}
+
+          <button
+            type="button"
+            class="relative rounded-2xl p-3.5 flex flex-col items-center justify-center text-center gap-2 transition-all duration-200 active:scale-[0.96] shadow-md
+            {isActive
+              ? 'bg-gradient-to-b from-indigo-950/80 via-slate-900 to-slate-900 border-2 border-indigo-500 shadow-indigo-500/20 ring-2 ring-indigo-500/30'
+              : 'bg-slate-900/90 border border-slate-800 hover:border-slate-700 hover:bg-slate-800/80'}"
+            on:click={() => selectTab(item.slug)}
+          >
+            <!-- Badge in corner -->
+            {#if item.badge !== undefined}
+              <span
+                class="absolute top-2 right-2 px-1.5 py-0.5 rounded-full text-[9px] font-bold
+                {isActive ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-indigo-300 border border-slate-700'}"
+              >
+                {item.badge}
+              </span>
+            {/if}
+
+            {#if item.highlight}
+              <span class="absolute top-2 right-2 px-1.5 py-0.2 rounded-full text-[8px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase">
+                SIM
+              </span>
+            {/if}
+
+            <!-- Icon in squircle -->
+            <div class="w-12 h-12 rounded-2xl {style.bg} {style.text} border {style.border} flex items-center justify-center shadow-inner mt-1">
+              <svelte:component this={item.icon} class="w-6 h-6" />
+            </div>
+
+            <!-- Labels -->
+            <div class="w-full">
+              <span class="block text-xs font-bold text-white truncate">{item.labelBn}</span>
+              <span class="block text-[10px] text-slate-400 truncate">{item.label}</span>
+            </div>
+
+            <!-- Active Indicator Pill -->
+            {#if isActive}
+              <div class="inline-flex items-center gap-1 text-[9px] font-bold text-indigo-400 uppercase tracking-wider">
+                <span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+                <span>Active</span>
+              </div>
+            {/if}
+          </button>
+        {/each}
+      </div>
+
+      <!-- Android Gateway Card Widget on Mobile Drawer -->
+      <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 mt-2 space-y-2">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2 font-bold text-xs {gateway.connected ? 'text-emerald-400' : 'text-rose-400'}">
+            <Radio class="w-4 h-4 {gateway.connected ? 'animate-pulse' : ''}" />
+            <span>অ্যান্ড্রয়েড গেটওয়ে নোড</span>
+          </div>
+          <span class="text-xs font-mono text-slate-300">{gateway.batteryLevel}% 🔋</span>
+        </div>
+        <p class="text-[11px] text-slate-400">{gateway.connected ? gateway.sim1Carrier : 'সংযোগ বিচ্ছিন্ন'}</p>
+      </div>
+
+      <!-- Public SaaS Switcher -->
+      <button
+        type="button"
+        class="w-full py-3 rounded-2xl font-bold text-xs text-slate-300 bg-slate-900 hover:bg-slate-800 border border-slate-800 flex items-center justify-center gap-2 transition-colors"
+        on:click={() => {
+          navigate('/');
+          closeMobile();
+        }}
+      >
+        <ExternalLink class="w-4 h-4 text-indigo-400" />
+        <span>পাবলিক ওয়েবসাইট ভিউ</span>
+      </button>
+    </div>
+  </div>
+{/if}

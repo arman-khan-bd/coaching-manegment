@@ -198,8 +198,8 @@
     </span>
   </div>
 
-  <!-- Invoices Table -->
-  <div class="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+  <!-- Invoices Table (Desktop: table, Mobile: Android Cards) -->
+  <div class="hidden md:block bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
     <div class="overflow-x-auto">
       <table class="w-full text-left text-xs">
         <thead class="bg-slate-950/70 border-b border-slate-800 text-slate-400 uppercase font-semibold text-[11px] tracking-wider">
@@ -276,6 +276,96 @@
         </tbody>
       </table>
     </div>
+  </div>
+
+  <!-- Mobile Android App Invoice Cards (Visible on mobile only) -->
+  <div class="block md:hidden space-y-3">
+    {#each filteredInvoices as inv}
+      <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-md flex flex-col gap-3">
+        <!-- Top header row -->
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <div class="text-sm font-bold text-white leading-tight">{inv.studentName}</div>
+            <div class="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1.5">
+              <span class="font-mono text-indigo-300 font-bold">{inv.invoiceNo}</span>
+              <span>•</span>
+              <span>{inv.batchName}</span>
+            </div>
+          </div>
+          <div>
+            {#if inv.status === 'paid'}
+              <Badge variant="success" size="sm">পরিশোধিত</Badge>
+            {:else if inv.status === 'partial'}
+              <Badge variant="warning" size="sm">আংশিক বকেয়া</Badge>
+            {:else}
+              <Badge variant="danger" size="sm">বকেয়া</Badge>
+            {/if}
+          </div>
+        </div>
+
+        <!-- 3-Column Financial Stat Boxes -->
+        <div class="grid grid-cols-3 gap-2 p-2.5 rounded-xl bg-slate-950/70 border border-slate-800/80 text-center">
+          <div>
+            <div class="text-[10px] text-slate-400">মোট ফি</div>
+            <div class="text-xs font-bold text-white font-['Outfit'] mt-0.5">৳{inv.amount.toLocaleString()}</div>
+          </div>
+          <div>
+            <div class="text-[10px] text-slate-400">জমা</div>
+            <div class="text-xs font-bold text-emerald-400 font-['Outfit'] mt-0.5">৳{inv.paidAmount.toLocaleString()}</div>
+          </div>
+          <div>
+            <div class="text-[10px] text-slate-400">বকেয়া</div>
+            <div class="text-xs font-bold {inv.dueAmount > 0 ? 'text-rose-400' : 'text-slate-400'} font-['Outfit'] mt-0.5">
+              ৳{inv.dueAmount.toLocaleString()}
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer with date & 1-tap actions -->
+        <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-800/70 text-xs">
+          <div class="text-[10px] text-slate-400">
+            তারিখ: <span class="text-slate-300">{inv.dueDate}</span>
+          </div>
+
+          <div class="flex items-center gap-1.5">
+            {#if inv.dueAmount > 0}
+              <button
+                type="button"
+                class="px-2.5 py-1.5 rounded-xl bg-rose-600/15 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 font-semibold text-xs flex items-center gap-1"
+                title="Send Due SMS"
+                on:click={() => handleOpenFeeSms(inv)}
+              >
+                <MessageSquare class="w-3.5 h-3.5 text-rose-400" />
+                <span>তাগাদা</span>
+              </button>
+
+              <button
+                type="button"
+                class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-md shadow-emerald-600/20"
+                on:click={() => openCollectModal(inv)}
+              >
+                ফি আদায়
+              </button>
+            {/if}
+
+            <button
+              type="button"
+              class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700"
+              title="Print Receipt"
+              on:click={() => openReceiptModal(inv)}
+            >
+              <Printer class="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+    {/each}
+
+    {#if filteredInvoices.length === 0}
+      <div class="text-center py-8 text-slate-400 text-xs bg-slate-900/40 rounded-2xl border border-slate-800">
+        কোনো ইনভয়েস পাওয়া যায়নি
+      </div>
+    {/if}
   </div>
 </div>
 
