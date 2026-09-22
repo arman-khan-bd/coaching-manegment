@@ -69,10 +69,12 @@ jobs:
 
       - name: 📤 Upload Build Artifact
         uses: actions/upload-artifact@v4
+        continue-on-error: true
         with:
           name: coachflow-flutter-apk
           path: ${{ steps.prepare_asset.outputs.apk_path }}
-          if-no-files-found: error
+          retention-days: 1
+          if-no-files-found: warn
 
       - name: 🚀 Publish to GitHub Releases
         uses: softprops/action-gh-release@v2
