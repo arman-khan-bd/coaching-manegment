@@ -69,9 +69,18 @@
     </button>
 
     <!-- Mobile Native Android App Bar Title (sm:hidden) -->
-    <div class="sm:hidden flex flex-col min-w-0">
-      <span class="text-xs font-bold text-white truncate">{pageTitles[$activeTab]?.bn || 'ড্যাশবোর্ড'}</span>
-      <span class="text-[10px] text-indigo-400 truncate">{$instituteSettings.name}</span>
+    <div class="sm:hidden flex items-center gap-2 min-w-0">
+      {#if $instituteSettings.icon || $instituteSettings.logo}
+        <img
+          src={$instituteSettings.icon || $instituteSettings.logo}
+          alt={$instituteSettings.name}
+          class="w-7 h-7 rounded-lg object-cover border border-slate-700 shrink-0 bg-slate-950"
+        />
+      {/if}
+      <div class="flex flex-col min-w-0">
+        <span class="text-xs font-bold text-white truncate">{pageTitles[$activeTab]?.bn || 'ড্যাশবোর্ড'}</span>
+        <span class="text-[10px] text-indigo-400 truncate">{$instituteSettings.name}</span>
+      </div>
     </div>
 
     <!-- Desktop Search (hidden on mobile) -->

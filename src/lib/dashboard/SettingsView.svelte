@@ -29,19 +29,110 @@
     AlertCircle,
     FileText,
     Camera,
+    Share2,
+    MessageCircle,
+    Code2,
+    Copy,
+    Check,
+    ExternalLink,
+    Radio,
   } from 'lucide-svelte';
+  import CloudinaryUpload from '../components/CloudinaryUpload.svelte';
+  import Modal from '../components/Modal.svelte';
 
   // Active Tab in Settings View
   let activeTab: 'profile' | 'contact' | 'seals' | 'payment' | 'academic' | 'sms' | 'idcard' | 'backup' = 'profile';
 
+  // SQL Migration Modal State
+  let showSqlModal = false;
+  let copiedSql = false;
+
   // Form State initialized from $instituteSettings store
-  let form: InstituteSettings = { ...$instituteSettings };
+  let form: InstituteSettings = {
+    ...$instituteSettings,
+    icon: $instituteSettings.icon || '',
+    hotline: $instituteSettings.hotline || '',
+    whatsapp: $instituteSettings.whatsapp || '',
+    socialMedia: {
+      facebook: 'https://facebook.com/apexacademiccare',
+      youtube: 'https://youtube.com/@apexacademiccare',
+      instagram: 'https://instagram.com/apexacademiccare',
+      linkedin: 'https://linkedin.com/company/apexacademiccare',
+      telegram: 'https://t.me/apexacademiccare',
+      website: 'https://apexacademicbd.com',
+      ...($instituteSettings.socialMedia || {}),
+    },
+  };
 
   // Sync if store changes externally
   $: {
     if ($instituteSettings) {
       // Keep form synchronized if unmodified or on reset
     }
+  }
+
+  const migrationSql = `-- ==========================================================
+-- COACHING BRANDING & CLOUDINARY SUPABASE MIGRATION
+-- Apex Academic Care / Coaching Data Manager
+-- ==========================================================
+
+create table if not exists public.coaching_branding (
+    id text primary key default 'primary_branch',
+    name text not null default 'এপেক্স অ্যাকাডেমিক কেয়ার (ফার্মগেট শাখা)',
+    name_english text default 'Apex Academic Care (Farmgate Branch)',
+    tagline text default 'HSC বিজ্ঞান, বুয়েট ইঞ্জিনিয়ারিং ও মেডিকেল ভর্তি পরীক্ষার সেরা প্ল্যাটফর্ম',
+    established_year text default '২০১৮',
+    reg_number text default 'TRAD/DSCC/019283/2021',
+    branch_name text default 'ফার্মগেট প্রধান ক্যাম্পাস',
+    branch_code text default 'FGT-01',
+    
+    -- Cloudinary Media URLs
+    logo_url text default 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=200&auto=format&fit=crop&q=80',
+    icon_url text default 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=80&auto=format&fit=crop&q=80',
+
+    -- Contact, Hotlines & WhatsApp
+    phone text default '+880 1711-456789',
+    hotline text default '+880 9612-456789',
+    whatsapp text default '+880 1711-456789',
+    alternate_phone text default '+880 1819-123456',
+    email text default 'director@apexacademicbd.com',
+    website text default 'https://apexacademicbd.com',
+    address text default 'গ্রিন সুপার মার্কেট, ৩য় তলা, ফার্মগেট, ঢাকা-১২১৫',
+    division text default 'ঢাকা',
+    district text default 'ঢাকা',
+    thana text default 'তেজগাঁও',
+
+    -- Social Media Links (JSONB)
+    social_media jsonb default jsonb_build_object(
+        'facebook', 'https://facebook.com/apexacademiccare',
+        'youtube', 'https://youtube.com/@apexacademiccare',
+        'instagram', 'https://instagram.com/apexacademiccare',
+        'linkedin', 'https://linkedin.com/company/apexacademiccare',
+        'telegram', 'https://t.me/apexacademiccare',
+        'website', 'https://apexacademicbd.com'
+    ),
+
+    settings_data jsonb default '{}'::jsonb,
+    created_at timestamptz default timezone('utc'::text, now()) not null,
+    updated_at timestamptz default timezone('utc'::text, now()) not null
+);
+
+-- Enable RLS
+alter table public.coaching_branding enable row level security;
+
+create policy "Public can read coaching branding"
+    on public.coaching_branding for select using (true);
+
+create policy "Authenticated users can update coaching branding"
+    on public.coaching_branding for all using (true) with check (true);
+`;
+
+  function copyMigrationSql() {
+    navigator.clipboard.writeText(migrationSql).then(() => {
+      copiedSql = true;
+      showToast('success', 'SQL কোড কপি হয়েছে!', 'Supabase SQL Editor-এ পেস্ট করে রান করতে পারবেন।');
+      setTimeout(() => (copiedSql = false), 2500);
+    });
   }
 
   // Preset Logo Options for 1-Click Selection
@@ -138,6 +229,16 @@
 
     <!-- Quick Actions Header -->
     <div class="flex flex-wrap items-center gap-2.5 shrink-0">
+      <button
+        type="button"
+        class="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 hover:text-white border border-cyan-500/30 text-xs font-semibold transition-all flex items-center gap-1.5"
+        on:click={() => (showSqlModal = true)}
+        title="Supabase SQL মাইগ্রেশন কোড দেখুন"
+      >
+        <Code2 class="w-3.5 h-3.5 text-cyan-400" />
+        <span>SQL মাইগ্রেশন</span>
+      </button>
+
       <button
         type="button"
         class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold transition-all flex items-center gap-1.5"
@@ -352,33 +453,120 @@
           </div>
         </div>
 
-        <!-- Logo Customizer -->
-        <div class="pt-4 border-t border-slate-800 space-y-3">
-          <label for="form-logo-url" class="block font-medium text-slate-300">
-            প্রতিষ্ঠানের লোগো URL (Logo Image)
-          </label>
-          <div class="flex flex-col sm:flex-row items-center gap-3">
-            <input
-              id="form-logo-url"
-              type="text"
-              bind:value={form.logo}
-              placeholder="https://example.com/logo.png"
-              class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500 font-mono text-xs"
-            />
+        <!-- Cloudinary Logo & App Icon Uploaders -->
+        <div class="pt-4 border-t border-slate-800 space-y-4">
+          <div class="flex items-center justify-between">
+            <h4 class="font-bold text-white text-xs flex items-center gap-1.5">
+              <Camera class="w-4 h-4 text-cyan-400" />
+              <span>কোচিং সেন্টারের ব্র্যান্ডিং মিডিয়া (Cloudinary ব্যাকেন্ড)</span>
+            </h4>
+            <span class="text-[10px] text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20 font-mono">
+              Auto CDN
+            </span>
           </div>
 
-          <!-- Logo Preset Buttons -->
-          <div class="flex items-center gap-2 pt-1 flex-wrap">
-            <span class="text-slate-400 text-[11px]">প্রিসেট লোগো নির্বাচন করুন:</span>
-            {#each logoPresets as preset}
-              <button
-                type="button"
-                class="px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-[11px] text-indigo-300 hover:text-white transition-colors"
-                on:click={() => (form.logo = preset.url)}
-              >
-                {preset.label}
-              </button>
-            {/each}
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Coaching Logo Uploader -->
+            <div class="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-2">
+              <CloudinaryUpload
+                bind:value={form.logo}
+                label="কোচিং সেন্টারের প্রধান লোগো (Logo)"
+                folder="coaching_management/branding"
+                aspect="square"
+                placeholderText="লোগো আপলোড করুন (Cloudinary)"
+                helpText="রসিদ, অ্যাডমিট কার্ড ও হেডার ব্যানার"
+              />
+
+              <!-- Logo Preset Buttons -->
+              <div class="pt-2 border-t border-slate-800/60 flex items-center gap-1.5 flex-wrap">
+                <span class="text-slate-400 text-[10px]">প্রিসেট লোগো:</span>
+                {#each logoPresets as preset}
+                  <button
+                    type="button"
+                    class="px-2 py-0.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10px] text-indigo-300 hover:text-white transition-colors"
+                    on:click={() => (form.logo = preset.url)}
+                  >
+                    {preset.label}
+                  </button>
+                {/each}
+              </div>
+            </div>
+
+            <!-- Coaching App Icon / Favicon Uploader -->
+            <div class="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-2">
+              <CloudinaryUpload
+                bind:value={form.icon}
+                label="কোচিং অ্যাপ ও ব্রাউজার আইকন (Favicon/Icon)"
+                folder="coaching_management/branding"
+                aspect="icon"
+                placeholderText="আইকন আপলোড করুন (Cloudinary)"
+                helpText="মোবাইল অ্যাপ আইকন ও সাইডবার ব্যাজ"
+                badgeText="Square 1:1"
+              />
+              <p class="text-[10px] text-slate-400 leading-relaxed pt-1">
+                মোবাইল ড্রয়ার, সাইডবার ও ব্রাউজারের ট্যাবে আপনার কোচিং সেন্টারের অফিশিয়াল আইকন হিসেবে প্রদর্শিত হবে।
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Coaching Brand Identity Preview Card -->
+        <div class="mt-4 p-5 rounded-2xl bg-gradient-to-br from-slate-950 via-indigo-950/20 to-slate-950 border border-indigo-500/30 shadow-lg space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
+              <Sparkles class="w-3.5 h-3.5 text-amber-400" />
+              লাইভ ব্র্যান্ডিং কার্ড প্রিভিউ (Live Identity Card)
+            </span>
+            <span class="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+              Active Sync
+            </span>
+          </div>
+
+          <div class="flex items-start gap-4">
+            <div class="relative shrink-0">
+              <img
+                src={form.logo || 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=150&auto=format&fit=crop&q=80'}
+                alt="Logo Preview"
+                class="w-16 h-16 rounded-2xl object-cover border-2 border-indigo-500/40 shadow-md bg-slate-900"
+              />
+              {#if form.icon}
+                <img
+                  src={form.icon}
+                  alt="Icon Preview"
+                  class="w-6 h-6 rounded-lg object-cover border-2 border-slate-950 absolute -bottom-1 -right-1 shadow-md"
+                  title="App Icon"
+                />
+              {/if}
+            </div>
+
+            <div class="min-w-0 flex-1">
+              <h3 class="text-base font-extrabold text-white font-['Outfit'] truncate">
+                {form.name || 'প্রতিষ্ঠানের নাম'}
+              </h3>
+              {#if form.nameEnglish}
+                <div class="text-[11px] text-indigo-300 font-medium truncate">{form.nameEnglish}</div>
+              {/if}
+              <p class="text-xs text-slate-300 mt-1 line-clamp-2">
+                {form.tagline || 'আদর্শ অ্যাকাডেমিক পরিবেশ ও রেজাল্ট গ্যারান্টি'}
+              </p>
+
+              <!-- Live Badges -->
+              <div class="flex flex-wrap items-center gap-2 mt-2 text-[10px]">
+                <span class="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 border border-slate-700">
+                  শাখা: {form.branchName || 'প্রধান ক্যাম্পাস'} ({form.branchCode || 'BR-01'})
+                </span>
+                {#if form.establishedYear}
+                  <span class="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 border border-slate-700">
+                    স্থাপিত: {form.establishedYear}
+                  </span>
+                {/if}
+                {#if form.regNumber}
+                  <span class="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 border border-slate-700 font-mono">
+                    রেজিস্ট্রেশন: {form.regNumber}
+                  </span>
+                {/if}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -413,10 +601,40 @@
             />
           </div>
 
-          <!-- Alternate / WhatsApp -->
+          <!-- Hotline (24/7) -->
+          <div>
+            <label for="form-hotline" class="block font-medium text-slate-300 mb-1 flex items-center justify-between">
+              <span>জরুরি হটলাইন নম্বর (Hotline)</span>
+              <span class="text-[10px] text-amber-400 font-normal">24/7 সাপোর্ট</span>
+            </label>
+            <input
+              id="form-hotline"
+              type="text"
+              bind:value={form.hotline}
+              placeholder="+880 9612-456789 (টোল ফ্রি / হটলাইন)"
+              class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono focus:outline-none focus:border-emerald-500"
+            />
+          </div>
+
+          <!-- Official WhatsApp -->
+          <div>
+            <label for="form-whatsapp" class="block font-medium text-slate-300 mb-1 flex items-center justify-between">
+              <span>অফিসিয়াল হোয়াটসঅ্যাপ নম্বর (WhatsApp)</span>
+              <span class="text-[10px] text-emerald-400 font-normal">অভিভাবক চ্যাট</span>
+            </label>
+            <input
+              id="form-whatsapp"
+              type="text"
+              bind:value={form.whatsapp}
+              placeholder="+880 1711-456789"
+              class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono focus:outline-none focus:border-emerald-500"
+            />
+          </div>
+
+          <!-- Alternate Phone -->
           <div>
             <label for="form-phone-alt" class="block font-medium text-slate-300 mb-1">
-              বিকল্প হটলাইন / হোয়াটসঅ্যাপ নম্বর
+              বিকল্প যোগাযোগ নম্বর
             </label>
             <input
               id="form-phone-alt"
@@ -516,6 +734,105 @@
               placeholder="https://maps.google.com/?q=Farmgate+Dhaka"
               class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono focus:outline-none focus:border-emerald-500"
             />
+          </div>
+        </div>
+
+        <!-- Social Media Links Section -->
+        <div class="pt-5 border-t border-slate-800 space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="font-bold text-white text-xs flex items-center gap-1.5">
+              <Share2 class="w-4 h-4 text-indigo-400" />
+              <span>সামাজিক যোগাযোগ মাধ্যম ও ডিজিটাল লিংকসমূহ (Social Media Links)</span>
+            </h4>
+            <span class="text-[10px] text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">
+              অভিভাবক ও শিক্ষার্থী চ্যানেল
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            <!-- Facebook -->
+            <div>
+              <label for="sm-fb" class="block font-medium text-slate-300 mb-1 text-[11px]">
+                ফেসবুক পেজ / গ্রুপ (Facebook)
+              </label>
+              <input
+                id="sm-fb"
+                type="url"
+                bind:value={form.socialMedia.facebook}
+                placeholder="https://facebook.com/..."
+                class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+
+            <!-- YouTube -->
+            <div>
+              <label for="sm-yt" class="block font-medium text-slate-300 mb-1 text-[11px]">
+                ইউটিউব চ্যানেল (YouTube)
+              </label>
+              <input
+                id="sm-yt"
+                type="url"
+                bind:value={form.socialMedia.youtube}
+                placeholder="https://youtube.com/@..."
+                class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+
+            <!-- Instagram -->
+            <div>
+              <label for="sm-ig" class="block font-medium text-slate-300 mb-1 text-[11px]">
+                ইনস্টাগ্রাম (Instagram)
+              </label>
+              <input
+                id="sm-ig"
+                type="url"
+                bind:value={form.socialMedia.instagram}
+                placeholder="https://instagram.com/..."
+                class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+
+            <!-- LinkedIn -->
+            <div>
+              <label for="sm-li" class="block font-medium text-slate-300 mb-1 text-[11px]">
+                লিংকডইন (LinkedIn)
+              </label>
+              <input
+                id="sm-li"
+                type="url"
+                bind:value={form.socialMedia.linkedin}
+                placeholder="https://linkedin.com/company/..."
+                class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+
+            <!-- Telegram -->
+            <div>
+              <label for="sm-tg" class="block font-medium text-slate-300 mb-1 text-[11px]">
+                টেলিগ্রাম নোটিশ চ্যানেল (Telegram)
+              </label>
+              <input
+                id="sm-tg"
+                type="url"
+                bind:value={form.socialMedia.telegram}
+                placeholder="https://t.me/..."
+                class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+
+            <!-- Website -->
+            <div>
+              <label for="sm-web" class="block font-medium text-slate-300 mb-1 text-[11px]">
+                অ্যাকাডেমিক পোর্টাল (Portal URL)
+              </label>
+              <input
+                id="sm-web"
+                type="url"
+                bind:value={form.socialMedia.website}
+                placeholder="https://apexacademicbd.com"
+                class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-indigo-500"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -1143,3 +1460,55 @@
     </div>
   </div>
 </div>
+
+<!-- Supabase SQL Migration Modal -->
+<Modal
+  open={showSqlModal}
+  title="Supabase Database Migration SQL"
+  subtitle="কোচিং ব্র্যান্ডিং, ক্লাউডিনারি মিডিয়া, হটলাইন ও সোশ্যাল মিডিয়া স্টোরেজ স্কিমা"
+  maxWidth="max-w-2xl"
+  onClose={() => (showSqlModal = false)}
+>
+  <div class="space-y-4 text-xs">
+    <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+      <div class="flex items-center justify-between">
+        <span class="font-bold text-white text-xs flex items-center gap-1.5">
+          <Code2 class="w-4 h-4 text-cyan-400" />
+          <span>supabase_branding_migration.sql</span>
+        </span>
+        <button
+          type="button"
+          class="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all
+          {copiedSql ? 'bg-emerald-600 text-white shadow-md' : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20'}"
+          on:click={copyMigrationSql}
+        >
+          {#if copiedSql}
+            <Check class="w-3.5 h-3.5" />
+            <span>কপি সম্পন্ন!</span>
+          {:else}
+            <Copy class="w-3.5 h-3.5" />
+            <span>SQL কোড কপি করুন</span>
+          {/if}
+        </button>
+      </div>
+      <p class="text-[11px] text-slate-400 mt-1">
+        এই SQL স্ক্রিপ্টটি আপনার Supabase ড্যাশবোর্ডের <strong>SQL Editor</strong>-এ পেস্ট করে <strong>Run</strong> করুন।
+      </p>
+    </div>
+
+    <!-- Code Block -->
+    <div class="relative">
+      <pre class="p-4 rounded-xl bg-slate-950 border border-slate-800 text-[11px] font-mono text-cyan-300 overflow-x-auto max-h-80 leading-relaxed select-all">{migrationSql}</pre>
+    </div>
+
+    <div class="p-3 rounded-xl bg-emerald-950/20 border border-emerald-500/30 text-[11px] text-emerald-300 space-y-1">
+      <div class="font-bold flex items-center gap-1.5">
+        <CheckCircle2 class="w-3.5 h-3.5 text-emerald-400" />
+        <span>স্বয়ংক্রিয় লোকাল ও ক্লাউড সিঙ্ক:</span>
+      </div>
+      <p class="text-slate-300">
+        আপনার সেভ করা সেটিংস স্বয়ংক্রিয়ভাবে লোকাল স্টোরেজ ও Supabase-এর <code>coaching_branding</code> এবং <code>institute_settings</code> টেবিলে ব্যাকআপ রাখা হয়।
+      </p>
+    </div>
+  </div>
+</Modal>

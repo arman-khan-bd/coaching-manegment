@@ -191,10 +191,13 @@ export interface InstituteSettings {
   branchName?: string;
   branchCode?: string;
   logo: string;
+  icon?: string; // Coaching Icon / Favicon / App Icon
 
-  // 2. Contact & Campus
+  // 2. Contact, Hotlines & Campus
   email: string;
   phone: string;
+  hotline?: string; // 24/7 Hotline Number
+  whatsapp?: string; // Official WhatsApp Number or Link
   alternatePhone?: string;
   website?: string;
   address: string;
@@ -202,6 +205,16 @@ export interface InstituteSettings {
   district?: string;
   thana?: string;
   googleMapsUrl?: string;
+
+  // Social Media Links
+  socialMedia?: {
+    facebook?: string;
+    youtube?: string;
+    instagram?: string;
+    linkedin?: string;
+    telegram?: string;
+    website?: string;
+  };
 
   // 3. Authorization, Seal & Signatures
   directorName?: string;

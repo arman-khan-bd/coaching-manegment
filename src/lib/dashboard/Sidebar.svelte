@@ -98,9 +98,17 @@
     <!-- Institute Header -->
     <div class="p-5 border-b border-slate-800 flex items-center justify-between">
       <div class="flex items-center gap-3 overflow-hidden">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white shrink-0 shadow-lg shadow-indigo-600/30">
-          <GraduationCap class="w-6 h-6" />
-        </div>
+        {#if $instituteSettings.icon || $instituteSettings.logo}
+          <img
+            src={$instituteSettings.icon || $instituteSettings.logo}
+            alt={$instituteSettings.name}
+            class="w-10 h-10 rounded-xl object-cover border border-slate-700 shadow-md shrink-0 bg-slate-950"
+          />
+        {:else}
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white shrink-0 shadow-lg shadow-indigo-600/30">
+            <GraduationCap class="w-6 h-6" />
+          </div>
+        {/if}
         <div class="min-w-0">
           <h2 class="text-sm font-bold text-white truncate font-['Outfit']">{$instituteSettings.name}</h2>
           <span class="text-[10px] text-indigo-400 font-medium tracking-wide uppercase">Academy Workspace</span>
@@ -195,9 +203,17 @@
     <!-- Android App Bar Header -->
     <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/90 shadow-md">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white shadow-lg shadow-indigo-600/30">
-          <GraduationCap class="w-6 h-6" />
-        </div>
+        {#if $instituteSettings.icon || $instituteSettings.logo}
+          <img
+            src={$instituteSettings.icon || $instituteSettings.logo}
+            alt={$instituteSettings.name}
+            class="w-10 h-10 rounded-xl object-cover border border-slate-700 shadow-md shrink-0 bg-slate-950"
+          />
+        {:else}
+          <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white shadow-lg shadow-indigo-600/30">
+            <GraduationCap class="w-6 h-6" />
+          </div>
+        {/if}
         <div>
           <h2 class="text-sm font-bold text-white font-['Outfit'] line-clamp-1">{$instituteSettings.name}</h2>
           <span class="text-[11px] text-indigo-400 font-medium">মোবাইল অ্যাপ ড্যাশবোর্ড মেনু</span>

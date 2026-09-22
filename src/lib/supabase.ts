@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { writable } from 'svelte/store';
-import type { UserRole, Student, Batch, AttendanceRecord, FeeInvoice, SmsLog } from './types';
+import type { UserRole, Student, Batch, AttendanceRecord, FeeInvoice, SmsLog, InstituteSettings } from './types';
 
 export const SUPABASE_URL =
   import.meta.env.VITE_SUPABASE_URL ||
@@ -287,5 +287,126 @@ export async function syncSmsLogToDb(log: SmsLog) {
     if (error) console.warn('Supabase SMS log sync notice:', error.message);
   } catch (e) {
     console.warn('SMS log sync catch:', e);
+  }
+}
+
+export async function syncInstituteSettingsToDb(settings: InstituteSettings) {
+  try {
+    // 1. Upsert into coaching_branding table
+    const { error: brandErr } = await supabase.from('coaching_branding').upsert({
+      id: 'primary_branch',
+      name: settings.name,
+      name_english: settings.nameEnglish,
+      tagline: settings.tagline,
+      established_year: settings.establishedYear,
+      reg_number: settings.regNumber,
+      branch_name: settings.branchName,
+      branch_code: settings.branchCode,
+      logo_url: settings.logo,
+      icon_url: settings.icon,
+      phone: settings.phone,
+      hotline: settings.hotline,
+      whatsapp: settings.whatsapp,
+      alternate_phone: settings.alternatePhone,
+      email: settings.email,
+      website: settings.website,
+      address: settings.address,
+      division: settings.division,
+      district: settings.district,
+      thana: settings.thana,
+      google_maps_url: settings.googleMapsUrl,
+      social_media: settings.socialMedia || {},
+      director_name: settings.directorName,
+      director_designation: settings.directorDesignation,
+      director_signature: settings.directorSignature,
+      academic_coordinator: settings.academicCoordinator,
+      official_seal_text: settings.officialSealText,
+      bkash_merchant: settings.bkashMerchant,
+      nagad_merchant: settings.nagadMerchant,
+      rocket_number: settings.rocketNumber,
+      bank_account_name: settings.bankAccountName,
+      bank_name: settings.bankName,
+      bank_branch: settings.bankBranch,
+      bank_account_number: settings.bankAccountNumber,
+      bank_routing: settings.bankRouting,
+      settings_data: settings,
+      updated_at: new Date().toISOString(),
+    });
+
+    if (brandErr) {
+      console.warn('coaching_branding sync notice:', brandErr.message);
+    }
+
+    // 2. Also upsert into institute_settings for redundancy
+    await supabase.from('institute_settings').upsert({
+      id: 'main',
+      settings: settings,
+      updated_at: new Date().toISOString(),
+    });
+  } catch (e) {
+    console.warn('Institute settings sync caught:', e);
+  }
+}
+
+export async function loadInstituteSettingsFromDb(): Promise<Partial<InstituteSettings> | null> {
+  try {
+    const { data, error } = await supabase
+      .from('coaching_branding')
+      .select('*')
+      .eq('id', 'primary_branch')
+      .maybeSingle();
+
+    if (error || !data) {
+      const { data: instData } = await supabase
+        .from('institute_settings')
+        .select('settings')
+        .eq('id', 'main')
+        .maybeSingle();
+      if (instData?.settings) {
+        return instData.settings;
+      }
+      return null;
+    }
+
+    return {
+      name: data.name,
+      nameEnglish: data.name_english,
+      tagline: data.tagline,
+      establishedYear: data.established_year,
+      regNumber: data.reg_number,
+      branchName: data.branch_name,
+      branchCode: data.branch_code,
+      logo: data.logo_url,
+      icon: data.icon_url,
+      phone: data.phone,
+      hotline: data.hotline,
+      whatsapp: data.whatsapp,
+      alternatePhone: data.alternate_phone,
+      email: data.email,
+      website: data.website,
+      address: data.address,
+      division: data.division,
+      district: data.district,
+      thana: data.thana,
+      googleMapsUrl: data.google_maps_url,
+      socialMedia: data.social_media,
+      directorName: data.director_name,
+      directorDesignation: data.director_designation,
+      directorSignature: data.director_signature,
+      academicCoordinator: data.academic_coordinator,
+      officialSealText: data.official_seal_text,
+      bkashMerchant: data.bkash_merchant,
+      nagadMerchant: data.nagad_merchant,
+      rocketNumber: data.rocket_number,
+      bankAccountName: data.bank_account_name,
+      bankName: data.bank_name,
+      bankBranch: data.bank_branch,
+      bankAccountNumber: data.bank_account_number,
+      bankRouting: data.bank_routing,
+      ...(data.settings_data || {}),
+    };
+  } catch (e) {
+    console.warn('loadInstituteSettingsFromDb caught:', e);
+    return null;
   }
 }

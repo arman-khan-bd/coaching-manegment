@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { students, batches, courses, addStudent, deleteStudent, showToast, type Student } from '../store';
+  import { students, batches, courses, addStudent, updateStudent, deleteStudent, showToast, type Student } from '../store';
   import { navigate } from '../router';
   import StudentIdCardModal from './StudentIdCardModal.svelte';
   import SendSmsModal from '../components/SendSmsModal.svelte';
@@ -18,11 +18,63 @@
     ArrowUpDown,
     Printer,
     Send,
+    Pencil,
   } from 'lucide-svelte';
+  import CloudinaryUpload from '../components/CloudinaryUpload.svelte';
 
   let searchQuery = '';
   let selectedBatchFilter = 'all';
   let isAddModalOpen = false;
+
+  // Edit Student Modal State
+  let isEditModalOpen = false;
+  let editStudent: Student | null = null;
+  let editName = '';
+  let editEmail = '';
+  let editPhone = '';
+  let editGuardian = '';
+  let editGuardianPhone = '';
+  let editBloodGroup = 'O+';
+  let editGender: 'male' | 'female' | 'other' = 'male';
+  let editAddress = '';
+  let editStatus: 'active' | 'inactive' | 'graduated' = 'active';
+  let editPhoto = '';
+  let editFeesDue = 0;
+
+  function openEditStudent(s: Student) {
+    editStudent = s;
+    editName = s.name;
+    editEmail = s.email;
+    editPhone = s.phone;
+    editGuardian = s.guardianName;
+    editGuardianPhone = s.guardianPhone;
+    editBloodGroup = s.bloodGroup;
+    editGender = s.gender;
+    editAddress = s.address;
+    editStatus = s.status;
+    editPhoto = s.photo;
+    editFeesDue = s.feesDue;
+    isEditModalOpen = true;
+  }
+
+  function handleUpdateStudent() {
+    if (!editStudent || !editName) return;
+    updateStudent(editStudent.id, {
+      name: editName,
+      email: editEmail,
+      phone: editPhone,
+      guardianName: editGuardian,
+      guardianPhone: editGuardianPhone,
+      bloodGroup: editBloodGroup,
+      gender: editGender,
+      address: editAddress,
+      status: editStatus,
+      photo: editPhoto,
+      feesDue: editFeesDue,
+    });
+    isEditModalOpen = false;
+    editStudent = null;
+  }
 
   // Selected student for ID Card modal
   let selectedStudentForCard: Student | null = null;
@@ -297,6 +349,16 @@
                     <MessageSquare class="w-4 h-4" />
                   </button>
 
+                  <!-- Edit Button -->
+                  <button
+                    type="button"
+                    class="p-2 rounded-lg bg-amber-600/15 hover:bg-amber-500 text-amber-400 hover:text-white transition-all"
+                    title="শিক্ষার্থীর তথ্য সম্পাদনা"
+                    on:click={() => openEditStudent(s)}
+                  >
+                    <Pencil class="w-4 h-4" />
+                  </button>
+
                   <!-- Print ID Card Button -->
                   <button
                     type="button"
@@ -380,6 +442,14 @@
             >
               <MessageSquare class="w-3.5 h-3.5 text-emerald-400" />
               <span>SMS</span>
+            </button>
+            <button
+              type="button"
+              class="p-2 rounded-xl bg-amber-500/15 hover:bg-amber-500 text-amber-400 hover:text-white border border-amber-500/30"
+              title="সম্পাদনা"
+              on:click={() => openEditStudent(s)}
+            >
+              <Pencil class="w-4 h-4" />
             </button>
             <button
               type="button"
@@ -519,6 +589,20 @@
       />
     </div>
 
+    <!-- Student Photo (Cloudinary) -->
+    <div>
+      <CloudinaryUpload
+        bind:value={newPhoto}
+        label="শিক্ষার্থীর ছবি (Photo - Cloudinary Upload)"
+        folder="coaching_management/students"
+        aspect="square"
+        previewSize="md"
+        placeholderText="শিক্ষার্থীর ছবি আপলোড করুন"
+        helpText="আইডি কার্ড ও ডিজিটাল প্রোফাইলের জন্য ক্লাউডিনারিতে আপলোড হবে"
+        badgeText="Cloudinary"
+      />
+    </div>
+
     <div class="pt-4 flex items-center justify-end gap-3 border-t border-slate-800">
       <button
         type="button"
@@ -560,3 +644,85 @@
     isSmsModalOpen = false;
   }}
 />
+
+<!-- Edit Student Modal -->
+<Modal open={isEditModalOpen} title="শিক্ষার্থীর তথ্য সম্পাদনা" subtitle="Edit student profile & contact details" onClose={() => { isEditModalOpen = false; editStudent = null; }}>
+  <form on:submit|preventDefault={handleUpdateStudent} class="space-y-4 text-xs">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div>
+        <label class="block font-medium text-slate-300 mb-1">পূর্ণ নাম *</label>
+        <input type="text" bind:value={editName} required class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none" />
+      </div>
+      <div>
+        <label class="block font-medium text-slate-300 mb-1">ইমেইল</label>
+        <input type="email" bind:value={editEmail} class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none" />
+      </div>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div>
+        <label class="block font-medium text-slate-300 mb-1">মোবাইল নম্বর</label>
+        <input type="text" bind:value={editPhone} class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none" />
+      </div>
+      <div>
+        <label class="block font-medium text-slate-300 mb-1">ঠিকানা</label>
+        <input type="text" bind:value={editAddress} class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none" />
+      </div>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div>
+        <label class="block font-medium text-slate-300 mb-1">অভিভাবকের নাম</label>
+        <input type="text" bind:value={editGuardian} class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none" />
+      </div>
+      <div>
+        <label class="block font-medium text-slate-300 mb-1">অভিভাবকের মোবাইল</label>
+        <input type="text" bind:value={editGuardianPhone} class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none" />
+      </div>
+    </div>
+    <div class="grid grid-cols-3 gap-3">
+      <div>
+        <label class="block font-medium text-slate-300 mb-1">রক্তের গ্রুপ</label>
+        <select bind:value={editBloodGroup} class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:border-indigo-500 focus:outline-none">
+          {#each ['A+','A-','B+','B-','AB+','AB-','O+','O-'] as bg}
+            <option value={bg}>{bg}</option>
+          {/each}
+        </select>
+      </div>
+      <div>
+        <label class="block font-medium text-slate-300 mb-1">লিঙ্গ</label>
+        <select bind:value={editGender} class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:border-indigo-500 focus:outline-none">
+          <option value="male">পুরুষ</option>
+          <option value="female">মহিলা</option>
+          <option value="other">অন্যান্য</option>
+        </select>
+      </div>
+      <div>
+        <label class="block font-medium text-slate-300 mb-1">স্ট্যাটাস</label>
+        <select bind:value={editStatus} class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:border-indigo-500 focus:outline-none">
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+          <option value="graduated">Graduated</option>
+        </select>
+      </div>
+    </div>
+    <div>
+      <label class="block font-medium text-slate-300 mb-1">বকেয়া ফি (৳)</label>
+      <input type="number" bind:value={editFeesDue} min="0" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:border-indigo-500 focus:outline-none" />
+    </div>
+    <div>
+      <CloudinaryUpload
+        bind:value={editPhoto}
+        label="শিক্ষার্থীর ছবি (Cloudinary Upload)"
+        folder="coaching_management/students"
+        aspect="square"
+        previewSize="sm"
+        placeholderText="শিক্ষার্থীর ছবি আপলোড করুন"
+        badgeText="Cloudinary"
+      />
+    </div>
+    <div class="pt-4 flex items-center justify-end gap-3 border-t border-slate-800">
+      <button type="button" class="px-4 py-2.5 rounded-xl text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 transition-colors" on:click={() => { isEditModalOpen = false; editStudent = null; }}>বাতিল</button>
+      <button type="submit" class="px-5 py-2.5 rounded-xl font-semibold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/30 transition-all">তথ্য সংরক্ষণ করুন</button>
+    </div>
+  </form>
+</Modal>
+

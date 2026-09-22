@@ -25,6 +25,8 @@ import {
   syncAttendanceToDb,
   syncInvoiceToDb,
   syncSmsLogToDb,
+  syncInstituteSettingsToDb,
+  loadInstituteSettingsFromDb,
 } from './supabase';
 
 // ==========================================
@@ -133,10 +135,13 @@ export const defaultInstituteSettings: InstituteSettings = {
   branchName: 'ফার্মগেট প্রধান ক্যাম্পাস',
   branchCode: 'FGT-01',
   logo: 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=150&auto=format&fit=crop&q=80',
+  icon: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=80&auto=format&fit=crop&q=80',
 
-  // 2. Contact & Campus
+  // 2. Contact, Hotlines & Campus
   email: 'director@apexacademicbd.com',
   phone: '+880 1711-456789',
+  hotline: '+880 9612-456789',
+  whatsapp: '+880 1711-456789',
   alternatePhone: '+880 1819-123456',
   website: 'https://apexacademicbd.com',
   address: 'গ্রিন সুপার মার্কেট, ৩য় তলা, ফার্মগেট, ঢাকা-১২১৫',
@@ -144,6 +149,16 @@ export const defaultInstituteSettings: InstituteSettings = {
   district: 'ঢাকা',
   thana: 'তেজগাঁও',
   googleMapsUrl: 'https://maps.google.com/?q=Farmgate+Dhaka',
+
+  // Social Media Links
+  socialMedia: {
+    facebook: 'https://facebook.com/apexacademiccare',
+    youtube: 'https://youtube.com/@apexacademiccare',
+    instagram: 'https://instagram.com/apexacademiccare',
+    linkedin: 'https://linkedin.com/company/apexacademiccare',
+    telegram: 'https://t.me/apexacademiccare',
+    website: 'https://apexacademicbd.com',
+  },
 
   // 3. Authorization, Seal & Signatures
   directorName: 'ইঞ্জি. মোঃ সাইফুল ইসলাম',
@@ -206,6 +221,7 @@ function loadStoredSettings(): InstituteSettings {
 
 export const instituteSettings = writable<InstituteSettings>(loadStoredSettings());
 
+let settingsSyncTimeout: any = null;
 if (typeof window !== 'undefined') {
   instituteSettings.subscribe((val) => {
     try {
@@ -213,6 +229,27 @@ if (typeof window !== 'undefined') {
     } catch (e) {
       // ignore
     }
+
+    // Debounce database sync
+    clearTimeout(settingsSyncTimeout);
+    settingsSyncTimeout = setTimeout(() => {
+      syncInstituteSettingsToDb(val);
+    }, 1500);
+  });
+
+  // Hydrate from Supabase if available
+  loadInstituteSettingsFromDb().then((remoteSettings) => {
+    if (remoteSettings && remoteSettings.name) {
+      instituteSettings.update((curr) => ({ ...curr, ...remoteSettings }));
+    }
+  }).catch((e) => console.warn('Supabase settings initial load catch:', e));
+}
+
+export function updateInstituteSettings(partial: Partial<InstituteSettings>) {
+  instituteSettings.update((curr) => {
+    const updated = { ...curr, ...partial };
+    syncInstituteSettingsToDb(updated);
+    return updated;
   });
 }
 
@@ -902,6 +939,30 @@ export function addTeacher(teacherData: Omit<Teacher, 'id'>) {
     ...all,
   ]);
   showToast('success', 'শিক্ষক যুক্ত হয়েছেন', 'নতুন শিক্ষকের প্রোফাইল ও বেতন স্কেল সংরক্ষিত হয়েছে।');
+}
+
+// Update Teacher
+export function updateTeacher(id: string, updates: Partial<Teacher>) {
+  teachers.update((all) => all.map((t) => (t.id === id ? { ...t, ...updates } : t)));
+  showToast('info', 'শিক্ষকের তথ্য হালনাগাদ', 'শিক্ষকের প্রোফাইল সফলভাবে আপডেট হয়েছে।');
+}
+
+// Delete Teacher
+export function deleteTeacher(id: string) {
+  teachers.update((all) => all.filter((t) => t.id !== id));
+  showToast('warning', 'শিক্ষক অপসারিত', 'শিক্ষকের রেকর্ড সিস্টেম থেকে সরানো হয়েছে।');
+}
+
+// Update Batch
+export function updateBatch(id: string, updates: Partial<Batch>) {
+  batches.update((all) => all.map((b) => (b.id === id ? { ...b, ...updates } : b)));
+  showToast('info', 'ব্যাচ হালনাগাদ', 'ব্যাচের তথ্য সফলভাবে আপডেট হয়েছে।');
+}
+
+// Delete Batch
+export function deleteBatch(id: string) {
+  batches.update((all) => all.filter((b) => b.id !== id));
+  showToast('warning', 'ব্যাচ অপসারিত', 'ব্যাচটি সিস্টেম থেকে সরানো হয়েছে।');
 }
 
 // Mark Attendance & auto-alert option
