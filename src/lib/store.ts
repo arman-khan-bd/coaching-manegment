@@ -2020,17 +2020,20 @@ export function sendSms(
     });
   }
 
-  // Direct bridge to React Native Companion App if running inside Android WebView
-  if (gateway === 'android_sim1' && typeof window !== 'undefined' && (window as any).ReactNativeWebView) {
-    (window as any).ReactNativeWebView.postMessage(
-      JSON.stringify({
-        type: 'SEND_SMS',
-        to: recipientPhone,
-        message,
-        recipientName,
-        simSlot: 1,
-      })
-    );
+  // Direct bridge to Flutter / Android Companion App if running inside Android WebView
+  if (gateway === 'android_sim1' && typeof window !== 'undefined') {
+    const payload = JSON.stringify({
+      type: 'SEND_SMS',
+      to: recipientPhone,
+      message,
+      recipientName,
+      simSlot: 1,
+    });
+    if ((window as any).FlutterGateway) {
+      (window as any).FlutterGateway.postMessage(payload);
+    } else if ((window as any).ReactNativeWebView) {
+      (window as any).ReactNativeWebView.postMessage(payload);
+    }
   }
 
   if (gateway === 'cloud') {

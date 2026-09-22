@@ -22,3 +22,15 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Flutter & Android
+coachflow_app/.dart_tool/
+coachflow_app/.flutter-plugins
+coachflow_app/.flutter-plugins-dependencies
+coachflow_app/.packages
+coachflow_app/build/
+coachflow_app/android/.gradle/
+coachflow_app/android/local.properties
+coachflow_app/android/app/build/
+*.apk
+
