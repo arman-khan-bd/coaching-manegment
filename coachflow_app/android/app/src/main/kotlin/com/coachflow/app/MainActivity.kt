@@ -132,9 +132,15 @@ class MainActivity: FlutterActivity() {
         if (simList.isEmpty()) {
             simList.add(mapOf(
                 "slotIndex" to 0,
-                "carrierName" to "Grameenphone 4G (SIM 1)",
+                "carrierName" to "SIM 1 (Primary Slot)",
                 "subscriptionId" to 1,
                 "isFirstSim" to true
+            ))
+            simList.add(mapOf(
+                "slotIndex" to 1,
+                "carrierName" to "SIM 2 (Secondary Slot)",
+                "subscriptionId" to 2,
+                "isFirstSim" to false
             ))
         }
         return simList

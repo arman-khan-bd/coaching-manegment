@@ -328,7 +328,7 @@ class _SmsGatewayViewState extends State<SmsGatewayView> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text("📊 Today's SMS Quota (SIM 1)", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+                      Text("📊 Today's SMS Quota (SIM ${_pollingService.preferredSimSlot})", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
                       Text(
                         '${_pollingService.dailySent} / ${_pollingService.dailyLimit}',
                         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
@@ -360,8 +360,18 @@ class _SmsGatewayViewState extends State<SmsGatewayView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('✉️ Send Test SMS via SIM 1', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+                  const Text('✉️ Send Test SMS via SIM', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
                   const SizedBox(height: 8),
+                  const Text('Select SIM Card for Test:', style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      _buildTestSimChip(1),
+                      const SizedBox(width: 8),
+                      _buildTestSimChip(2),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
                   const Text('Recipient Phone:', style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
                   const SizedBox(height: 4),
                   TextField(
@@ -392,7 +402,7 @@ class _SmsGatewayViewState extends State<SmsGatewayView> {
                       ),
                       child: _isSendingTest
                           ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : const Text('SIM 1 দিয়ে SMS পাঠান (৳0.00)', style: TextStyle(fontWeight: FontWeight.bold)),
+                          : Text('SIM $_testSimSlot দিয়ে SMS পাঠান (৳0.00)', style: const TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ],
@@ -477,6 +487,104 @@ class _SmsGatewayViewState extends State<SmsGatewayView> {
           const SizedBox(height: 3),
           Text(log.time, style: const TextStyle(color: Color(0xFF64748B), fontSize: 9)),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSimSelectionCard({
+    required int slotNumber,
+    required SimCardInfo? sim,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    final hasSim = sim != null;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF1E1B4B) : const Color(0xFF0F172A),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF6366F1) : const Color(0xFF1E293B),
+            width: isSelected ? 1.5 : 1.0,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: isSelected ? const Color(0xFF4F46E5) : const Color(0xFF1E293B),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    isSelected ? 'ACTIVE SENDER' : 'SIM $slotNumber',
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : const Color(0xFF94A3B8),
+                      fontSize: 8,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Icon(
+                  isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+                  size: 16,
+                  color: isSelected ? const Color(0xFF10B981) : const Color(0xFF64748B),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              sim?.carrierName ?? 'SIM $slotNumber (Slot ${slotNumber - 1})',
+              style: TextStyle(
+                color: isSelected ? Colors.white : const Color(0xFFCBD5E1),
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              isSelected ? 'Selected for sending' : (hasSim ? 'Tap to activate SIM $slotNumber' : 'Slot ${slotNumber - 1} ready'),
+              style: TextStyle(
+                color: isSelected ? const Color(0xFF818CF8) : const Color(0xFF64748B),
+                fontSize: 9,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTestSimChip(int slot) {
+    final isSel = _testSimSlot == slot;
+    return GestureDetector(
+      onTap: () => setState(() => _testSimSlot = slot),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSel ? const Color(0xFF4F46E5) : const Color(0xFF0F172A),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSel ? const Color(0xFF818CF8) : const Color(0xFF1E293B),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(isSel ? Icons.check_circle : Icons.circle_outlined, size: 12, color: isSel ? Colors.white : const Color(0xFF94A3B8)),
+            const SizedBox(width: 6),
+            Text('SIM $slot', style: TextStyle(color: isSel ? Colors.white : const Color(0xFF94A3B8), fontSize: 11, fontWeight: FontWeight.bold)),
+          ],
+        ),
       ),
     );
   }
