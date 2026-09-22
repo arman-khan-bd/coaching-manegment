@@ -1,0 +1,1302 @@
+import { writable, derived } from 'svelte/store';
+import type {
+  UserRole,
+  SubscriptionPlan,
+  Student,
+  Teacher,
+  Course,
+  Unit,
+  Batch,
+  AttendanceRecord,
+  FeeInvoice,
+  Exam,
+  ExamMark,
+  SmsAccount,
+  SmsLog,
+  SmsTemplate,
+  InstituteSettings,
+  ToastMessage,
+  SyllabusItem,
+  RoutineSlot,
+} from './types';
+import {
+  syncStudentToDb,
+  syncBatchToDb,
+  syncAttendanceToDb,
+  syncInvoiceToDb,
+  syncSmsLogToDb,
+} from './supabase';
+
+// ==========================================
+// NAVIGATION & AUTH STORES
+// ==========================================
+export const currentView = writable<'landing' | 'login' | 'register' | 'checkout' | 'dashboard'>('landing');
+export const activeTab = writable<string>('overview');
+export const currentRole = writable<UserRole>('institute_admin');
+export const selectedPlan = writable<SubscriptionPlan | null>(null);
+
+// ==========================================
+// TOAST NOTIFICATIONS
+// ==========================================
+export const toasts = writable<ToastMessage[]>([]);
+
+export function showToast(type: ToastMessage['type'], title: string, message: string) {
+  const id = Math.random().toString(36).substring(2, 9);
+  toasts.update((all) => [...all, { id, type, title, message }]);
+  setTimeout(() => {
+    toasts.update((all) => all.filter((t) => t.id !== id));
+  }, 4000);
+}
+
+// ==========================================
+// SAAS SUBSCRIPTION PLANS (IN BANGLADESHI TAKA ৳)
+// ==========================================
+export const subscriptionPlans: SubscriptionPlan[] = [
+  {
+    id: 'starter',
+    name: 'স্টার্টার কোচিং (Starter)',
+    tag: 'ব্যক্তিগত টিউটর ও ছোট কোচিং সেন্টার',
+    priceMonthly: 1490,
+    priceYearly: 14900,
+    description: 'হোম টিউটর, প্রাইভেট ব্যাচ ও স্থানীয় অ্যাকাডেমিক সেন্টারের জন্য প্রযোজ্য।',
+    features: [
+      'সর্বোচ্চ ১০০ জন সক্রিয় শিক্ষার্থী',
+      '৫টি অ্যাকাডেমিক ব্যাচ পরিচালনা',
+      '৩ জন শিক্ষক ও স্টাফ অ্যাকাউন্ট',
+      'ডিজিটাল হাজিরা ও বকেয়া ফি ট্র্যাকিং',
+      'প্রিন্টেবল আইডি কার্ড ও ফি রসিদ',
+      '৫০০ ফ্রি ক্লাউড SMS ব্যালেন্স',
+      'অ্যান্ড্রয়েড SMS গেটওয়ে (নিজস্ব GP/BL সিম)',
+    ],
+    studentLimit: 100,
+    branchLimit: 1,
+    smsCreditsIncluded: 500,
+    androidGatewayIncluded: true,
+  },
+  {
+    id: 'pro',
+    name: 'প্রো অ্যাকাডেমি (Pro Academy)',
+    tag: 'জনপ্রিয় ও মাঝারি কোচিং সেন্টারের জন্য',
+    priceMonthly: 3490,
+    priceYearly: 34900,
+    popular: true,
+    description: 'এইচএসসি, এসএসসি ও ভর্তি কোচিংয়ের স্বয়ংক্রিয় অভিভাবক এসএমএস অ্যালার্ট ও ফি ম্যানেজমেন্ট।',
+    features: [
+      'সর্বোচ্চ ৫০০ জন শিক্ষার্থী',
+      'আনলিমিটেড ব্যাচ ও কোর্স শিডিউল',
+      '১৫ জন শিক্ষক ও অ্যাডমিন অ্যাক্সেস',
+      'ডুয়েল SMS (ক্লাউড + নিজস্ব সিমে ফ্রি এসএমএস)',
+      'অনুপস্থিতির সাথে সাথে অভিভাবককে বাংলা SMS',
+      'মডেল টেস্ট মার্কশিট ও রেজাল্ট কার্ড জেনারেটর',
+      'বকেয়া ফি রিমাইন্ডার ও বিকাশ রসিদ প্রিন্টার',
+      'মাল্টিপল আইডি কার্ড ডিজাইন ও বাল্ক ডাউনলোড',
+    ],
+    studentLimit: 500,
+    branchLimit: 2,
+    smsCreditsIncluded: 2500,
+    androidGatewayIncluded: true,
+  },
+  {
+    id: 'enterprise',
+    name: 'মাল্টি-ব্রাঞ্চ এলিট (Enterprise)',
+    tag: 'উদ্বাস-রেটিনা ধাঁচের বড় প্রতিষ্ঠান ও চেইন',
+    priceMonthly: 7990,
+    priceYearly: 79900,
+    description: 'ফার্মগেট, ধানমন্ডি, চট্টগ্রামসহ একাধিক শাখা বিশিষ্ট বড় কোচিং নেটওয়ার্কের জন্য।',
+    features: [
+      'আনলিমিটেড শিক্ষার্থী ও ব্রাঞ্চ',
+      'মাল্টি-ব্রাঞ্চ কেন্দ্রীভূত ড্যাশবোর্ড',
+      'আনলিমিটেড শিক্ষক ও পে-রোল হিসাব',
+      'মাল্টি-ডিভাইস অ্যান্ড্রয়েড গেটওয়ে হাব (ডুয়েল সিম)',
+      'কাস্টম ডোমেইন ও নিজস্ব ব্র্যান্ডিং',
+      '২৪/৭ ডেডিকেটেড হোয়াটসঅ্যাপ ও ফোন সাপোর্ট',
+      'স্বয়ংক্রিয় ডাটাবেজ ব্যাকআপ ও এক্সপোর্ট',
+      'CodeCanyon স্ট্যান্ডার্ড API সিঙ্ক',
+    ],
+    studentLimit: 99999,
+    branchLimit: 99,
+    smsCreditsIncluded: 10000,
+    androidGatewayIncluded: true,
+  },
+];
+
+// ==========================================
+// INSTITUTE SETTINGS STORE (BANGLADESH CONFIGURED)
+// ==========================================
+export const instituteSettings = writable<InstituteSettings>({
+  name: 'এপেক্স অ্যাকাডেমিক কেয়ার (ফার্মগেট শাখা)',
+  tagline: 'HSC বিজ্ঞান, বুয়েট ইঞ্জিনিয়ারিং ও মেডিকেল ভর্তি পরীক্ষার সেরা প্ল্যাটফর্ম',
+  email: 'director@apexacademicbd.com',
+  phone: '+880 1711-456789',
+  address: 'গ্রিন সুপার মার্কেট, ৩য় তলা, ফার্মগেট, ঢাকা-১২১৫',
+  logo: 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=150&auto=format&fit=crop&q=80',
+  currency: 'BDT',
+  currencySymbol: '৳',
+  defaultSmsGateway: 'android',
+  academicYear: '২০২৬-২০২৭',
+  timezone: 'Asia/Dhaka (GMT+6)',
+});
+
+// ==========================================
+// COURSES & UNITS STORE (NCTB & ADMISSION CURRICULUMS)
+// ==========================================
+export const courses = writable<Course[]>([
+  {
+    id: 'c-1',
+    code: 'HSC-PHY-01',
+    title: 'HSC উচ্চতর পদার্থবিজ্ঞান ১ম ও ২য় পত্র (NCTB)',
+    category: 'এইচএসসি বিজ্ঞান (HSC Science)',
+    description: 'বোর্ড পরীক্ষা ও ইঞ্জিনিয়ারিং ফাউন্ডেশনের পূর্ণাঙ্গ সিলেবাস, থিওরি ও গাণিতিক সমস্যা সমাধান।',
+    durationWeeks: 24,
+    feeAmount: 4500,
+    unitsCount: 4,
+    thumbnail: 'https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?w=400&auto=format&fit=crop&q=80',
+    status: 'published',
+  },
+  {
+    id: 'c-2',
+    code: 'HSC-MTH-02',
+    title: 'HSC উচ্চতর গণিত ও ক্যালকুলাস স্পেশাল',
+    category: 'উচ্চতর গণিত (Higher Math)',
+    description: 'সরলরেখা, বৃত্ত, ত্রিকোণমিতি, অন্তরীকরণ ও যোগজীকরণের শর্টকাট টেকনিক ও বোর্ড প্রশ্ন বিশ্লেষণ।',
+    durationWeeks: 20,
+    feeAmount: 4800,
+    unitsCount: 5,
+    thumbnail: 'https://images.unsplash.com/photo-1509228468518-180dd4864904?w=400&auto=format&fit=crop&q=80',
+    status: 'published',
+  },
+  {
+    id: 'c-3',
+    code: 'ENG-BUET-03',
+    title: 'বুয়েট ও ইঞ্জিনিয়ারিং ভর্তি প্রস্তুতি ২০২৬',
+    category: 'ইঞ্জিনিয়ারিং ভর্তি (BUET/CKRUET)',
+    description: 'বুয়েট, রুয়েট, কুয়েট, চুয়েটের বিগত ২০ বছরের প্রশ্নব্যাংক সল্ভ ও কনসেপচুয়াল প্র্যাকটিস।',
+    durationWeeks: 16,
+    feeAmount: 8500,
+    unitsCount: 4,
+    thumbnail: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=400&auto=format&fit=crop&q=80',
+    status: 'published',
+  },
+  {
+    id: 'c-4',
+    code: 'MED-BIO-04',
+    title: 'মেডিকেল ভর্তি বায়োলজি ও রসায়ন এক্সক্লুসিভ কেয়ার',
+    category: 'মেডিকেল ভর্তি (MBBS Preparation)',
+    description: 'হাসান স্যার ও আজিবুর স্যারের বইয়ের লাইন-টু-লাইন দাগানো নোট, জলজি ও বোটানি মেমোরাইজিং ট্রিকস।',
+    durationWeeks: 18,
+    feeAmount: 7500,
+    unitsCount: 4,
+    thumbnail: 'https://images.unsplash.com/photo-1530497610245-94d3c16cda28?w=400&auto=format&fit=crop&q=80',
+    status: 'published',
+  },
+]);
+
+export const units = writable<Unit[]>([
+  {
+    id: 'u-1',
+    courseId: 'c-1',
+    unitNumber: 1,
+    title: 'অধ্যায় ২ ও ৩: ভেক্টর এবং গতিবিদ্যা (Vectors & Kinematics)',
+    description: 'ভেক্টর ডট ও ক্রস গুণন, নদী-নৌকা সমস্যা, প্রাস (Projectile motion) ও আপেক্ষিক বেগ।',
+    topics: ['নদী ও স্রোতের বেগ', 'প্রাসের সর্বোচ্চ উচ্চতা ও পাল্লা', 'ত্রিমাত্রিক ভেক্টর বিশ্লেষণ', 'ঘূর্ণন গতি'],
+    estimatedHours: 18,
+    materialsCount: 6,
+  },
+  {
+    id: 'u-2',
+    courseId: 'c-1',
+    unitNumber: 2,
+    title: 'অধ্যায় ৪ ও ৫: নিউটনীয় বলবিদ্যা ও কাজ শক্তি ক্ষমতা',
+    description: 'ভরবেগের সংরক্ষণ সূত্র, ঘর্ষণ বল, ব্যাংকিং কোণ, স্থিতিস্থাপক সংঘর্ষ ও ক্ষমতা রূপান্তর।',
+    topics: ['রাস্তার ব্যাংকিং কোণ', 'জড়তার ভ্রামক ও চক্রগতির ব্যাসার্ধ', 'কাজের মাত্রা ও স্প্রিং বল', 'সংরক্ষণশীল বল'],
+    estimatedHours: 22,
+    materialsCount: 8,
+  },
+  {
+    id: 'u-3',
+    courseId: 'c-2',
+    unitNumber: 1,
+    title: 'অধ্যায় ৩ ও ৪: সরলরেখা ও বৃত্ত (Straight Lines & Circle)',
+    description: 'ঢাল, দুই সরলরেখার মধ্যবর্তী কোণ, লম্ব দূরত্ব, স্পর্শকের সমীকরণ ও প্রতিসম বিন্দু।',
+    topics: ['কার্তেসীয় ও পোলার স্থানাঙ্ক', 'ত্রিভুজের ক্ষেত্রফল ও অন্তর্বৃত্ত', 'ছেদবিন্দুগামী রেখা', 'বৃত্তের স্পর্শক সমীকরণ'],
+    estimatedHours: 20,
+    materialsCount: 7,
+  },
+  {
+    id: 'u-4',
+    courseId: 'c-2',
+    unitNumber: 2,
+    title: 'অধ্যায় ৯ ও ১০: অন্তরীকরণ ও যোগজীকরণ (Calculus)',
+    description: 'লিমিট, এল-হসপিটাল নিয়ম, চেইন রুল, স্পর্শক ও অভিলম্ব, নির্দিষ্ট যোগজ ও ক্ষেত্রফল।',
+    topics: ['ফাংশনের লিমিট ও অবিচ্ছিন্নতা', 'চেইন রুল ও অব্যক্ত ফাংশন', 'ইউ-ভি ইন্টিগ্রেশন', 'বক্ররেখা দ্বারা আবদ্ধ ক্ষেত্রফল'],
+    estimatedHours: 26,
+    materialsCount: 10,
+  },
+]);
+
+// ==========================================
+// TEACHERS STORE (BANGLADESHI FACULTY)
+// ==========================================
+export const teachers = writable<Teacher[]>([
+  {
+    id: 't-1',
+    name: 'ইঞ্জি. মোঃ সাইফুল ইসলাম',
+    email: 'saiful.buet@apexacademicbd.com',
+    phone: '+880 1712-345678',
+    designation: 'বিভাগীয় প্রধান, পদার্থবিজ্ঞান (বুয়েট CSE-১৪)',
+    photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
+    subjectSpecialization: 'উচ্চতর পদার্থবিজ্ঞান ও মেকানিক্স',
+    assignedBatchIds: ['b-1', 'b-3'],
+    salaryType: 'monthly',
+    salaryAmount: 48000,
+    joiningDate: '2023-01-15',
+    status: 'active',
+    education: 'বি.এস.সি ইঞ্জিনিয়ারিং (বুয়েট), এম.এস.সি (আইআইটি ফেলো)',
+  },
+  {
+    id: 't-2',
+    name: 'ডা. নুসরাত জাহান',
+    email: 'dr.nusrat@apexacademicbd.com',
+    phone: '+880 1819-456789',
+    designation: 'সিনিয়র মেডিকেল ফ্যাকাল্টি (ডিএমসি K-৭২)',
+    photo: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&auto=format&fit=crop&q=80',
+    subjectSpecialization: 'মেডিকেল বায়োলজি ও হিউম্যান ফিজিওলজি',
+    assignedBatchIds: ['b-2'],
+    salaryType: 'monthly',
+    salaryAmount: 45000,
+    joiningDate: '2023-06-01',
+    status: 'active',
+    education: 'এমবিবিএস (ঢাকা মেডিকেল কলেজ), এফসিপিএস (পার্ট-১)',
+  },
+  {
+    id: 't-3',
+    name: 'প্রভাষক তানভীর আহমেদ',
+    email: 'tanvir.du@apexacademicbd.com',
+    phone: '+880 1913-567890',
+    designation: 'সিনিয়র গণিত শিক্ষক (ঢাকা বিশ্ববিদ্যালয়)',
+    photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80',
+    subjectSpecialization: 'উচ্চতর গণিত ও কো-অর্ডিনেট জিওমেট্রি',
+    assignedBatchIds: ['b-4'],
+    salaryType: 'monthly',
+    salaryAmount: 40000,
+    joiningDate: '2024-02-10',
+    status: 'active',
+    education: 'বি.এস.সি ও এম.এস.সি (ফলিত গণিত, ঢাবি)',
+  },
+]);
+
+// ==========================================
+// BATCHES STORE (LOCAL COACHING BATCHES)
+// ==========================================
+export const batches = writable<Batch[]>([
+  {
+    id: 'b-1',
+    code: 'B-HSC-AM',
+    name: 'HSC \'26 ফিজিক্স আলফা (সকালের ব্যাচ - ফার্মগেট)',
+    courseId: 'c-1',
+    teacherId: 't-1',
+    roomNumber: 'রুম ২০১ (২য় তলা)',
+    scheduleDays: ['শনি', 'সোম', 'বুধ'],
+    startTime: '০৮:০০ AM',
+    endTime: '১০:০০ AM',
+    maxCapacity: 40,
+    enrolledCount: 36,
+    status: 'running',
+    startDate: '2026-02-01',
+  },
+  {
+    id: 'b-2',
+    code: 'B-MED-CARE',
+    name: 'মেডিকেল প্রি-মেড এক্সক্লুসিভ ব্যাচ (ধানমন্ডি)',
+    courseId: 'c-4',
+    teacherId: 't-2',
+    roomNumber: 'বায়োলজি ল্যাব ১০২',
+    scheduleDays: ['রবি', 'মঙ্গল', 'বৃহঃ'],
+    startTime: '১০:৩০ AM',
+    endTime: '১২:৩০ PM',
+    maxCapacity: 35,
+    enrolledCount: 31,
+    status: 'running',
+    startDate: '2026-02-15',
+  },
+  {
+    id: 'b-3',
+    code: 'B-BUET-TG',
+    name: 'BUET Target \'26 ইঞ্জিনিয়ারিং স্পেশাল',
+    courseId: 'c-3',
+    teacherId: 't-1',
+    roomNumber: 'সেমিনার হল ৩০১',
+    scheduleDays: ['শনি', 'রবি', 'বুধ'],
+    startTime: '০৩:০০ PM',
+    endTime: '০৫:০০ PM',
+    maxCapacity: 30,
+    enrolledCount: 28,
+    status: 'running',
+    startDate: '2026-03-01',
+  },
+  {
+    id: 'b-4',
+    code: 'B-MTH-EV',
+    name: 'উচ্চতর গণিত চ্যাম্পিয়ন ব্যাচ (মিরপুর-১০)',
+    courseId: 'c-2',
+    teacherId: 't-3',
+    roomNumber: 'হল ১০৪',
+    scheduleDays: ['রবি', 'মঙ্গল', 'বৃহঃ'],
+    startTime: '০৫:০০ PM',
+    endTime: '০৭:০০ PM',
+    maxCapacity: 45,
+    enrolledCount: 38,
+    status: 'running',
+    startDate: '2026-02-10',
+  },
+]);
+
+// ==========================================
+// STUDENTS STORE (BANGLADESHI STUDENTS)
+// ==========================================
+export const students = writable<Student[]>([
+  {
+    id: 's-1',
+    rollNo: 'AAC-2026-001',
+    name: 'ফারহান শাকিল (Farhan Shakil)',
+    email: 'farhan.shakil@gmail.com',
+    phone: '+880 1711-223344',
+    guardianName: 'মোঃ শাকিল হোসেন',
+    guardianPhone: '+880 1711-223345',
+    photo: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=200&auto=format&fit=crop&q=80',
+    batchIds: ['b-1', 'b-3'],
+    courseIds: ['c-1', 'c-3'],
+    bloodGroup: 'O+',
+    status: 'active',
+    enrollmentDate: '2026-01-20',
+    feesDue: 0,
+    address: 'বাসা ৩৪, রোড ৭/এ, ধানমন্ডি, ঢাকা',
+    gender: 'male',
+    dob: '2008-04-12',
+  },
+  {
+    id: 's-2',
+    rollNo: 'AAC-2026-002',
+    name: 'নাফিসা আনজুম (Nafisa Anjum)',
+    email: 'nafisa.anjum@gmail.com',
+    phone: '+880 1819-334455',
+    guardianName: 'মেজর (অবঃ) আনিসুর রহমান',
+    guardianPhone: '+880 1819-334456',
+    photo: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200&auto=format&fit=crop&q=80',
+    batchIds: ['b-1', 'b-2'],
+    courseIds: ['c-1', 'c-4'],
+    bloodGroup: 'A+',
+    status: 'active',
+    enrollmentDate: '2026-01-22',
+    feesDue: 1500,
+    address: '১২/বি ইন্দিরা রোড, ফার্মগেট, ঢাকা',
+    gender: 'female',
+    dob: '2008-09-28',
+  },
+  {
+    id: 's-3',
+    rollNo: 'AAC-2026-003',
+    name: 'রিফাত আল-মাহমুদ (Rifat Al-Mahmud)',
+    email: 'rifat.mahmud@gmail.com',
+    phone: '+880 1912-445566',
+    guardianName: 'মাহমুদুল হক বাবুল',
+    guardianPhone: '+880 1912-445567',
+    photo: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&auto=format&fit=crop&q=80',
+    batchIds: ['b-4'],
+    courseIds: ['c-2'],
+    bloodGroup: 'B+',
+    status: 'active',
+    enrollmentDate: '2026-02-01',
+    feesDue: 0,
+    address: 'ব্লক-সি, রোড ৪, মিরপুর-১০, ঢাকা',
+    gender: 'male',
+    dob: '2007-11-15',
+  },
+  {
+    id: 's-4',
+    rollNo: 'AAC-2026-004',
+    name: 'তাসনিম তাবাসসুম (Tasnim Tabassum)',
+    email: 'tasnim.t@gmail.com',
+    phone: '+880 1611-556677',
+    guardianName: 'কবীর আহমেদ',
+    guardianPhone: '+880 1611-556678',
+    photo: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=200&auto=format&fit=crop&q=80',
+    batchIds: ['b-2'],
+    courseIds: ['c-4'],
+    bloodGroup: 'AB+',
+    status: 'active',
+    enrollmentDate: '2026-02-05',
+    feesDue: 2500,
+    address: 'সেক্টর ৭, রোড ১১, উত্তরা, ঢাকা',
+    gender: 'female',
+    dob: '2008-01-09',
+  },
+  {
+    id: 's-5',
+    rollNo: 'AAC-2026-005',
+    name: 'সিয়াম চৌধুরী (Siam Chowdhury)',
+    email: 'siam.ctg@gmail.com',
+    phone: '+880 1722-667788',
+    guardianName: 'মিজানুর রহমান চৌধুরী',
+    guardianPhone: '+880 1722-667789',
+    photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80',
+    batchIds: ['b-3'],
+    courseIds: ['c-3'],
+    bloodGroup: 'O-',
+    status: 'active',
+    enrollmentDate: '2026-02-12',
+    feesDue: 0,
+    address: 'চকবাজার সিরাজুদ্দৌলা রোড, চট্টগ্রাম',
+    gender: 'male',
+    dob: '2008-06-30',
+  },
+]);
+
+// ==========================================
+// ATTENDANCE STORE
+// ==========================================
+export const attendanceRecords = writable<AttendanceRecord[]>([
+  { id: 'att-1', batchId: 'b-1', date: '2026-09-22', studentId: 's-1', status: 'present' },
+  { id: 'att-2', batchId: 'b-1', date: '2026-09-22', studentId: 's-2', status: 'absent', remarks: 'অভিভাবককে এসএমএস পাঠানো হয়েছে' },
+  { id: 'att-3', batchId: 'b-1', date: '2026-09-22', studentId: 's-4', status: 'present' },
+  { id: 'att-4', batchId: 'b-3', date: '2026-09-22', studentId: 's-1', status: 'present' },
+  { id: 'att-5', batchId: 'b-4', date: '2026-09-22', studentId: 's-3', status: 'late', remarks: '১০ মিনিট ট্রাফিক জ্যামে দেরি' },
+]);
+
+// ==========================================
+// FEE INVOICES STORE (IN BDT ৳ WITH BKASH/NAGAD)
+// ==========================================
+export const feeInvoices = writable<FeeInvoice[]>([
+  {
+    id: 'inv-101',
+    invoiceNo: 'AAC-INV-2026-01',
+    studentId: 's-1',
+    studentName: 'ফারহান শাকিল',
+    batchId: 'b-1',
+    batchName: 'HSC \'26 ফিজিক্স আলফা',
+    courseName: 'HSC উচ্চতর পদার্থবিজ্ঞান',
+    amount: 4500,
+    paidAmount: 4500,
+    dueAmount: 0,
+    status: 'paid',
+    issueDate: '2026-09-01',
+    dueDate: '2026-09-10',
+    paymentMethod: 'bKash',
+  },
+  {
+    id: 'inv-102',
+    invoiceNo: 'AAC-INV-2026-02',
+    studentId: 's-2',
+    studentName: 'নাফিসা আনজুম',
+    batchId: 'b-1',
+    batchName: 'HSC \'26 ফিজিক্স আলফা',
+    courseName: 'HSC উচ্চতর পদার্থবিজ্ঞান',
+    amount: 4500,
+    paidAmount: 3000,
+    dueAmount: 1500,
+    status: 'partial',
+    issueDate: '2026-09-01',
+    dueDate: '2026-09-10',
+    paymentMethod: 'Nagad',
+  },
+  {
+    id: 'inv-103',
+    invoiceNo: 'AAC-INV-2026-03',
+    studentId: 's-4',
+    studentName: 'তাসনিম তাবাসসুম',
+    batchId: 'b-2',
+    batchName: 'মেডিকেল প্রি-মেড এক্সক্লুসিভ',
+    courseName: 'মেডিকেল ভর্তি বায়োলজি',
+    amount: 7500,
+    paidAmount: 5000,
+    dueAmount: 2500,
+    status: 'partial',
+    issueDate: '2026-09-05',
+    dueDate: '2026-09-15',
+    paymentMethod: 'Cash',
+  },
+  {
+    id: 'inv-104',
+    invoiceNo: 'AAC-INV-2026-04',
+    studentId: 's-3',
+    studentName: 'রিফাত আল-মাহমুদ',
+    batchId: 'b-4',
+    batchName: 'উচ্চতর গণিত চ্যাম্পিয়ন ব্যাচ',
+    courseName: 'উচ্চতর গণিত স্পেশাল',
+    amount: 4800,
+    paidAmount: 4800,
+    dueAmount: 0,
+    status: 'paid',
+    issueDate: '2026-09-02',
+    dueDate: '2026-09-12',
+    paymentMethod: 'bKash',
+  },
+]);
+
+// ==========================================
+// EXAMS & MARKS STORE (GPA 5.0 SYSTEM)
+// ==========================================
+export const exams = writable<Exam[]>([
+  {
+    id: 'ex-1',
+    title: 'ভেক্টর ও গতিবিদ্যা উইকলি মডেল টেস্ট ১',
+    courseId: 'c-1',
+    batchId: 'b-1',
+    examDate: '2026-09-15',
+    totalMarks: 100,
+    passMarks: 40,
+    examType: 'Monthly Test',
+  },
+  {
+    id: 'ex-2',
+    title: 'ক্যালকুলাস ও বৃত্ত মূল্যায়ন পরীক্ষা',
+    courseId: 'c-2',
+    batchId: 'b-4',
+    examDate: '2026-09-18',
+    totalMarks: 50,
+    passMarks: 20,
+    examType: 'Written',
+  },
+]);
+
+export const examMarks = writable<ExamMark[]>([
+  {
+    id: 'em-1',
+    examId: 'ex-1',
+    studentId: 's-1',
+    studentName: 'ফারহান শাকিল',
+    rollNo: 'AAC-2026-001',
+    marksObtained: 94,
+    grade: 'A+ (GPA 5.0)',
+    remarks: 'চমৎকার পারফরম্যান্স, ম্যাথ স্টেপ নিখুঁত',
+  },
+  {
+    id: 'em-2',
+    examId: 'ex-1',
+    studentId: 's-2',
+    studentName: 'নাফিসা আনজুম',
+    rollNo: 'AAC-2026-002',
+    marksObtained: 82,
+    grade: 'A+ (GPA 5.0)',
+    remarks: 'ভালো দক্ষতা, প্রাসের সূত্র আরও প্র্যাকটিস করতে হবে',
+  },
+  {
+    id: 'em-3',
+    examId: 'ex-1',
+    studentId: 's-4',
+    studentName: 'তাসনিম তাবাসসুম',
+    rollNo: 'AAC-2026-004',
+    marksObtained: 76,
+    grade: 'A (GPA 4.0)',
+    remarks: 'ভালো হয়েছে, রিভিশন বাড়াতে হবে',
+  },
+]);
+
+// ==========================================
+// DUAL-ENGINE SMS STORE (BANGLADESH TELECOM CARRIERS)
+// ==========================================
+export const smsAccount = writable<SmsAccount>({
+  cloudBalance: 3250,
+  androidGateway: {
+    connected: true,
+    deviceName: 'Xiaomi Redmi Note 13 Pro (ফার্মগেট গেটওয়ে নোড #১)',
+    batteryLevel: 94,
+    sim1Carrier: 'Grameenphone (GP 5,000 SMS প্যাক - ৳0.00)',
+    sim2Carrier: 'Banglalink (BL আনলিমিটেড SMS বান্ডেল)',
+    sim1DailySent: 284,
+    sim1DailyLimit: 1500,
+    lastSyncTime: 'এইমাত্র (৪ সেকেন্ড আগে সিঙ্ক)',
+    apiKey: 'gw_apk_live_gp_9f82d02c81e9bca23',
+    webhookUrl: 'https://api.coachflow.app/v1/sms/webhook/bangladesh_node1',
+    signalStrength: 98,
+  },
+});
+
+export const smsTemplates = writable<SmsTemplate[]>([
+  {
+    id: 'tpl-1',
+    title: 'দৈনিক ক্লাসে অনুপস্থিতি সতর্কতা',
+    category: 'attendance',
+    eventType: 'attendance_absent',
+    contentBangla: 'সম্মানিত অভিভাবক, আপনার সন্তান {student_name} আজ {batch_name} ক্লাসে অনুপস্থিত ছিল। বিস্তারিত জানতে যোগাযোগ করুন: {institute_phone}। - {institute_name}',
+    contentEnglish: 'Dear Guardian, your ward {student_name} was marked ABSENT today in {batch_name}. Please contact academy desk at {institute_phone}. - {institute_name}',
+    variables: ['{guardian_name}', '{student_name}', '{batch_name}', '{institute_name}', '{institute_phone}'],
+    activeLanguage: 'bangla',
+    content: 'সম্মানিত অভিভাবক, আপনার সন্তান {student_name} আজ {batch_name} ক্লাসে অনুপস্থিত ছিল। - {institute_name}',
+  },
+  {
+    id: 'tpl-2',
+    title: 'টিউশন ফি বকেয়া তাগাদা ও পেমেন্ট রিমাইন্ডার',
+    category: 'fees',
+    eventType: 'fee_due_reminder',
+    contentBangla: 'সম্মানিত অভিভাবক, {student_name}-এর {course_name} কোর্সের মাসিক বকেয়া ফি ৳{due_amount} পরিশোধের শেষ সময় {due_date}। বিকাশ/নগদ মার্চেন্ট: 01711456789। - {institute_name}',
+    contentEnglish: 'Dear Guardian, tuition fee of BDT {due_amount} for {student_name} ({course_name}) is due by {due_date}. Pay via bKash/Nagad merchant: 01711456789. - {institute_name}',
+    variables: ['{guardian_name}', '{student_name}', '{due_amount}', '{course_name}', '{due_date}', '{institute_name}'],
+    activeLanguage: 'bangla',
+    content: 'সম্মানিত অভিভাবক, {student_name}-এর মাসিক বকেয়া ফি ৳{due_amount} পরিশোধের শেষ সময় {due_date}। - {institute_name}',
+  },
+  {
+    id: 'tpl-3',
+    title: 'ফি প্রাপ্তি ও ডিজিটাল মানি রিসিট',
+    category: 'fees',
+    eventType: 'fee_received',
+    contentBangla: 'ফি প্রাপ্তি: {student_name}-এর ৳{paid_amount} ফি সফলভাবে গৃহীত হয়েছে ({payment_method})। রসিদ #{receipt_no}। বর্তমান বকেয়া: ৳{due_amount}। ধন্যবাদ - {institute_name}',
+    contentEnglish: 'Payment Received: BDT {paid_amount} received for {student_name} via {payment_method}. Receipt #{receipt_no}. Remaining due: BDT {due_amount}. Thank you - {institute_name}',
+    variables: ['{paid_amount}', '{student_name}', '{payment_method}', '{receipt_no}', '{due_amount}', '{institute_name}'],
+    activeLanguage: 'bangla',
+    content: 'ফি প্রাপ্তি: {student_name}-এর ৳{paid_amount} ফি গৃহীত হয়েছে। রসিদ #{receipt_no}। - {institute_name}',
+  },
+  {
+    id: 'tpl-4',
+    title: 'মডেল টেস্ট মূল্যায়ন ফলাফল ও গ্রেডশিট',
+    category: 'exams',
+    eventType: 'exam_result',
+    contentBangla: 'সম্মানিত অভিভাবক, {student_name} {exam_title} পরীক্ষায় {total_marks}-এর মধ্যে {marks_obtained} নম্বর (গ্রেড: {grade}) অর্জন করেছে। বিস্তারিত ড্যাশবোর্ডে দেখুন। - {institute_name}',
+    contentEnglish: 'Dear Guardian, {student_name} scored {marks_obtained}/{total_marks} (Grade: {grade}) in {exam_title}. Detailed scorecard available on portal. - {institute_name}',
+    variables: ['{student_name}', '{marks_obtained}', '{total_marks}', '{grade}', '{exam_title}', '{institute_name}'],
+    activeLanguage: 'bangla',
+    content: '{student_name} {exam_title} পরীক্ষায় {total_marks}-এ {marks_obtained} নম্বর (গ্রেড: {grade}) পেয়েছে। - {institute_name}',
+  },
+  {
+    id: 'tpl-5',
+    title: 'আসন্ন পরীক্ষার সূচি ও সিলেবাস নোটিশ',
+    category: 'exams',
+    eventType: 'exam_schedule',
+    contentBangla: 'জরুরি বিজ্ঞপ্তি: আগামী {exam_date} তারিখে {batch_name}-এর \'{exam_title}\' অনুষ্ঠিত হবে (পূর্ণমান: {total_marks})। সকল শিক্ষার্থীর উপস্থিতি বাধ্যতামূলক। - {institute_name}',
+    contentEnglish: 'Academic Notice: \'{exam_title}\' for {batch_name} is scheduled on {exam_date} (Total Marks: {total_marks}). Student attendance is mandatory. - {institute_name}',
+    variables: ['{batch_name}', '{exam_title}', '{exam_date}', '{total_marks}', '{institute_name}'],
+    activeLanguage: 'bangla',
+    content: 'বিজ্ঞপ্তি: আগামী {exam_date} তারিখে \'{exam_title}\' অনুষ্ঠিত হবে। - {institute_name}',
+  },
+  {
+    id: 'tpl-6',
+    title: 'ক্লাস সময়সূচি ও রুম পরিবর্তন বিজ্ঞপ্তি',
+    category: 'batches',
+    eventType: 'batch_notice',
+    contentBangla: 'বিজ্ঞপ্তি: সম্মানিত অভিভাবক, {batch_name}-এর আগামী ক্লাসের সময় সকাল {start_time}-এ রুম #{room_no}-এ অনুষ্ঠিত হবে। সময়মতো ক্লাসে উপস্থিত থাকার অনুরোধ করা হলো। - {institute_name}',
+    contentEnglish: 'Notice: Upcoming session for {batch_name} will be held at {start_time} in Room #{room_no}. Please ensure timely attendance. - {institute_name}',
+    variables: ['{batch_name}', '{start_time}', '{room_no}', '{institute_name}'],
+    activeLanguage: 'bangla',
+    content: 'বিজ্ঞপ্তি: {batch_name}-এর ক্লাস সময় সকাল {start_time}-এ রুম #{room_no}-এ অনুষ্ঠিত হবে। - {institute_name}',
+  },
+  {
+    id: 'tpl-7',
+    title: 'শিক্ষক সমন্বয় সভা ও নোটিশ',
+    category: 'teachers',
+    eventType: 'teacher_notice',
+    contentBangla: 'সম্মানিত শিক্ষক {teacher_name}, আগামী {meeting_date} তারিখে একাডেমি মিলনায়তনে শিক্ষক সমন্বয় সভা অনুষ্ঠিত হবে। আপনার উপস্থিতি বিশেষভাবে কাম্য। - {institute_name}',
+    contentEnglish: 'Dear Faculty Member {teacher_name}, academic coordination meeting is scheduled on {meeting_date} in the faculty hall. Your presence is requested. - {institute_name}',
+    variables: ['{teacher_name}', '{meeting_date}', '{institute_name}'],
+    activeLanguage: 'bangla',
+    content: 'সম্মানিত শিক্ষক {teacher_name}, আগামী {meeting_date} তারিখে শিক্ষক সমন্বয় সভা অনুষ্ঠিত হবে। - {institute_name}',
+  },
+  {
+    id: 'tpl-8',
+    title: 'সরকারি ছুটি ও অ্যাকাডেমিক বন্ধের ঘোষণা',
+    category: 'general',
+    eventType: 'general_notice',
+    contentBangla: 'জরুরি নোটিশ: {holiday_occasion} উপলক্ষে আগামী {holiday_date} তারিখে একাডেমির সকল ব্যাচের কার্যক্রম বন্ধ থাকবে। পরবর্তী ক্লাসের সূচি অনলাইনে দেখুন। - {institute_name}',
+    contentEnglish: 'Holiday Notice: On the occasion of {holiday_occasion}, all academic classes will remain suspended on {holiday_date}. Regular schedule resumes thereafter. - {institute_name}',
+    variables: ['{holiday_occasion}', '{holiday_date}', '{institute_name}'],
+    activeLanguage: 'bangla',
+    content: 'বিজ্ঞপ্তি: {holiday_occasion} উপলক্ষে আগামী {holiday_date} তারিখে সকল ক্লাস বন্ধ থাকবে। - {institute_name}',
+  },
+]);
+
+export const smsLogs = writable<SmsLog[]>([
+  {
+    id: 'log-1',
+    recipientName: 'মেজর (অবঃ) আনিসুর রহমান (নাফিসার অভিভাবক)',
+    recipientPhone: '+880 1819-334456',
+    message: 'সম্মানিত অভিভাবক, আপনার সন্তান নাফিসা আনজুম আজ HSC \'26 ফিজিক্স আলফা ক্লাসে অনুপস্থিত ছিল। যোগাযোগ: +880 1711-456789।',
+    gateway: 'android_sim1',
+    status: 'delivered',
+    timestamp: 'আজ সকাল ০৮:১৫ AM',
+    cost: 0.0, // Android GP SIM pack = ৳0.00 extra cost!
+  },
+  {
+    id: 'log-2',
+    recipientName: 'কবীর আহমেদ',
+    recipientPhone: '+880 1611-556678',
+    message: 'সম্মানিত অভিভাবক, তাসনিম তাবাসসুম-এর মাসিক বকেয়া ফি ৳2,500 পরিশোধের অনুরোধ করা হচ্ছে। বিকাশ করুন: 01711-456789।',
+    gateway: 'android_sim1',
+    status: 'delivered',
+    timestamp: 'গতকাল বিকাল ০৪:৩০ PM',
+    cost: 0.0,
+  },
+  {
+    id: 'log-3',
+    recipientName: 'মোঃ শাকিল হোসেন',
+    recipientPhone: '+880 1711-223345',
+    message: 'ফারহান শাকিল-এর ৳4,500 ফি সফলভাবে গৃহীত হয়েছে (বিকাশ TrxID: 9X82B71Q)। রসিদ নং #AAC-INV-2026-01। ধন্যবাদ - এপেক্স অ্যাকাডেমিক কেয়ার।',
+    gateway: 'cloud',
+    status: 'delivered',
+    timestamp: '২০ সেপ্টেম্বর সকাল ১১:০৫ AM',
+    cost: 0.35,
+  },
+]);
+
+// ==========================================
+// STORE ACTIONS & HELPER METHODS
+// ==========================================
+
+// Add Student
+export function addStudent(studentData: Omit<Student, 'id' | 'rollNo'>) {
+  let createdStudent: Student | undefined;
+  students.update((all) => {
+    const nextNum = all.length + 1;
+    const rollNo = `AAC-2026-${String(nextNum).padStart(3, '0')}`;
+    const newStudent: Student = {
+      ...studentData,
+      id: `s-${Date.now()}`,
+      rollNo,
+    };
+    createdStudent = newStudent;
+    return [newStudent, ...all];
+  });
+  if (createdStudent) {
+    syncStudentToDb(createdStudent);
+  }
+  showToast('success', 'শিক্ষার্থী ভর্তি সম্পন্ন', 'শিক্ষার্থীর তথ্য সফলভাবে সংরক্ষিত ও ডাটাবেজে যুক্ত হয়েছে।');
+}
+
+// Update Student
+export function updateStudent(id: string, updates: Partial<Student>) {
+  students.update((all) => all.map((s) => (s.id === id ? { ...s, ...updates } : s)));
+  showToast('info', 'তথ্য হালনাগাদ', 'শিক্ষার্থীর প্রোফাইল আপডেট করা হয়েছে।');
+}
+
+// Delete Student
+export function deleteStudent(id: string) {
+  students.update((all) => all.filter((s) => s.id !== id));
+  showToast('warning', 'শিক্ষার্থী অপসারিত', 'শিক্ষার্থীর রেকর্ড আর্কাইভ করা হয়েছে।');
+}
+
+// Add Batch
+export function addBatch(batchData: Omit<Batch, 'id' | 'enrolledCount'>) {
+  const newBatch: Batch = {
+    ...batchData,
+    id: `b-${Date.now()}`,
+    enrolledCount: 0,
+  };
+  batches.update((all) => [newBatch, ...all]);
+  syncBatchToDb(newBatch);
+  showToast('success', 'নতুন ব্যাচ চালু হয়েছে', 'অ্যাকাডেমিক ব্যাচ সফলভাবে খোলা হয়েছে।');
+}
+
+// Add Teacher
+export function addTeacher(teacherData: Omit<Teacher, 'id'>) {
+  teachers.update((all) => [
+    {
+      ...teacherData,
+      id: `t-${Date.now()}`,
+    },
+    ...all,
+  ]);
+  showToast('success', 'শিক্ষক যুক্ত হয়েছেন', 'নতুন শিক্ষকের প্রোফাইল ও বেতন স্কেল সংরক্ষিত হয়েছে।');
+}
+
+// Mark Attendance & auto-alert option
+export function markBatchAttendance(
+  batchId: string,
+  records: { studentId: string; status: 'present' | 'absent' | 'late' }[],
+  sendAbsentSms: boolean = false
+) {
+  const today = new Date().toISOString().split('T')[0];
+  attendanceRecords.update((existing) => {
+    const filtered = existing.filter((r) => !(r.batchId === batchId && r.date === today));
+    const newRecs: AttendanceRecord[] = records.map((r) => ({
+      id: `att-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      batchId,
+      date: today,
+      studentId: r.studentId,
+      status: r.status,
+    }));
+    newRecs.forEach((rec) => syncAttendanceToDb(rec));
+    return [...filtered, ...newRecs];
+  });
+
+  if (sendAbsentSms) {
+    const absents = records.filter((r) => r.status === 'absent');
+    if (absents.length > 0) {
+      absents.forEach((item) => {
+        let studentObj: Student | undefined;
+        students.subscribe((list) => {
+          studentObj = list.find((s) => s.id === item.studentId);
+        })();
+        if (studentObj) {
+          sendSms(
+            studentObj.guardianName,
+            studentObj.guardianPhone,
+            `সম্মানিত অভিভাবক, আপনার সন্তান ${studentObj.name} আজ ক্লাসে অনুপস্থিত ছিল। এপেক্স অ্যাকাডেমিক কেয়ার: +880 1711-456789।`,
+            'android_sim1'
+          );
+        }
+      });
+      showToast('info', 'অনুপস্থিত SMS প্রেরিত', `${absents.length} জন অভিভাবককে গ্রামীণফোন সিম গেটওয়ে দিয়ে সতর্কবার্তা পাঠানো হয়েছে।`);
+    }
+  }
+
+  showToast('success', 'হাজিরা সংরক্ষিত', 'আজকের ক্লাসের ডিজিটাল হাজিরা ডাটাবেজে সংরক্ষণ করা হয়েছে।');
+}
+
+// Collect Payment & Update Invoices
+export function collectPayment(
+  invoiceId: string,
+  amount: number,
+  method: FeeInvoice['paymentMethod']
+) {
+  let updatedInv: FeeInvoice | undefined;
+  feeInvoices.update((all) =>
+    all.map((inv) => {
+      if (inv.id === invoiceId) {
+        const newPaid = inv.paidAmount + amount;
+        const newDue = Math.max(0, inv.amount - newPaid);
+        const status = newDue === 0 ? 'paid' : 'partial';
+        updatedInv = { ...inv, paidAmount: newPaid, dueAmount: newDue, status, paymentMethod: method };
+        return updatedInv;
+      }
+      return inv;
+    })
+  );
+
+  if (updatedInv) {
+    syncInvoiceToDb(updatedInv);
+
+    students.update((all) =>
+      all.map((s) => {
+        if (s.id === updatedInv?.studentId) {
+          const newFeeDue = Math.max(0, s.feesDue - amount);
+          return { ...s, feesDue: newFeeDue };
+        }
+        return s;
+      })
+    );
+
+    sendSms(
+      updatedInv.studentName,
+      '+880 1711-223345',
+      `ফি প্রাপ্তি: ${updatedInv.studentName}-এর ৳${amount} ফি গৃহীত হয়েছে (${method})। রসিদ #${updatedInv.invoiceNo}। বকেয়া: ৳${updatedInv.dueAmount}। ধন্যবাদ - এপেক্স কেয়ার।`,
+      'android_sim1'
+    );
+
+    showToast('success', 'ফি আদায় সম্পন্ন', `৳${amount} ফি সফলভাবে ${method}-এ গৃহীত ও রসিদ তৈরি হয়েছে।`);
+  }
+}
+
+// Send Single SMS
+export function sendSms(
+  recipientName: string,
+  recipientPhone: string,
+  message: string,
+  gateway: SmsLog['gateway'] = 'android_sim1'
+) {
+  const newLog: SmsLog = {
+    id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+    recipientName,
+    recipientPhone,
+    message,
+    gateway,
+    status: 'delivered',
+    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' আজ',
+    cost: gateway === 'cloud' ? 0.35 : 0.0, // 35 poisha cloud or 0.0 tk on own GP sim!
+  };
+
+  smsLogs.update((logs) => [newLog, ...logs]);
+  syncSmsLogToDb(newLog);
+
+  if (gateway === 'cloud') {
+    smsAccount.update((acc) => ({ ...acc, cloudBalance: Math.max(0, acc.cloudBalance - 1) }));
+  } else {
+    smsAccount.update((acc) => ({
+      ...acc,
+      androidGateway: {
+        ...acc.androidGateway,
+        sim1DailySent: acc.androidGateway.sim1DailySent + 1,
+        lastSyncTime: 'এইমাত্র',
+      },
+    }));
+  }
+}
+
+// Purchase Cloud SMS Pack
+export function buySmsPack(credits: number, cost: number) {
+  smsAccount.update((acc) => ({ ...acc, cloudBalance: acc.cloudBalance + credits }));
+  showToast('success', 'এসএমএস প্যাক সক্রিয়', `আপনার অ্যাকাউন্টে ${credits.toLocaleString()} টি SMS ক্রেডিট যোগ হয়েছে (মূল্য: ৳${cost})।`);
+}
+
+// Toggle Android Gateway Simulation
+export function toggleAndroidGateway() {
+  smsAccount.update((acc) => {
+    const isConn = !acc.androidGateway.connected;
+    return {
+      ...acc,
+      androidGateway: {
+        ...acc.androidGateway,
+        connected: isConn,
+        lastSyncTime: isConn ? 'এইমাত্র সংযুক্ত হয়েছে' : 'সংযোগ বিচ্ছিন্ন',
+      },
+    };
+  });
+}
+
+// ==========================================
+// SMS TEMPLATE CRUD ACTIONS
+// ==========================================
+export function addSmsTemplate(data: Omit<SmsTemplate, 'id'>) {
+  const newTpl: SmsTemplate = {
+    id: `tpl-${Date.now()}`,
+    ...data,
+    activeLanguage: data.activeLanguage || 'bangla',
+    content: data.activeLanguage === 'english' ? data.contentEnglish : data.contentBangla,
+  };
+  smsTemplates.update((all) => [newTpl, ...all]);
+  showToast('success', 'নতুন SMS টেমপ্লেট সংরক্ষিত', `'${newTpl.title}' সফলভাবে যুক্ত হয়েছে।`);
+}
+
+export function updateSmsTemplate(id: string, updates: Partial<SmsTemplate>) {
+  smsTemplates.update((all) =>
+    all.map((t) => {
+      if (t.id === id) {
+        const merged = { ...t, ...updates };
+        merged.content = merged.activeLanguage === 'english' ? merged.contentEnglish : merged.contentBangla;
+        return merged;
+      }
+      return t;
+    })
+  );
+  showToast('success', 'টেমপ্লেট আপডেট হয়েছে', 'SMS টেমপ্লেটের তথ্য সফলভাবে হালনাগাদ করা হয়েছে।');
+}
+
+export function deleteSmsTemplate(id: string) {
+  smsTemplates.update((all) => all.filter((t) => t.id !== id));
+  showToast('info', 'টেমপ্লেট মুছে ফেলা হয়েছে', 'SMS টেমপ্লেটটি সরানো হয়েছে।');
+}
+
+export function toggleTemplateLanguage(id: string) {
+  smsTemplates.update((all) =>
+    all.map((t) => {
+      if (t.id === id) {
+        const nextLang = t.activeLanguage === 'english' ? 'bangla' : 'english';
+        return {
+          ...t,
+          activeLanguage: nextLang,
+          content: nextLang === 'english' ? t.contentEnglish : t.contentBangla,
+        };
+      }
+      return t;
+    })
+  );
+}
+
+// ==========================================
+// SYLLABUS STORE (CURRICULUM & LECTURE BREAKDOWNS)
+// ==========================================
+export const syllabusItems = writable<SyllabusItem[]>([
+  {
+    id: 'syl-1',
+    courseId: 'c-1',
+    courseName: 'HSC উচ্চতর পদার্থবিজ্ঞান ১ম ও ২য় পত্র (NCTB)',
+    subject: 'পদার্থবিজ্ঞান ১ম পত্র',
+    chapterNo: 1,
+    chapterTitle: 'ভৌত জগত ও পরিমাপ (Physical World & Measurement)',
+    topics: ['ভৌত রাশির মাত্রা ও একক', 'ভার্নিয়ার স্কেল ও স্ক্রু গজ ত্রুটি', 'পরিমাপের যথার্থতা ও সূক্ষ্মতা', 'ল্যাবরেটরি নিরাপত্তা বিধি'],
+    lectureHours: 6,
+    examMarks: 15,
+    targetCompletionDate: '২০২৬-০৮-২০',
+    status: 'completed',
+    assignedTeacherName: 'ইঞ্জি. মোঃ সাইফুল ইসলাম',
+    textbookReference: 'প্রফেসর ড. শাহজাহান তপন স্যার',
+    remarks: 'বোর্ড এমসিকিউ ও অনুধাবনমূলক প্রশ্ন সমাধান সম্পন্ন',
+  },
+  {
+    id: 'syl-2',
+    courseId: 'c-1',
+    courseName: 'HSC উচ্চতর পদার্থবিজ্ঞান ১ম ও ২য় পত্র (NCTB)',
+    subject: 'পদার্থবিজ্ঞান ১ম পত্র',
+    chapterNo: 2,
+    chapterTitle: 'ভেক্টর বিশ্লেষণ ও দ্বিমাত্রিক গতি (Vectors & Kinematics)',
+    topics: ['ভেক্টর যোগের সামান্তরিক সূত্র', 'নদী-নৌকার আপেক্ষিক বেগ', 'ডট ও ক্রস গুণন', 'প্রাসের সঞ্চারপথ ও পাল্লা'],
+    lectureHours: 14,
+    examMarks: 25,
+    targetCompletionDate: '২০২৬-০৯-১৫',
+    status: 'completed',
+    assignedTeacherName: 'ইঞ্জি. মোঃ সাইফুল ইসলাম',
+    textbookReference: 'প্রফেসর ড. শাহজাহান তপন স্যার',
+    remarks: 'গাণিতিক মডেল টেস্ট ১ অনুষ্ঠিত হয়েছে',
+  },
+  {
+    id: 'syl-3',
+    courseId: 'c-1',
+    courseName: 'HSC উচ্চতর পদার্থবিজ্ঞান ১ম ও ২য় পত্র (NCTB)',
+    subject: 'পদার্থবিজ্ঞান ১ম পত্র',
+    chapterNo: 4,
+    chapterTitle: 'নিউটনিয়ান বলবিদ্যা (Newtonian Mechanics)',
+    topics: ['রৈখিক ভরবেগের সংরক্ষণ সূত্র', 'ঘর্ষণ বল ও লিফটের প্রতিক্রিয়া', 'রাস্তার ব্যাংকিং কোণ', 'জড়তার ভ্রামক ও চক্রগতির ব্যাসার্ধ'],
+    lectureHours: 18,
+    examMarks: 30,
+    targetCompletionDate: '২০২৬-১০-১৫',
+    status: 'in_progress',
+    assignedTeacherName: 'ইঞ্জি. মোঃ সাইফুল ইসলাম',
+    textbookReference: 'ইসহাক স্যার ও তপন স্যার',
+    remarks: 'ব্যাংকিং কোণের জটিল ইঞ্জিনিয়ারিং ম্যাথ চলছে',
+  },
+  {
+    id: 'syl-4',
+    courseId: 'c-1',
+    courseName: 'HSC উচ্চতর পদার্থবিজ্ঞান ১ম ও ২য় পত্র (NCTB)',
+    subject: 'পদার্থবিজ্ঞান ১ম পত্র',
+    chapterNo: 5,
+    chapterTitle: 'কাজ, শক্তি ও ক্ষমতা (Work, Energy & Power)',
+    topics: ['পরিবর্তনশীল বল দ্বারা কাজ', 'স্প্রিং-এর বিভব শক্তি', 'কর্মদক্ষতা ও মোটরের ক্ষমতা', 'সংরক্ষণশীল বল ও শক্তির নিত্যতা'],
+    lectureHours: 12,
+    examMarks: 20,
+    targetCompletionDate: '২০২৬-১১-১০',
+    status: 'upcoming',
+    assignedTeacherName: 'ইঞ্জি. মোঃ সাইফুল ইসলাম',
+    textbookReference: 'প্রফেসর ড. শাহজাহান তপন স্যার',
+    remarks: 'অক্টোবরের শেষ সপ্তাহে লেকচার শুরু হবে',
+  },
+  {
+    id: 'syl-5',
+    courseId: 'c-2',
+    courseName: 'HSC উচ্চতর গণিত ও ক্যালকুলাস স্পেশাল',
+    subject: 'উচ্চতর গণিত ১ম পত্র',
+    chapterNo: 1,
+    chapterTitle: 'ম্যাট্রিক্স ও নির্ণায়ক (Matrices & Determinants)',
+    topics: ['ম্যাট্রিক্সের প্রকারভেদ ও গুণন', 'নির্ণায়কের ধর্মাবলি', 'বিপরীত ম্যাট্রিক্স ও ক্র্যামারের নিয়ম', 'বোর্ড সিকিউ অ্যানালাইসিস'],
+    lectureHours: 10,
+    examMarks: 20,
+    targetCompletionDate: '২০২৬-০৮-৩০',
+    status: 'completed',
+    assignedTeacherName: 'প্রভাষক তানভীর আহমেদ',
+    textbookReference: 'এসইউ আহাম্মদ ও অসীম কুমার সাহা',
+    remarks: 'ক্লাস টেস্ট সম্পন্ন (গড় নম্বর ৮৪%)',
+  },
+  {
+    id: 'syl-6',
+    courseId: 'c-2',
+    courseName: 'HSC উচ্চতর গণিত ও ক্যালকুলাস স্পেশাল',
+    subject: 'উচ্চতর গণিত ১ম পত্র',
+    chapterNo: 9,
+    chapterTitle: 'অন্তরীকরণ ও ক্যালকুলাস (Differentiation)',
+    topics: ['সীমা ও অবিচ্ছিন্নতা (Limits)', 'মূল নিয়মে অন্তরজ নির্ণয়', 'পর্যায়ক্রমিক অন্তরীকরণ', 'স্পর্শক, অভিলম্ব ও গুরুমান-লঘুমান'],
+    lectureHours: 20,
+    examMarks: 35,
+    targetCompletionDate: '২০২৬-১০-৩০',
+    status: 'in_progress',
+    assignedTeacherName: 'প্রভাষক তানভীর আহমেদ',
+    textbookReference: 'কেতাব উদ্দিন স্যার',
+    remarks: 'গুরুমান ও লঘুমানের বোর্ড প্রশ্ন অনুশীলন চলছে',
+  },
+  {
+    id: 'syl-7',
+    courseId: 'c-3',
+    courseName: 'বুয়েট ও ইঞ্জিনিয়ারিং ভর্তি প্রস্তুতি ২০২৬',
+    subject: 'ইঞ্জিনিয়ারিং পদার্থবিজ্ঞান',
+    chapterNo: 1,
+    chapterTitle: 'বুয়েট প্রশ্নব্যাংক মেকানিক্স ও রোটেশনাল ডায়নামিক্স',
+    topics: ['ঘূর্ণন গতি ও কৌণিক ভরবেগ সংরক্ষণ', 'কঠিন বস্তুর ভারসাম্য ও টর্ক', 'স্থির তরলের চাপ ও সান্দ্রতা', 'বুয়েট বিগত ২০ বছরের কনসেপ্ট'],
+    lectureHours: 22,
+    examMarks: 60,
+    targetCompletionDate: '২০২৬-১০-২০',
+    status: 'in_progress',
+    assignedTeacherName: 'ইঞ্জি. মোঃ সাইফুল ইসলাম',
+    textbookReference: 'বুয়েট রিটেন প্রশ্নব্যাংক ও আইআইটি কনসেপ্ট',
+    remarks: 'উইকেন্ডে ৪ ঘণ্টার এক্সক্লুসিভ সেশন',
+  },
+  {
+    id: 'syl-8',
+    courseId: 'c-4',
+    courseName: 'মেডিকেল ভর্তি বায়োলজি ও রসায়ন এক্সক্লুসিভ কেয়ার',
+    subject: 'উদ্ভিদবিজ্ঞান ও প্রাণিবিজ্ঞান',
+    chapterNo: 1,
+    chapterTitle: 'কোষ ও কোষের গঠন (Cell & Cell Structure)',
+    topics: ['কোষ প্রাচীর ও প্লাজমা মেমব্রেন', 'মাইটোকন্ড্রিয়া, ক্লোরোপ্লাস্ট ও ডিএনএ', 'প্রোটিন সংশ্লেষণ ও ট্রান্সলেশন', 'মেডিকেল বিগত ১৫ বছরের প্রশ্ন'],
+    lectureHours: 16,
+    examMarks: 30,
+    targetCompletionDate: '২০২৬-০৯-২৫',
+    status: 'completed',
+    assignedTeacherName: 'ডা. নুসরাত জাহান',
+    textbookReference: 'হাসান স্যার (বোটানি) ও গাজী আজমল স্যার (জুলজি)',
+    remarks: '১০০ নম্বরের ওএমআর ভিত্তিক টেস্ট সম্পন্ন',
+  },
+]);
+
+// ==========================================
+// CLASS ROUTINE / TIMETABLE STORE (WEEKLY SCHEDULE)
+// ==========================================
+export const routineSlots = writable<RoutineSlot[]>([
+  {
+    id: 'rt-1',
+    batchId: 'b-1',
+    batchName: 'HSC \'26 ফিজিক্স আলফা (সকালের ব্যাচ - ফার্মগেট)',
+    day: 'Saturday',
+    startTime: '08:00 AM',
+    endTime: '09:30 AM',
+    subject: 'উচ্চতর পদার্থবিজ্ঞান - নিউটনিয়ান বলবিদ্যা',
+    teacherId: 't-1',
+    teacherName: 'ইঞ্জি. মোঃ সাইফুল ইসলাম',
+    roomNumber: 'রুম ২০৪ (লেকচার হল ১)',
+    classType: 'theory',
+  },
+  {
+    id: 'rt-2',
+    batchId: 'b-1',
+    batchName: 'HSC \'26 ফিজিক্স আলফা (সকালের ব্যাচ - ফার্মগেট)',
+    day: 'Monday',
+    startTime: '08:00 AM',
+    endTime: '09:30 AM',
+    subject: 'পদার্থবিজ্ঞান গাণিতিক সমস্যা ও প্রবলেম সলভিং',
+    teacherId: 't-1',
+    teacherName: 'ইঞ্জি. মোঃ সাইফুল ইসলাম',
+    roomNumber: 'রুম ২০৪ (লেকচার হল ১)',
+    classType: 'doubt_solve',
+  },
+  {
+    id: 'rt-3',
+    batchId: 'b-1',
+    batchName: 'HSC \'26 ফিজিক্স আলফা (সকালের ব্যাচ - ফার্মগেট)',
+    day: 'Wednesday',
+    startTime: '08:00 AM',
+    endTime: '09:30 AM',
+    subject: 'পদার্থবিজ্ঞান উইকলি মডেল টেস্ট ও ওএমআর এক্সাম',
+    teacherId: 't-1',
+    teacherName: 'ইঞ্জি. মোঃ সাইফুল ইসলাম',
+    roomNumber: 'রুম ২০৪ (পরীক্ষা হল)',
+    classType: 'model_test',
+  },
+  {
+    id: 'rt-4',
+    batchId: 'b-2',
+    batchName: 'HSC \'26 বায়োলজি স্পেশাল (বিকালের ব্যাচ)',
+    day: 'Sunday',
+    startTime: '03:30 PM',
+    endTime: '05:00 PM',
+    subject: 'মেডিকেল বায়োলজি - মানব শারীরতত্ত্ব ও রক্ত সংবহন',
+    teacherId: 't-2',
+    teacherName: 'ডা. নুসরাত জাহান',
+    roomNumber: 'রুম ৩০১ (বায়ো ল্যাব)',
+    classType: 'theory',
+  },
+  {
+    id: 'rt-5',
+    batchId: 'b-2',
+    batchName: 'HSC \'26 বায়োলজি স্পেশাল (বিকালের ব্যাচ)',
+    day: 'Tuesday',
+    startTime: '03:30 PM',
+    endTime: '05:00 PM',
+    subject: 'বায়োলজি ডায়াগ্রাম ও মাইক্রোস্কোপিক প্র্যাকটিক্যাল',
+    teacherId: 't-2',
+    teacherName: 'ডা. নুসরাত জাহান',
+    roomNumber: 'রুম ৩০১ (বায়ো ল্যাব)',
+    classType: 'practical',
+  },
+  {
+    id: 'rt-6',
+    batchId: 'b-2',
+    batchName: 'HSC \'26 বায়োলজি স্পেশাল (বিকালের ব্যাচ)',
+    day: 'Thursday',
+    startTime: '03:30 PM',
+    endTime: '05:00 PM',
+    subject: 'মেডিকেল ৫০ মার্কস লাইভ ওএমআর টেস্ট',
+    teacherId: 't-2',
+    teacherName: 'ডা. নুসরাত জাহান',
+    roomNumber: 'রুম ৩০১ (বায়ো ল্যাব)',
+    classType: 'model_test',
+  },
+  {
+    id: 'rt-7',
+    batchId: 'b-3',
+    batchName: 'বুয়েট ড্রিমার্স আলফা (উইকেন্ড ক্র্যাশ)',
+    day: 'Friday',
+    startTime: '09:00 AM',
+    endTime: '11:30 AM',
+    subject: 'বুয়েট রিটেন ম্যাথ ও অ্যাডভান্সড ক্যালকুলাস',
+    teacherId: 't-3',
+    teacherName: 'প্রভাষক তানভীর আহমেদ',
+    roomNumber: 'রুম ৪০২ (অডিটোরিয়াম)',
+    classType: 'theory',
+  },
+  {
+    id: 'rt-8',
+    batchId: 'b-3',
+    batchName: 'বুয়েট ড্রিমার্স আলফা (উইকেন্ড ক্র্যাশ)',
+    day: 'Saturday',
+    startTime: '03:00 PM',
+    endTime: '06:00 PM',
+    subject: 'বুয়েট ফিজিক্স কনসেপ্ট ও বিগত প্রশ্ন সলভিং',
+    teacherId: 't-1',
+    teacherName: 'ইঞ্জি. মোঃ সাইফুল ইসলাম',
+    roomNumber: 'রুম ৪০২ (অডিটোরিয়াম)',
+    classType: 'theory',
+  },
+  {
+    id: 'rt-9',
+    batchId: 'b-4',
+    batchName: 'এইচএসসি ম্যাথ চ্যাম্পিয়ন ব্যাচ',
+    day: 'Sunday',
+    startTime: '10:00 AM',
+    endTime: '11:30 AM',
+    subject: 'উচ্চতর গণিত - অন্তরীকরণ ও স্পর্শক',
+    teacherId: 't-3',
+    teacherName: 'প্রভাষক তানভীর আহমেদ',
+    roomNumber: 'রুম ১০২',
+    classType: 'theory',
+  },
+  {
+    id: 'rt-10',
+    batchId: 'b-4',
+    batchName: 'এইচএসসি ম্যাথ চ্যাম্পিয়ন ব্যাচ',
+    day: 'Tuesday',
+    startTime: '10:00 AM',
+    endTime: '11:30 AM',
+    subject: 'উচ্চতর গণিত বোর্ড প্রশ্ন বিশ্লেষণ ও সমাধান',
+    teacherId: 't-3',
+    teacherName: 'প্রভাষক তানভীর আহমেদ',
+    roomNumber: 'রুম ১০২',
+    classType: 'doubt_solve',
+  },
+]);
+
+// ==========================================
+// SYLLABUS & ROUTINE CRUD METHODS
+// ==========================================
+export function addSyllabusItem(data: Omit<SyllabusItem, 'id'>) {
+  const newItem: SyllabusItem = {
+    ...data,
+    id: `syl-${Date.now()}`,
+  };
+  syllabusItems.update((all) => [newItem, ...all]);
+  showToast('success', 'নতুন সিলেবাস অধ্যায় সংরক্ষিত', `'${newItem.chapterTitle}' সিলেবাসে যুক্ত হয়েছে।`);
+}
+
+export function updateSyllabusItem(id: string, updates: Partial<SyllabusItem>) {
+  syllabusItems.update((all) => all.map((item) => (item.id === id ? { ...item, ...updates } : item)));
+  showToast('success', 'সিলেবাস হালনাগাদ হয়েছে', 'অধ্যায়ের অগ্রগতি ও তথ্য সফলভাবে আপডেট হয়েছে।');
+}
+
+export function deleteSyllabusItem(id: string) {
+  syllabusItems.update((all) => all.filter((item) => item.id !== id));
+  showToast('info', 'অধ্যায় অপসারিত', 'সিলেবাস থেকে অধ্যায়টি সরানো হয়েছে।');
+}
+
+export function addRoutineSlot(data: Omit<RoutineSlot, 'id'>) {
+  const newSlot: RoutineSlot = {
+    ...data,
+    id: `rt-${Date.now()}`,
+  };
+  routineSlots.update((all) => [...all, newSlot]);
+  showToast('success', 'রুটিন স্লট যুক্ত হয়েছে', `${newSlot.day} ${newSlot.startTime}-এ নতুন ক্লাস যোগ করা হয়েছে।`);
+}
+
+export function updateRoutineSlot(id: string, updates: Partial<RoutineSlot>) {
+  routineSlots.update((all) => all.map((slot) => (slot.id === id ? { ...slot, ...updates } : slot)));
+  showToast('success', 'রুটিন আপডেট হয়েছে', 'ক্লাস সময়সূচি সফলভাবে পরিবর্তন করা হয়েছে।');
+}
+
+export function deleteRoutineSlot(id: string) {
+  routineSlots.update((all) => all.filter((slot) => slot.id !== id));
+  showToast('info', 'ক্লাস স্লট অপসারিত', 'রুটিন থেকে ক্লাসটি সরানো হয়েছে।');
+}
+
