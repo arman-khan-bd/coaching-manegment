@@ -1,5 +1,6 @@
 <script lang="ts">
   import { sendSms, smsAccount, smsTemplates, showToast } from '../store';
+  import { normalizePhoneNumber, isValidPhoneNumber, getBdCarrierName } from '../smsQueueApi';
   import type { SmsTemplate } from '../types';
   import Modal from './Modal.svelte';
   import {
@@ -67,24 +68,29 @@
     }
   }
 
+  $: normPhone = normalizePhoneNumber(recipientPhone);
+  $: isValidPhone = isValidPhoneNumber(recipientPhone);
+  $: carrierName = getBdCarrierName(recipientPhone);
+
   function handleSend() {
     if (!messageText.trim()) {
       showToast('error', 'মেসেজ খালি', 'অনুগ্রহ করে SMS-এর বিবরণ লিখুন।');
       return;
     }
-    if (!recipientPhone.trim()) {
-      showToast('error', 'ফোন নম্বর প্রয়োজন', 'প্রাপকের বৈধ মোবাইল নম্বর দিন।');
+    const cleanPhone = normalizePhoneNumber(recipientPhone);
+    if (!cleanPhone) {
+      showToast('error', 'ফোন নম্বর সঠিক নয়', 'প্রাপকের বৈধ মোবাইল নম্বর দিন (যেমন: 01701034883 বা +8801701034883)।');
       return;
     }
 
     isSending = true;
     try {
-      sendSms(recipientName || 'প্রাপক', recipientPhone, messageText, selectedGateway);
+      sendSms(recipientName || 'প্রাপক', cleanPhone, messageText, selectedGateway);
       const gwLabel = selectedGateway === 'android_sim1' ? 'Android SIM (৳০.০০)' : 'Cloud SMS (৳০.৩৫)';
       showToast(
         'success',
         'SMS সফলভাবে পাঠানো হয়েছে',
-        `${recipientName}-কে (${recipientPhone}) ${gwLabel}-এর মাধ্যমে পাঠানো হয়েছে।`
+        `${recipientName}-কে (${cleanPhone}) ${gwLabel}-এর মাধ্যমে পাঠানো হয়েছে।`
       );
       messageText = '';
       selectedTemplateObj = null;
@@ -118,9 +124,16 @@
               {recipientRole}
             </span>
           </div>
-          <div class="flex items-center gap-1.5 text-slate-400 font-mono mt-0.5">
-            <Phone class="w-3 h-3 text-slate-500" />
-            <span>{recipientPhone || 'নম্বর দেওয়া হয়নি'}</span>
+          <div class="flex items-center gap-2 text-slate-400 font-mono mt-0.5 flex-wrap">
+            <div class="flex items-center gap-1.5">
+              <Phone class="w-3 h-3 text-slate-500" />
+              <span class="text-white font-semibold">{normPhone || recipientPhone || 'নম্বর দেওয়া হয়নি'}</span>
+            </div>
+            {#if carrierName}
+              <span class="px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400 font-semibold text-[10px] border border-emerald-500/20">
+                {carrierName}
+              </span>
+            {/if}
           </div>
         </div>
       </div>

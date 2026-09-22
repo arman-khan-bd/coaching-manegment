@@ -15,7 +15,7 @@ class _SmsGatewayViewState extends State<SmsGatewayView> {
 
   late final TextEditingController _coachingIdController;
   late final TextEditingController _apiUrlController;
-  final TextEditingController _testPhoneController = TextEditingController(text: '+880 1711-456789');
+  final TextEditingController _testPhoneController = TextEditingController(text: '+8801701034883');
   final TextEditingController _testMsgController = TextEditingController(
     text: 'টেস্ট বার্তা: CoachFlow Flutter Android SMS Gateway SIM 1 সফলভাবে সংযুক্ত হয়েছে।',
   );
@@ -65,15 +65,17 @@ class _SmsGatewayViewState extends State<SmsGatewayView> {
   }
 
   Future<void> _handleSendTest() async {
-    final phone = _testPhoneController.text.trim();
+    final rawPhone = _testPhoneController.text.trim();
+    final phone = SmsPollingService.normalizePhoneNumber(rawPhone);
     final msg = _testMsgController.text.trim();
     if (phone.isEmpty || msg.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('মোবাইল নম্বর ও বার্তা লিখুন।')),
+        const SnackBar(content: Text('সঠিক মোবাইল নম্বর (যেমন: 01701034883 বা +8801701034883) ও বার্তা লিখুন।')),
       );
       return;
     }
 
+    _testPhoneController.text = phone;
     setState(() => _isSendingTest = true);
     final res = await _pollingService.sendDirectTestSms(phone, msg, simSlot: _testSimSlot);
     setState(() => _isSendingTest = false);
@@ -378,8 +380,10 @@ class _SmsGatewayViewState extends State<SmsGatewayView> {
                     controller: _testPhoneController,
                     keyboardType: TextInputType.phone,
                     style: const TextStyle(color: Colors.white, fontSize: 13),
-                    decoration: _inputDecoration('+880 1711-xxxxxx'),
+                    decoration: _inputDecoration('+8801701034883 বা 01701034883'),
                   ),
+                  const SizedBox(height: 2),
+                  const Text('যেকোনো ফরম্যাট (017..., 8801..., বাংলা অঙ্ক) স্বয়ংক্রিয়ভাবে স্ট্যান্ডার্ড হবে', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
                   const SizedBox(height: 8),
                   const Text('Message Content:', style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
                   const SizedBox(height: 4),

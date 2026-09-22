@@ -24,7 +24,7 @@ class MainActivity: FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "sendSms" -> {
-                    val to = call.argument<String>("to") ?: ""
+                    val to = normalizePhoneNumber(call.argument<String>("to") ?: "")
                     val message = call.argument<String>("message") ?: ""
                     val slot = call.argument<Int>("simSlot") ?: 1
 
@@ -68,8 +68,34 @@ class MainActivity: FlutterActivity() {
         }
     }
 
+    private fun normalizePhoneNumber(raw: String): String {
+        if (raw.isBlank()) return ""
+        val bengaliDigits = mapOf(
+            '০' to '0', '১' to '1', '২' to '2', '৩' to '3', '৪' to '4',
+            '৫' to '5', '৬' to '6', '৭' to '7', '৮' to '8', '৯' to '9'
+        )
+        val converted = raw.map { bengaliDigits[it] ?: it }.joinToString("")
+        val hasPlus = converted.trim().startsWith("+")
+        val digits = converted.filter { it.isDigit() }
+
+        if (digits.isEmpty()) return raw.trim()
+
+        return when {
+            digits.length == 11 && digits.matches(Regex("^01[3-9]\\d{8}$")) -> "+88$digits"
+            digits.length == 13 && digits.matches(Regex("^8801[3-9]\\d{8}$")) -> "+$digits"
+            digits.length == 10 && digits.matches(Regex("^1[3-9]\\d{8}$")) -> "+880$digits"
+            hasPlus && digits.length >= 7 -> "+$digits"
+            digits.length == 11 && digits.startsWith("01") -> "+88$digits"
+            digits.length >= 11 && digits.startsWith("880") -> "+$digits"
+            digits.length == 11 && digits.startsWith("0") -> "+88$digits"
+            hasPlus -> "+$digits"
+            else -> digits
+        }
+    }
+
     private fun sendNativeSms(to: String, message: String, simSlot: Int): String {
         var carrierName = "Primary SIM"
+        val normalizedTo = normalizePhoneNumber(to)
 
         val smsManager: SmsManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
             val subManager = getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as? SubscriptionManager
@@ -102,9 +128,9 @@ class MainActivity: FlutterActivity() {
 
         val parts = smsManager.divideMessage(message)
         if (parts.size > 1) {
-            smsManager.sendMultipartTextMessage(to, null, parts, null, null)
+            smsManager.sendMultipartTextMessage(normalizedTo, null, parts, null, null)
         } else {
-            smsManager.sendTextMessage(to, null, message, null, null)
+            smsManager.sendTextMessage(normalizedTo, null, message, null, null)
         }
 
         return carrierName

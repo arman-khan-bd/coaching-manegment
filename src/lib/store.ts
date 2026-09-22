@@ -39,6 +39,7 @@ import {
   cancelSmsInQueue,
   cancelAllPendingSmsInQueue,
   loadSmsQueueFromSupabase,
+  normalizePhoneNumber,
 } from './smsQueueApi';
 
 // ==========================================
@@ -1996,10 +1997,12 @@ export function sendSms(
   message: string,
   gateway: SmsLog['gateway'] = 'android_sim1'
 ) {
+  const normalizedPhone = normalizePhoneNumber(recipientPhone) || recipientPhone.trim();
+
   const newLog: SmsLog = {
     id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
     recipientName,
-    recipientPhone,
+    recipientPhone: normalizedPhone,
     message,
     gateway,
     status: 'delivered',
@@ -2018,7 +2021,7 @@ export function sendSms(
     });
     unsub();
 
-    enqueueSmsToQueue(coachingId, recipientPhone, recipientName, message).then((res) => {
+    enqueueSmsToQueue(coachingId, normalizedPhone, recipientName, message).then((res) => {
       if (res && res.item) {
         smsQueue.update((q) => [res.item, ...q.filter((x) => x.id !== res.item.id)]);
       }
@@ -2029,7 +2032,7 @@ export function sendSms(
   if (gateway === 'android_sim1' && typeof window !== 'undefined') {
     const payload = JSON.stringify({
       type: 'SEND_SMS',
-      to: recipientPhone,
+      to: normalizedPhone,
       message,
       recipientName,
       simSlot: 1,

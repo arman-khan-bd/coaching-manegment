@@ -18,7 +18,13 @@
     cancelAllPendingSms,
     refreshSmsQueue,
   } from '../store';
-  import { enqueueSmsToQueue } from '../smsQueueApi';
+  import {
+    enqueueSmsToQueue,
+    normalizePhoneNumber,
+    isValidPhoneNumber,
+    getBdCarrierName,
+    formatPhoneNumberDisplay,
+  } from '../smsQueueApi';
   import Badge from '../components/Badge.svelte';
   import Modal from '../components/Modal.svelte';
   import {
@@ -79,7 +85,7 @@
   $: smsParts = Math.ceil(charCount / partLimit) || 1;
 
   // 10-Second Polling Queue State
-  let testQueuePhone = '+880 1711-456789';
+  let testQueuePhone = '+8801701034883';
   let testQueueMsg = 'সম্মানিত অভিভাবক, ১০-সেকেন্ড আউটবক্স টেস্ট সফল! আপনার ফোন থেকে SIM 1 দিয়ে পাঠানো হচ্ছে।';
   let isQueueing = false;
 
@@ -87,17 +93,32 @@
   $: pendingQueueItems = $smsQueue.filter((q) => q.coachingCenterId === coachingCenterId && q.status === 'pending');
   $: completedQueueItems = $smsQueue.filter((q) => q.coachingCenterId === coachingCenterId && q.status === 'sent');
 
+  // Live reactive phone validation & normalization
+  $: normTestPhone = normalizePhoneNumber(testQueuePhone);
+  $: isValidTestPhone = isValidPhoneNumber(testQueuePhone);
+  $: testCarrier = getBdCarrierName(testQueuePhone);
+
+  $: normCustomPhone = normalizePhoneNumber(customPhone);
+  $: isValidCustomPhone = isValidPhoneNumber(customPhone);
+  $: customCarrier = getBdCarrierName(customPhone);
+
   async function handleEnqueueTest() {
-    if (!testQueuePhone.trim() || !testQueueMsg.trim()) {
-      showToast('error', 'তথ্য দিন', 'মোবাইল নম্বর এবং মেসেজ দিন।');
+    const cleanPhone = normalizePhoneNumber(testQueuePhone);
+    if (!cleanPhone) {
+      showToast('error', 'সঠিক নম্বর দিন', 'সঠিক মোবাইল নম্বর (যেমন: 01701034883 বা +8801701034883) দিন।');
       return;
     }
+    if (!testQueueMsg.trim()) {
+      showToast('error', 'মেসেজ দিন', 'SMS বার্তা লিখুন।');
+      return;
+    }
+    testQueuePhone = cleanPhone;
     isQueueing = true;
     try {
-      const res = await enqueueSmsToQueue(coachingCenterId, testQueuePhone, 'টেস্ট অভিভাবক', testQueueMsg);
+      const res = await enqueueSmsToQueue(coachingCenterId, cleanPhone, 'টেস্ট অভিভাবক', testQueueMsg);
       if (res && res.item) {
         smsQueue.update((q) => [res.item, ...q.filter((x) => x.id !== res.item.id)]);
-        showToast('success', 'SMS কিউতে যুক্ত হয়েছে', `Coaching ID: ${coachingCenterId} এর কিউতে জমা হয়েছে। ফোন ১০ সেকেন্ডে পেয়ে SIM 1 দিয়ে পাঠাবে।`);
+        showToast('success', 'SMS কিউতে যুক্ত হয়েছে', `নম্বর: ${cleanPhone}। ফোন ১০ সেকেন্ডে পেয়ে SIM 1 দিয়ে পাঠাবে।`);
       }
     } catch (e: any) {
       showToast('error', 'ব্যর্থ', e.message || 'Error enqueueing SMS');
@@ -122,7 +143,8 @@
         const compiled = messageContent
           .replace(/{guardian_name}/g, s.guardianName)
           .replace(/{student_name}/g, s.name);
-        sendSms(s.guardianName, s.guardianPhone, compiled, selectedGateway);
+        const phone = normalizePhoneNumber(s.guardianPhone) || s.guardianPhone;
+        sendSms(s.guardianName, phone, compiled, selectedGateway);
       });
       showToast('success', 'Batch Campaign Dispatched', `Queued SMS to ${batchStudents.length} guardians via ${selectedGateway.toUpperCase()}.`);
     } else if (recipientTarget === 'overdue') {
@@ -132,12 +154,19 @@
           .replace(/{guardian_name}/g, s.guardianName)
           .replace(/{student_name}/g, s.name)
           .replace(/{due_amount}/g, String(s.feesDue));
-        sendSms(s.guardianName, s.guardianPhone, compiled, selectedGateway);
+        const phone = normalizePhoneNumber(s.guardianPhone) || s.guardianPhone;
+        sendSms(s.guardianName, phone, compiled, selectedGateway);
       });
       showToast('success', 'Due Reminders Sent', `Dispatched alerts to ${dueStudents.length} due student guardian(s).`);
     } else {
-      sendSms(customRecipientName, customPhone, messageContent, selectedGateway);
-      showToast('success', 'SMS Sent', `Notification delivered to ${customPhone}.`);
+      const cleanPhone = normalizePhoneNumber(customPhone);
+      if (!cleanPhone) {
+        showToast('error', 'সঠিক নম্বর দিন', 'সঠিক মোবাইল নম্বর দিন (যেমন: 01701034883 বা +8801701034883)।');
+        return;
+      }
+      customPhone = cleanPhone;
+      sendSms(customRecipientName, cleanPhone, messageContent, selectedGateway);
+      showToast('success', 'SMS পাঠানো হয়েছে', `${cleanPhone} নম্বরে SMS কিউতে যুক্ত হয়েছে।`);
     }
   }
 
@@ -494,16 +523,36 @@
           <Send class="w-3.5 h-3.5 text-indigo-400" />
           <span>১০-সেকেন্ড পোলিং টেস্ট SMS কিউ করুন</span>
         </h4>
-        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
-          <div class="sm:col-span-4">
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-start">
+          <div class="sm:col-span-5">
             <input
               type="text"
               bind:value={testQueuePhone}
-              placeholder="মোবাইল নম্বর (+880 17...)"
-              class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              placeholder="মোবাইল নম্বর (+88017..., 017..., ইত্যাদি)"
+              class="w-full px-3 py-2 rounded-xl bg-slate-900 border text-xs text-white placeholder-slate-500 focus:outline-none transition-colors {isValidTestPhone ? 'border-emerald-500/50 focus:border-emerald-400' : 'border-slate-800 focus:border-indigo-500'}"
             />
+            {#if testQueuePhone.trim()}
+              <div class="flex items-center gap-1.5 mt-1.5 text-[10px] flex-wrap">
+                {#if isValidTestPhone}
+                  <span class="text-emerald-400 flex items-center gap-1 font-semibold">
+                    <CheckCircle2 class="w-3 h-3 text-emerald-400" />
+                    <span>সঠিক নম্বর: {normTestPhone}</span>
+                  </span>
+                  {#if testCarrier}
+                    <span class="px-1.5 py-0.2 rounded bg-indigo-950/60 text-indigo-300 font-semibold border border-indigo-800/40">
+                      {testCarrier}
+                    </span>
+                  {/if}
+                {:else}
+                  <span class="text-amber-400 flex items-center gap-1">
+                    <AlertCircle class="w-3 h-3 text-amber-400" />
+                    <span>সঠিক ১১-ডিজিটের নম্বর দিন (যেমন: 01701034883 বা +8801701034883)</span>
+                  </span>
+                {/if}
+              </div>
+            {/if}
           </div>
-          <div class="sm:col-span-6">
+          <div class="sm:col-span-5">
             <input
               type="text"
               bind:value={testQueueMsg}
@@ -514,7 +563,7 @@
           <div class="sm:col-span-2">
             <button
               type="button"
-              class="w-full h-full py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
+              class="w-full py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
               disabled={isQueueing}
               on:click={handleEnqueueTest}
             >
@@ -586,7 +635,12 @@
 
                   <div>
                     <div class="flex items-center gap-2 flex-wrap">
-                      <span class="font-bold text-white">{item.recipientPhone}</span>
+                      <span class="font-bold text-white font-mono">{normalizePhoneNumber(item.recipientPhone)}</span>
+                      {#if getBdCarrierName(item.recipientPhone)}
+                        <span class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20">
+                          {getBdCarrierName(item.recipientPhone)}
+                        </span>
+                      {/if}
                       {#if item.recipientName}
                         <span class="text-slate-400">({item.recipientName})</span>
                       {/if}
@@ -775,13 +829,34 @@
             />
           </div>
           <div>
-            <label for="compose-custom-phone" class="block text-slate-300 font-semibold mb-1">Mobile Phone (with country code)</label>
+            <div class="flex items-center justify-between mb-1">
+              <label for="compose-custom-phone" class="block text-slate-300 font-semibold">মোবাইল নম্বর (+8801..., 01..., ইত্যাদি)</label>
+              {#if customCarrier}
+                <span class="text-[10px] text-emerald-400 font-semibold">অপারেটর: {customCarrier}</span>
+              {/if}
+            </div>
             <input
               id="compose-custom-phone"
               type="text"
               bind:value={customPhone}
-              class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
+              placeholder="+8801701034883 বা 01701034883"
+              class="w-full px-3 py-2 rounded-xl bg-slate-950 border text-white focus:outline-none transition-colors {isValidCustomPhone ? 'border-emerald-500/50 focus:border-emerald-400' : 'border-slate-800 focus:border-indigo-500'}"
             />
+            {#if customPhone.trim()}
+              <div class="flex items-center gap-1.5 mt-1.5 text-[10px] flex-wrap">
+                {#if isValidCustomPhone}
+                  <span class="text-emerald-400 flex items-center gap-1 font-semibold">
+                    <CheckCircle2 class="w-3 h-3 text-emerald-400" />
+                    <span>সঠিক নম্বর: {normCustomPhone}</span>
+                  </span>
+                {:else}
+                  <span class="text-amber-400 flex items-center gap-1">
+                    <AlertCircle class="w-3 h-3 text-amber-400" />
+                    <span>১১ ডিজিটের সঠিক নম্বর দিন (যেমন: 01701034883 বা +8801701034883)</span>
+                  </span>
+                {/if}
+              </div>
+            {/if}
           </div>
         </div>
       {/if}

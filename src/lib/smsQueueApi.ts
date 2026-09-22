@@ -59,6 +59,107 @@ export async function loadSmsQueueFromSupabase(coachingCenterId: string): Promis
   return getLocalQueue().filter((i) => i.coachingCenterId === coachingCenterId);
 }
 
+// Bengali numerals map
+const BENGALI_DIGITS: Record<string, string> = {
+  '০': '0', '১': '1', '২': '2', '৩': '3', '৪': '4',
+  '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9',
+};
+
+/**
+ * Universal Phone Normalizer for SMS delivery:
+ * - Converts Bengali numerals (০-৯) to English digits (0-9)
+ * - Strips spaces, dashes, dots, brackets
+ * - Converts Bangladeshi numbers (+8801..., 01..., 8801..., 17...) into standard E.164 (+8801XXXXXXXXX)
+ * - Preserves international format (+CountryCode...)
+ */
+export function normalizePhoneNumber(raw: string): string {
+  if (!raw) return '';
+  let str = String(raw).trim();
+  // Replace Bengali digits
+  str = str.replace(/[০-৯]/g, (d) => BENGALI_DIGITS[d] || d);
+  const hasPlus = str.startsWith('+');
+  const digits = str.replace(/\D/g, '');
+  if (!digits) return '';
+
+  // 1. Bangladeshi 11-digit mobile: 013, 014, 015, 016, 017, 018, 019
+  if (digits.length === 11 && /^01[3-9]\d{8}$/.test(digits)) {
+    return '+88' + digits;
+  }
+  // 2. Bangladeshi 13-digit mobile with 880
+  if (digits.length === 13 && /^8801[3-9]\d{8}$/.test(digits)) {
+    return '+' + digits;
+  }
+  // 3. Bangladeshi 10-digit missing leading 0: 13, 14, 15, 16, 17, 18, 19
+  if (digits.length === 10 && /^1[3-9]\d{8}$/.test(digits)) {
+    return '+880' + digits;
+  }
+  // 4. Other international with explicit '+' prefix
+  if (hasPlus && digits.length >= 7) {
+    return '+' + digits;
+  }
+  // 5. Fallback 11-digit starting with 01
+  if (digits.length === 11 && digits.startsWith('01')) {
+    return '+88' + digits;
+  }
+  // 6. Fallback starting with 880
+  if (digits.length >= 11 && digits.startsWith('880')) {
+    return '+' + digits;
+  }
+  // 7. Generic 11-digit starting with 0
+  if (digits.length === 11 && digits.startsWith('0')) {
+    return '+88' + digits;
+  }
+  return hasPlus ? '+' + digits : digits;
+}
+
+/**
+ * Validates if the phone number is a usable mobile number
+ */
+export function isValidPhoneNumber(raw: string): boolean {
+  const norm = normalizePhoneNumber(raw);
+  if (/^\+8801[3-9]\d{8}$/.test(norm)) return true;
+  if (/^\+[1-9]\d{6,14}$/.test(norm)) return true;
+  if (/^01[3-9]\d{8}$/.test(norm)) return true;
+  return false;
+}
+
+/**
+ * Returns mobile network carrier name for BD numbers
+ */
+export function getBdCarrierName(phone: string): string {
+  const norm = normalizePhoneNumber(phone);
+  if (!norm.startsWith('+8801') || norm.length < 7) return '';
+  const prefix = norm.substring(4, 6);
+  switch (prefix) {
+    case '17':
+    case '13':
+      return 'Grameenphone';
+    case '18':
+      return 'Robi';
+    case '19':
+    case '14':
+      return 'Banglalink';
+    case '15':
+      return 'Teletalk';
+    case '16':
+      return 'Airtel';
+    default:
+      return 'BD Mobile';
+  }
+}
+
+/**
+ * Formats phone number for clean, user-friendly display (e.g. +880 1701-034883)
+ */
+export function formatPhoneNumberDisplay(phone: string): string {
+  const norm = normalizePhoneNumber(phone);
+  if (/^\+8801[3-9]\d{8}$/.test(norm)) {
+    // Format: +880 17XX-XXXXXX
+    return `${norm.substring(0, 4)} ${norm.substring(4, 8)}-${norm.substring(8)}`;
+  }
+  return norm || phone;
+}
+
 /**
  * Enqueue a new SMS request for a specific coaching center
  */
@@ -68,7 +169,7 @@ export async function enqueueSmsToQueue(
   recipientName: string,
   message: string
 ): Promise<{ success: boolean; item: SmsQueueItem }> {
-  const cleanPhone = recipientPhone.replace(/\s+/g, '');
+  const cleanPhone = normalizePhoneNumber(recipientPhone);
   const id = `sms-q-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
   const now = new Date().toISOString();
 

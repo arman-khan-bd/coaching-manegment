@@ -18,6 +18,43 @@ const corsHeaders = {
   'Content-Type': 'application/json',
 };
 
+const BENGALI_DIGITS = {
+  '০': '0', '১': '1', '২': '2', '৩': '3', '৪': '4',
+  '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9',
+};
+
+function normalizePhoneNumber(raw) {
+  if (!raw) return '';
+  let str = String(raw).trim();
+  str = str.replace(/[০-৯]/g, (d) => BENGALI_DIGITS[d] || d);
+  const hasPlus = str.startsWith('+');
+  const digits = str.replace(/\D/g, '');
+  if (!digits) return '';
+
+  if (digits.length === 11 && /^01[3-9]\d{8}$/.test(digits)) {
+    return '+88' + digits;
+  }
+  if (digits.length === 13 && /^8801[3-9]\d{8}$/.test(digits)) {
+    return '+' + digits;
+  }
+  if (digits.length === 10 && /^1[3-9]\d{8}$/.test(digits)) {
+    return '+880' + digits;
+  }
+  if (hasPlus && digits.length >= 7) {
+    return '+' + digits;
+  }
+  if (digits.length === 11 && digits.startsWith('01')) {
+    return '+88' + digits;
+  }
+  if (digits.length >= 11 && digits.startsWith('880')) {
+    return '+' + digits;
+  }
+  if (digits.length === 11 && digits.startsWith('0')) {
+    return '+88' + digits;
+  }
+  return hasPlus ? '+' + digits : digits;
+}
+
 export const handler = async (event) => {
   // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
@@ -127,7 +164,8 @@ export const handler = async (event) => {
     // 3. ENQUEUE SMS (POST /api/sms/:coachingCenterId)
     if (event.httpMethod === 'POST') {
       const data = JSON.parse(event.body || '{}');
-      const recipientPhone = (data.to || data.recipient_phone || data.recipientPhone || '').replace(/\s+/g, '');
+      const rawPhone = data.to || data.recipient_phone || data.recipientPhone || '';
+      const recipientPhone = normalizePhoneNumber(rawPhone);
       const message = data.message || '';
 
       if (!recipientPhone || !message) {

@@ -11,6 +11,47 @@ class SmsPollingService extends ChangeNotifier {
   factory SmsPollingService() => _instance;
   SmsPollingService._internal();
 
+  static final Map<String, String> _bengaliDigits = {
+    '০': '0', '১': '1', '২': '2', '৩': '3', '৪': '4',
+    '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9',
+  };
+
+  /// Universal Phone Normalizer:
+  /// Converts Bengali digits, strips non-digits, and converts 01..., 8801..., 17... to standard +8801XXXXXXXXX
+  static String normalizePhoneNumber(String raw) {
+    if (raw.trim().isEmpty) return '';
+    String str = raw.trim();
+    _bengaliDigits.forEach((key, value) {
+      str = str.replaceAll(key, value);
+    });
+    final hasPlus = str.startsWith('+');
+    final digits = str.replaceAll(RegExp(r'\D'), '');
+    if (digits.isEmpty) return raw.trim();
+
+    if (digits.length == 11 && RegExp(r'^01[3-9]\d{8}$').hasMatch(digits)) {
+      return '+88$digits';
+    }
+    if (digits.length == 13 && RegExp(r'^8801[3-9]\d{8}$').hasMatch(digits)) {
+      return '+$digits';
+    }
+    if (digits.length == 10 && RegExp(r'^1[3-9]\d{8}$').hasMatch(digits)) {
+      return '+880$digits';
+    }
+    if (hasPlus && digits.length >= 7) {
+      return '+$digits';
+    }
+    if (digits.length == 11 && digits.startsWith('01')) {
+      return '+88$digits';
+    }
+    if (digits.length >= 11 && digits.startsWith('880')) {
+      return '+$digits';
+    }
+    if (digits.length == 11 && digits.startsWith('0')) {
+      return '+88$digits';
+    }
+    return hasPlus ? '+$digits' : digits;
+  }
+
   String _coachingCenterId = 'aac-dhaka-01';
   String _apiBaseUrl = 'https://coaching-bd.netlify.app';
   bool _pollingActive = true;
@@ -198,10 +239,11 @@ class SmsPollingService extends ChangeNotifier {
 
       for (var raw in rawMessages) {
         final item = SmsQueueItem.fromJson(Map<String, dynamic>.from(raw));
+        final normalizedTo = normalizePhoneNumber(item.to);
         final activeSlot = item.simSlot ?? _preferredSimSlot;
-        _appendLog(item.to, item.message, 'processing', simSlot: activeSlot);
+        _appendLog(normalizedTo, item.message, 'processing', simSlot: activeSlot);
 
-        final sendResult = await SmsNativeService.sendSms(item.to, item.message, simSlot: activeSlot);
+        final sendResult = await SmsNativeService.sendSms(normalizedTo, item.message, simSlot: activeSlot);
         final isSent = sendResult['success'] == true;
         final targetStatus = isSent ? 'sent' : 'failed';
         final errorMsg = sendResult['error']?.toString();
@@ -261,9 +303,10 @@ class SmsPollingService extends ChangeNotifier {
 
   /// Send quick test SMS directly via selected SIM
   Future<Map<String, dynamic>> sendDirectTestSms(String to, String message, {int? simSlot}) async {
+    final normalizedTo = normalizePhoneNumber(to);
     final activeSlot = simSlot ?? _preferredSimSlot;
-    _appendLog(to, message, 'processing', simSlot: activeSlot);
-    final res = await SmsNativeService.sendSms(to, message, simSlot: activeSlot);
+    _appendLog(normalizedTo, message, 'processing', simSlot: activeSlot);
+    final res = await SmsNativeService.sendSms(normalizedTo, message, simSlot: activeSlot);
     if (res['success'] == true) {
       _dailySent++;
       _updateLatestLogStatus('sent');
