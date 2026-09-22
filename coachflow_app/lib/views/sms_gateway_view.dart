@@ -24,12 +24,14 @@ class _SmsGatewayViewState extends State<SmsGatewayView> {
   int _batteryLevel = 94;
   bool _isCharging = true;
   bool _isSendingTest = false;
+  int _testSimSlot = 1;
 
   @override
   void initState() {
     super.initState();
     _coachingIdController = TextEditingController(text: _pollingService.coachingCenterId);
     _apiUrlController = TextEditingController(text: _pollingService.apiBaseUrl);
+    _testSimSlot = _pollingService.preferredSimSlot;
 
     _pollingService.addListener(_onServiceUpdate);
     _loadTelephonyInfo();
@@ -47,6 +49,7 @@ class _SmsGatewayViewState extends State<SmsGatewayView> {
         _sims = sims;
         _batteryLevel = battery['level'] as int? ?? 94;
         _isCharging = battery['isCharging'] as bool? ?? true;
+        _testSimSlot = _pollingService.preferredSimSlot;
       });
     }
   }
@@ -72,7 +75,7 @@ class _SmsGatewayViewState extends State<SmsGatewayView> {
     }
 
     setState(() => _isSendingTest = true);
-    final res = await _pollingService.sendDirectTestSms(phone, msg);
+    final res = await _pollingService.sendDirectTestSms(phone, msg, simSlot: _testSimSlot);
     setState(() => _isSendingTest = false);
 
     if (mounted) {
@@ -80,7 +83,7 @@ class _SmsGatewayViewState extends State<SmsGatewayView> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: const Color(0xFF10B981),
-            content: Text('SIM 1 (${res['carrier'] ?? 'Primary'}) দিয়ে SMS সফলভাবে পাঠানো হয়েছে!'),
+            content: Text('SIM $_testSimSlot (${res['carrier'] ?? 'Active SIM'}) দিয়ে SMS সফলভাবে পাঠানো হয়েছে!'),
           ),
         );
       } else {
@@ -120,7 +123,7 @@ class _SmsGatewayViewState extends State<SmsGatewayView> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
-                        '📱 Telephony & SIM Status',
+                        '📱 Telephony & SIM Selection',
                         style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
                       ),
                       Container(
@@ -141,49 +144,35 @@ class _SmsGatewayViewState extends State<SmsGatewayView> {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    'All SMS notifications are dispatched via SIM 1 (0 extra gateway fees).',
-                    style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+                  Text(
+                    'Active Sender: SIM ${_pollingService.preferredSimSlot}. Tap a SIM card below to switch active slot.',
+                    style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
                   ),
                   const SizedBox(height: 12),
 
-                  // SIM 1 Primary box
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0F172A),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.5)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF4F46E5),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: const Text('ACTIVE SENDER (SIM 1)', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
-                            ),
-                            const Text('📶 4G LTE Online', style: TextStyle(color: Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.w600)),
-                          ],
+                  // Dual SIM Selector Cards
+                  Row(
+                    children: [
+                      // SIM 1 CARD
+                      Expanded(
+                        child: _buildSimSelectionCard(
+                          slotNumber: 1,
+                          sim: _sims.isNotEmpty ? _sims[0] : null,
+                          isSelected: _pollingService.preferredSimSlot == 1,
+                          onTap: () => _pollingService.setPreferredSimSlot(1),
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          sim1?.carrierName ?? 'Grameenphone 4G',
-                          style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(width: 10),
+                      // SIM 2 CARD
+                      Expanded(
+                        child: _buildSimSelectionCard(
+                          slotNumber: 2,
+                          sim: _sims.length > 1 ? _sims[1] : null,
+                          isSelected: _pollingService.preferredSimSlot == 2,
+                          onTap: () => _pollingService.setPreferredSimSlot(2),
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Slot 0 • Subscription ID: ${sim1?.subscriptionId ?? 1} • Auto-prioritized',
-                          style: const TextStyle(color: Color(0xFF64748B), fontSize: 10),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ],
               ),

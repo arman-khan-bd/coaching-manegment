@@ -42,6 +42,8 @@ class SmsPollingService extends ChangeNotifier {
 
   Timer? _countdownTimer;
 
+  int _preferredSimSlot = 1;
+
   // Getters
   String get coachingCenterId => _coachingCenterId;
   String get apiBaseUrl => _apiBaseUrl;
@@ -52,6 +54,7 @@ class SmsPollingService extends ChangeNotifier {
   bool get isPolling => _isPolling;
   int get dailySent => _dailySent;
   int get dailyLimit => _dailyLimit;
+  int get preferredSimSlot => _preferredSimSlot;
   List<SmsLogItem> get logs => List.unmodifiable(_logs);
 
   Future<void> initialize() async {
@@ -60,8 +63,18 @@ class SmsPollingService extends ChangeNotifier {
     _apiBaseUrl = prefs.getString('api_base_url') ?? 'https://coaching-bd.netlify.app';
     _dailySent = prefs.getInt('daily_sent') ?? 284;
     _pollingActive = prefs.getBool('polling_active') ?? true;
+    _preferredSimSlot = prefs.getInt('preferred_sim_slot') ?? 1;
 
     startPollingTimer();
+    notifyListeners();
+  }
+
+  Future<void> setPreferredSimSlot(int slot) async {
+    if (slot != 1 && slot != 2) return;
+    _preferredSimSlot = slot;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('preferred_sim_slot', slot);
+    _lastPollStatus = 'সক্রিয় সিম সেট: SIM $slot';
     notifyListeners();
   }
 
@@ -180,14 +193,15 @@ class SmsPollingService extends ChangeNotifier {
       }
 
       // "if found send sms using sim"
-      _lastPollStatus = '${rawMessages.length}টি SMS পাওয়া গেছে, SIM 1 দিয়ে প্রেরণ চলছে...';
+      _lastPollStatus = '${rawMessages.length}টি SMS পাওয়া গেছে, SIM $_preferredSimSlot দিয়ে প্রেরণ চলছে...';
       notifyListeners();
 
       for (var raw in rawMessages) {
         final item = SmsQueueItem.fromJson(Map<String, dynamic>.from(raw));
-        _appendLog(item.to, item.message, 'processing');
+        final activeSlot = item.simSlot ?? _preferredSimSlot;
+        _appendLog(item.to, item.message, 'processing', simSlot: activeSlot);
 
-        final sendResult = await SmsNativeService.sendSms(item.to, item.message, simSlot: 1);
+        final sendResult = await SmsNativeService.sendSms(item.to, item.message, simSlot: activeSlot);
         final isSent = sendResult['success'] == true;
         final targetStatus = isSent ? 'sent' : 'failed';
         final errorMsg = sendResult['error']?.toString();
@@ -207,7 +221,7 @@ class SmsPollingService extends ChangeNotifier {
           body: jsonEncode({
             'id': item.id,
             'status': targetStatus,
-            'simSlot': 1,
+            'simSlot': activeSlot,
             'errorMessage': errorMsg,
           }),
         ).catchError((_) => http.Response('', 500));
@@ -227,7 +241,7 @@ class SmsPollingService extends ChangeNotifier {
           },
           body: jsonEncode({
             'status': targetStatus,
-            'sim_slot': 1,
+            'sim_slot': activeSlot,
             'error_message': errorMsg,
             'sent_at': isSent ? nowIso : null,
           }),
@@ -245,10 +259,11 @@ class SmsPollingService extends ChangeNotifier {
     }
   }
 
-  /// Send quick test SMS directly via SIM 1
-  Future<Map<String, dynamic>> sendDirectTestSms(String to, String message) async {
-    _appendLog(to, message, 'processing');
-    final res = await SmsNativeService.sendSms(to, message, simSlot: 1);
+  /// Send quick test SMS directly via selected SIM
+  Future<Map<String, dynamic>> sendDirectTestSms(String to, String message, {int? simSlot}) async {
+    final activeSlot = simSlot ?? _preferredSimSlot;
+    _appendLog(to, message, 'processing', simSlot: activeSlot);
+    final res = await SmsNativeService.sendSms(to, message, simSlot: activeSlot);
     if (res['success'] == true) {
       _dailySent++;
       _updateLatestLogStatus('sent');
@@ -261,7 +276,7 @@ class SmsPollingService extends ChangeNotifier {
     return res;
   }
 
-  void _appendLog(String to, String message, String status) {
+  void _appendLog(String to, String message, String status, {int? simSlot}) {
     final now = DateTime.now();
     final timeStr = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
     _logs.insert(
@@ -272,7 +287,7 @@ class SmsPollingService extends ChangeNotifier {
         to: to,
         message: message,
         status: status,
-        simSlot: 1,
+        simSlot: simSlot ?? _preferredSimSlot,
       ),
     );
     if (_logs.length > 100) _logs.removeLast();
