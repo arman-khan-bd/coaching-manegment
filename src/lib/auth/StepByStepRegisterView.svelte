@@ -51,7 +51,7 @@
   let selectedCurriculums = ['HSC Science', 'BUET/CKRUET Admission', 'Medical Preparation'];
 
   // Step 3: Plan & Gateway
-  let activePlan: SubscriptionPlan = $selectedPlan || subscriptionPlans[1];
+  let activePlan: SubscriptionPlan = $selectedPlan || $subscriptionPlans[1] || $subscriptionPlans[0];
   let billingCycle: 'monthly' | 'yearly' = 'monthly';
   let selectedGatewayMode: 'android' | 'cloud' = 'android';
   let paymentChannel: 'bkash' | 'nagad' | 'rocket' | 'bank' = 'bkash';
@@ -549,7 +549,7 @@
 
           <!-- Plans Grid -->
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {#each subscriptionPlans as plan}
+            {#each $subscriptionPlans as plan}
               {@const isSelected = activePlan.id === plan.id}
               {@const price = billingCycle === 'monthly' ? plan.priceMonthly : Math.round(plan.priceYearly / 12)}
               <div

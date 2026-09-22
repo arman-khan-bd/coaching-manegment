@@ -57,9 +57,200 @@
     day: 'numeric',
   });
 
-  function handlePrint() {
-    window.print();
+  function buildPrintHTML(): string {
+    const inst = $instituteSettings;
+    const now = new Date().toLocaleDateString('bn-BD', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    const header = `
+      <div style="border-bottom:2px solid #1e293b;padding-bottom:16px;margin-bottom:16px;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
+          <div style="display:flex;align-items:flex-start;gap:12px;">
+            <div style="width:60px;height:60px;background:linear-gradient(135deg,#312e81,#1e293b);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px solid #4338ca;flex-shrink:0;">
+              <span style="color:#a5b4fc;font-size:9px;font-weight:800;letter-spacing:2px;">✦</span>
+              <span style="color:#c7d2fe;font-size:8px;font-weight:800;margin-top:2px;">APEX</span>
+            </div>
+            <div>
+              <h1 style="font-size:22px;font-weight:900;color:#0f172a;margin:0;line-height:1.2;">${inst.name}</h1>
+              <p style="font-size:11px;color:#3730a3;font-weight:600;margin:4px 0 0;">${inst.tagline}</p>
+              <p style="font-size:10px;color:#64748b;margin:4px 0 0;">
+                <strong>ঠিকানা:</strong> ${inst.address} &nbsp;•&nbsp;
+                <strong>ফোন:</strong> ${inst.phone} &nbsp;•&nbsp;
+                <strong>ইমেইল:</strong> ${inst.email}
+              </p>
+            </div>
+          </div>
+          <div style="text-align:right;background:#f8fafc;border:1px solid #cbd5e1;padding:10px;border-radius:10px;min-width:130px;flex-shrink:0;">
+            <span style="font-size:9px;color:#94a3b8;font-weight:700;display:block;text-transform:uppercase;">শিক্ষাবর্ষ / সেশন</span>
+            <span style="font-size:13px;font-weight:900;color:#0f172a;display:block;">${inst.academicYear}</span>
+            <span style="font-size:9px;color:#94a3b8;display:block;margin-top:2px;">তারিখ: ${now}</span>
+          </div>
+        </div>
+        <div style="margin-top:12px;padding-top:10px;border-top:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;">
+          <span style="display:inline-flex;align-items:center;gap:6px;background:#0f172a;color:#fff;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">
+            ${mode === 'syllabus' ? '📚 অ্যাকাডেমিক পূর্ণাঙ্গ সিলেবাস ও পাঠ পরিকল্পনা' : '📅 সাপ্তাহিক ক্লাস রুটিন ও সময়সূচি'}
+          </span>
+          <span style="font-size:11px;font-weight:600;color:#475569;">
+            ${mode === 'syllabus' ? `কোর্স: <strong style="color:#0f172a">${syllabusData.courseName}</strong>` : `ব্যাচ: <strong style="color:#0f172a">${routineData.batchName}</strong>`}
+          </span>
+        </div>
+      </div>`;
+
+    let body = '';
+
+    if (mode === 'syllabus') {
+      const rows = syllabusData.items.map((item, idx) => `
+        <tr style="background:${idx % 2 === 1 ? '#f8fafc' : '#ffffff'};">
+          <td style="padding:8px;text-align:center;font-weight:700;color:#0f172a;border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;">${item.chapterNo ?? idx + 1}</td>
+          <td style="padding:8px;border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;">
+            <strong style="color:#0f172a;display:block;">${item.chapterTitle}</strong>
+            ${item.textbookReference ? `<span style="font-size:10px;color:#94a3b8;">বই: ${item.textbookReference}</span>` : ''}
+          </td>
+          <td style="padding:8px;border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;">
+            <ul style="margin:0;padding-left:14px;font-size:10px;color:#475569;line-height:1.6;">
+              ${item.topics.map(t => `<li>${t}</li>`).join('')}
+            </ul>
+          </td>
+          <td style="padding:8px;text-align:center;font-family:monospace;font-weight:600;color:#1e293b;border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;">${item.lectureHours} ঘ.</td>
+          <td style="padding:8px;text-align:center;font-weight:700;color:#312e81;border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;">${item.examMarks}</td>
+          <td style="padding:8px;text-align:center;font-size:10px;color:#64748b;border-bottom:1px solid #e2e8f0;">${item.targetCompletionDate}</td>
+        </tr>`).join('');
+
+      body = `
+        <div style="margin-bottom:12px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;text-align:center;">
+          <div><span style="font-size:10px;color:#94a3b8;display:block;font-weight:600;text-transform:uppercase;">মোট অধ্যায়</span><strong style="font-size:15px;">${syllabusData.items.length} টি</strong></div>
+          <div style="border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;"><span style="font-size:10px;color:#94a3b8;display:block;font-weight:600;text-transform:uppercase;">সর্বমোট লেকচার</span><strong style="font-size:15px;color:#312e81;">${syllabusData.items.reduce((s,i)=>s+(i.lectureHours||0),0)} ঘণ্টা</strong></div>
+          <div><span style="font-size:10px;color:#94a3b8;display:block;font-weight:600;text-transform:uppercase;">বরাদ্দকৃত নম্বর</span><strong style="font-size:15px;color:#166534;">${syllabusData.items.reduce((s,i)=>s+(i.examMarks||0),0)} মার্কস</strong></div>
+        </div>
+        <div style="border:1px solid #cbd5e1;border-radius:10px;overflow:hidden;">
+          <table style="width:100%;border-collapse:collapse;font-size:11px;">
+            <thead style="background:#f1f5f9;">
+              <tr>
+                <th style="padding:10px 8px;font-size:10px;font-weight:700;text-transform:uppercase;color:#475569;border-bottom:2px solid #cbd5e1;border-right:1px solid #e2e8f0;text-align:center;width:45px;">অধ্যায়</th>
+                <th style="padding:10px 8px;font-size:10px;font-weight:700;text-transform:uppercase;color:#475569;border-bottom:2px solid #cbd5e1;border-right:1px solid #e2e8f0;">শিরোনাম ও রেফারেন্স</th>
+                <th style="padding:10px 8px;font-size:10px;font-weight:700;text-transform:uppercase;color:#475569;border-bottom:2px solid #cbd5e1;border-right:1px solid #e2e8f0;">মূল আলোচ্য বিষয়</th>
+                <th style="padding:10px 8px;font-size:10px;font-weight:700;text-transform:uppercase;color:#475569;border-bottom:2px solid #cbd5e1;border-right:1px solid #e2e8f0;text-align:center;width:55px;">ঘণ্টা</th>
+                <th style="padding:10px 8px;font-size:10px;font-weight:700;text-transform:uppercase;color:#475569;border-bottom:2px solid #cbd5e1;border-right:1px solid #e2e8f0;text-align:center;width:55px;">নম্বর</th>
+                <th style="padding:10px 8px;font-size:10px;font-weight:700;text-transform:uppercase;color:#475569;border-bottom:2px solid #cbd5e1;text-align:center;width:90px;">টার্গেট তারিখ</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+    } else {
+      const dayNames: Record<string,string> = {
+        Saturday:'শনিবার (Saturday)', Sunday:'রবিবার (Sunday)', Monday:'সোমবার (Monday)',
+        Tuesday:'মঙ্গলবার (Tuesday)', Wednesday:'বুধবার (Wednesday)',
+        Thursday:'বৃহস্পতিবার (Thursday)', Friday:'শুক্রবার (Friday)'
+      };
+      const typeColors: Record<string,string> = {
+        theory:'background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;',
+        model_test:'background:#fff1f2;color:#9f1239;border:1px solid #fecdd3;',
+        practical:'background:#f0fdf4;color:#14532d;border:1px solid #bbf7d0;',
+        doubt_solve:'background:#fffbeb;color:#92400e;border:1px solid #fde68a;',
+      };
+      const typeLabels: Record<string,string> = {
+        theory:'থিওরি লেকচার', model_test:'মডেল টেস্ট / ওএমআর',
+        practical:'ল্যাব / প্র্যাকটিক্যাল', doubt_solve:'প্রবলেম সলভিং',
+      };
+
+      const rows = routineData.slots.map((slot, idx) => `
+        <tr style="background:${idx % 2 === 1 ? '#f8fafc' : '#ffffff'};">
+          <td style="padding:8px;font-weight:700;color:#0f172a;border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;">${dayNames[slot.day] || slot.day}</td>
+          <td style="padding:8px;font-family:monospace;font-weight:600;color:#1e293b;border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;">${slot.startTime} - ${slot.endTime}</td>
+          <td style="padding:8px;font-weight:600;color:#0f172a;border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;">${slot.subject}</td>
+          <td style="padding:8px;color:#334155;font-weight:500;border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;">${slot.teacherName}</td>
+          <td style="padding:8px;text-align:center;font-weight:600;color:#1e293b;border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;font-size:10px;">${slot.roomNumber}</td>
+          <td style="padding:8px;text-align:center;border-bottom:1px solid #e2e8f0;">
+            <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;${typeColors[slot.classType] || typeColors.theory}">
+              ${typeLabels[slot.classType] || 'থিওরি লেকচার'}
+            </span>
+          </td>
+        </tr>`).join('');
+
+      body = `
+        <div style="margin-bottom:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;">
+          <div><span style="font-size:10px;color:#94a3b8;display:block;font-weight:600;text-transform:uppercase;">নির্ধারিত ব্যাচ</span><strong style="font-size:14px;">${routineData.batchName}</strong></div>
+          <div style="text-align:right;"><span style="font-size:10px;color:#94a3b8;display:block;font-weight:600;text-transform:uppercase;">সাপ্তাহিক মোট ক্লাস</span><strong style="font-size:14px;color:#312e81;">${routineData.slots.length} টি সেশন</strong></div>
+        </div>
+        <div style="border:1px solid #cbd5e1;border-radius:10px;overflow:hidden;">
+          <table style="width:100%;border-collapse:collapse;font-size:11px;">
+            <thead style="background:#f1f5f9;">
+              <tr>
+                <th style="padding:10px 8px;font-size:10px;font-weight:700;text-transform:uppercase;color:#475569;border-bottom:2px solid #cbd5e1;border-right:1px solid #e2e8f0;width:130px;">দিন (Day)</th>
+                <th style="padding:10px 8px;font-size:10px;font-weight:700;text-transform:uppercase;color:#475569;border-bottom:2px solid #cbd5e1;border-right:1px solid #e2e8f0;width:110px;">সময় (Time)</th>
+                <th style="padding:10px 8px;font-size:10px;font-weight:700;text-transform:uppercase;color:#475569;border-bottom:2px solid #cbd5e1;border-right:1px solid #e2e8f0;">বিষয় ও টপিক</th>
+                <th style="padding:10px 8px;font-size:10px;font-weight:700;text-transform:uppercase;color:#475569;border-bottom:2px solid #cbd5e1;border-right:1px solid #e2e8f0;">শিক্ষক</th>
+                <th style="padding:10px 8px;font-size:10px;font-weight:700;text-transform:uppercase;color:#475569;border-bottom:2px solid #cbd5e1;border-right:1px solid #e2e8f0;text-align:center;width:70px;">রুম</th>
+                <th style="padding:10px 8px;font-size:10px;font-weight:700;text-transform:uppercase;color:#475569;border-bottom:2px solid #cbd5e1;text-align:center;width:120px;">ধরন</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+    }
+
+    const footer = `
+      <div style="margin-top:40px;padding-top:20px;border-top:2px solid #1e293b;">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;text-align:center;">
+          <div style="display:flex;flex-direction:column;align-items:center;">
+            <div style="width:120px;border-bottom:1px solid #94a3b8;margin-bottom:6px;height:30px;"></div>
+            <strong style="font-size:11px;color:#0f172a;">অ্যাকাডেমিক কো-অর্ডিনেটর</strong>
+            <span style="font-size:10px;color:#94a3b8;">${inst.name}</span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;">
+            <div style="width:120px;border-bottom:1px solid #94a3b8;margin-bottom:6px;height:30px;"></div>
+            <strong style="font-size:11px;color:#0f172a;">কোর্স সমন্বয়কারী / বিভাগীয় প্রধান</strong>
+            <span style="font-size:10px;color:#94a3b8;">কারিকুলাম ও মূল্যায়ন বিভাগ</span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;">
+            <div style="width:80px;height:36px;border:1px dashed #818cf8;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#4f46e5;font-weight:700;margin-bottom:6px;">[ অফিসিয়াল সিল ]</div>
+            <div style="width:140px;border-bottom:2px solid #0f172a;margin-bottom:6px;"></div>
+            <strong style="font-size:12px;color:#0f172a;">পরিচালক / অধ্যক্ষ</strong>
+            <span style="font-size:10px;color:#64748b;">${inst.name}</span>
+          </div>
+        </div>
+        <div style="margin-top:16px;padding-top:10px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:9px;color:#94a3b8;">
+          <span>✔ Doc ID: AAC-${Date.now().toString(36).toUpperCase()}-VERIFIED</span>
+          <span>এই নথির যেকোনো পরিবর্তন কেবলমাত্র পরিচালনা পর্ষদের অনুমোদন সাপেক্ষে বৈধ।</span>
+        </div>
+      </div>`;
+
+    return `<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8"/>
+  <title>${mode === 'syllabus' ? 'সিলেবাস' : 'রুটিন'} প্রিন্ট — ${inst.name}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Noto Sans Bengali',Arial,sans-serif;background:#fff;color:#0f172a;padding:20px 24px;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    @page{size:A4 portrait;margin:10mm 12mm;}
+    @media print{body{padding:0;}}
+    table{border-collapse:collapse;width:100%;}
+  </style>
+</head>
+<body>
+  ${header}
+  ${body}
+  ${footer}
+  <script>
+    window.addEventListener('load',function(){
+      setTimeout(function(){window.print();setTimeout(function(){window.close();},400);},700);
+    });
+  <\/script>
+</body>
+</html>`;
   }
+
+  function handlePrint() {
+    const html = buildPrintHTML();
+    const pw = window.open('', '_blank', 'width=960,height=820');
+    if (!pw) return;
+    pw.document.write(html);
+    pw.document.close();
+  }
+
 </script>
 
 {#if open}
@@ -372,30 +563,23 @@
 
 <style>
   @media print {
-    :global(body) {
-      background: #ffffff !important;
-      color: #000000 !important;
-      margin: 0 !important;
-      padding: 0 !important;
-    }
-
-    :global(header),
-    :global(aside),
-    :global(nav),
-    :global(button) {
+    /* Hide everything except the print window content.
+       The actual printing now happens in a new blank window,
+       so this is a fallback if window.print() is called directly. */
+    :global(body > *:not(.print-target)) {
       display: none !important;
     }
-
     #printable-academic-document {
+      display: block !important;
       width: 100% !important;
       max-width: 100% !important;
       margin: 0 !important;
       padding: 15mm !important;
       box-shadow: none !important;
       border: none !important;
+      background: white !important;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
-      page-break-inside: avoid !important;
     }
   }
 </style>

@@ -48,7 +48,7 @@
 
     <!-- Pricing Cards -->
     <div class="mt-16 grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
-      {#each subscriptionPlans as plan}
+      {#each $subscriptionPlans as plan}
         {@const price = billingCycle === 'monthly' ? plan.priceMonthly : Math.round(plan.priceYearly / 12)}
         <div
           class="relative rounded-3xl p-8 flex flex-col justify-between transition-all duration-300

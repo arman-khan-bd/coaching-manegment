@@ -299,3 +299,97 @@ export interface RoutineSlot {
   classType: 'theory' | 'model_test' | 'practical' | 'doubt_solve';
 }
 
+// ==========================================
+// SAAS PLATFORM SUPER ADMIN INTERFACES
+// ==========================================
+
+export interface CoachingInstitute {
+  id: string;
+  name: string;
+  slug: string;
+  ownerName: string;
+  ownerEmail: string;
+  ownerPhone: string;
+  city: string;
+  address: string;
+  planId: string;
+  planName: string;
+  billingCycle: 'monthly' | 'yearly';
+  status: 'active' | 'trial' | 'past_due' | 'suspended';
+  studentCount: number;
+  teacherCount: number;
+  branchCount: number;
+  totalRevenuePaid: number;
+  renewalDate: string;
+  createdAt: string;
+  customDomain?: string;
+  logoUrl?: string;
+}
+
+export interface PlatformSubscription {
+  id: string;
+  coachingId: string;
+  coachingName: string;
+  planId: string;
+  planName: string;
+  amount: number;
+  billingCycle: 'monthly' | 'yearly';
+  status: 'active' | 'trial' | 'past_due' | 'cancelled';
+  paymentMethod: 'bKash' | 'Nagad' | 'Stripe' | 'Bank Transfer' | 'Cash';
+  startDate: string;
+  nextRenewalDate: string;
+  autoRenew: boolean;
+  invoiceId?: string;
+}
+
+export interface PlatformUser {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  role: 'super_admin' | 'platform_support' | 'institute_admin' | 'teacher';
+  instituteId?: string;
+  instituteName?: string;
+  status: 'active' | 'suspended' | 'invited';
+  lastLogin: string;
+  createdAt: string;
+}
+
+export interface PlatformSettings {
+  platformName: string;
+  tagline: string;
+  supportEmail: string;
+  supportPhone: string;
+  websiteUrl: string;
+  trialDays: number;
+  defaultSmsRate: number;
+  maintenanceMode: boolean;
+  globalAnnouncement: string;
+  bkashConfig: {
+    merchantNumber: string;
+    appKey: string;
+    active: boolean;
+  };
+  nagadConfig: {
+    merchantNumber: string;
+    active: boolean;
+  };
+  stripeConfig: {
+    publishableKey: string;
+    active: boolean;
+  };
+}
+
+export interface PlatformTransaction {
+  id: string;
+  coachingId: string;
+  coachingName: string;
+  type: 'subscription' | 'sms_pack' | 'addon';
+  itemTitle: string;
+  amount: number;
+  paymentMethod: 'bKash' | 'Nagad' | 'Stripe' | 'Bank Transfer';
+  trxId: string;
+  status: 'completed' | 'pending' | 'failed' | 'refunded';
+  date: string;
+}
+

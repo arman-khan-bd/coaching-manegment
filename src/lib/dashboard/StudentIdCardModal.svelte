@@ -43,8 +43,62 @@
   ];
 
   function handlePrint() {
-    window.print();
+    const printEl = document.querySelector('.printable-area') as HTMLElement;
+    if (!printEl) return;
+
+    const printWindow = window.open('', '_blank', 'width=760,height=680');
+    if (!printWindow) return;
+
+    // Copy all CSS from current page so Tailwind classes render correctly
+    const styleLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+      .map((el) => el.outerHTML)
+      .join('\n');
+
+    const styleTags = Array.from(document.querySelectorAll('style'))
+      .map((el) => el.outerHTML)
+      .join('\n');
+
+    printWindow.document.write(`<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8" />
+  <title>Student ID Card — ${student?.name ?? ''}</title>
+  ${styleLinks}
+  ${styleTags}
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      background: #ffffff !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    @page { size: A4 portrait; margin: 15mm; }
+    body {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div>${printEl.outerHTML}</div>
+  <script>
+    window.addEventListener('load', function() {
+      setTimeout(function() {
+        window.print();
+        setTimeout(function() { window.close(); }, 500);
+      }, 800);
+    });
+  <\/script>
+</body>
+</html>`);
+    printWindow.document.close();
   }
+
+
 </script>
 
 <Modal {open} title="Student Identity Card & Design Selector" subtitle="Select preferred ID card layout template & generate high-res printable pass" {onClose} maxWidth="max-w-2xl">

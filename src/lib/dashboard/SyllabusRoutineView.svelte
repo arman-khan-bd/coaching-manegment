@@ -216,11 +216,11 @@
     isSyllabusModalOpen = false;
   }
 
-  // Open Create Routine Slot Modal
-  function openCreateRoutineModal() {
+  // Open Create Routine Slot Modal (optionally pre-fill a specific day)
+  function openCreateRoutineModal(day?: string) {
     editingRoutineId = null;
     rtBatchId = $batches[0]?.id || 'b-1';
-    rtDay = 'Saturday';
+    rtDay = (day as typeof rtDay) || 'Saturday';
     rtStartTime = '08:00 AM';
     rtEndTime = '09:30 AM';
     rtSubject = 'পদার্থবিজ্ঞান থিওরি ও সূত্রাবলি';
@@ -652,11 +652,20 @@
 
         <button
           type="button"
+          class="px-4 py-2 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/25 transition-colors flex items-center gap-1.5 self-end md:self-center"
+          on:click={() => openCreateRoutineModal()}
+        >
+          <Plus class="w-3.5 h-3.5" />
+          <span>নতুন ক্লাস স্লট</span>
+        </button>
+
+        <button
+          type="button"
           class="px-4 py-2 rounded-xl text-xs font-bold text-white bg-slate-800 hover:bg-slate-700 transition-colors flex items-center gap-1.5 self-end md:self-center"
           on:click={triggerRoutinePrint}
         >
           <Printer class="w-3.5 h-3.5 text-amber-400" />
-          <span>ফিল্টারকৃত রুটিন প্রিন্ট</span>
+          <span>রুটিন প্রিন্ট</span>
         </button>
       </div>
 
@@ -672,21 +681,42 @@
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {#each daysList as dayName}
             {@const daySlots = filteredRoutine.filter((s) => s.day === dayName)}
-            {#if daySlots.length > 0}
-              <div class="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-xl flex flex-col">
-                <!-- Day Header -->
-                <div class="px-4 py-3 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
-                    <h4 class="font-bold text-white text-sm">{dayNameBn[dayName] || dayName}</h4>
-                  </div>
-                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-300">
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-xl flex flex-col {daySlots.length === 0 ? 'opacity-60 hover:opacity-100 transition-opacity' : ''}">
+              <!-- Day Header -->
+              <div class="px-4 py-3 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full {daySlots.length > 0 ? 'bg-amber-400' : 'bg-slate-600'}"></span>
+                  <h4 class="font-bold text-white text-sm">{dayNameBn[dayName] || dayName}</h4>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold {daySlots.length > 0 ? 'bg-slate-800 text-slate-300' : 'bg-slate-900 text-slate-500'}">
                     {daySlots.length} ক্লাস
                   </span>
+                  <button
+                    type="button"
+                    class="flex items-center gap-1 px-2 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white text-[10px] font-bold border border-indigo-500/30 transition-all"
+                    title="{dayNameBn[dayName]}-তে নতুন ক্লাস যোগ করুন"
+                    on:click={() => openCreateRoutineModal(dayName)}
+                  >
+                    <Plus class="w-3 h-3" />
+                    <span>ক্লাস</span>
+                  </button>
                 </div>
+              </div>
 
-                <!-- Day Slots List -->
-                <div class="p-3 space-y-2.5 flex-1">
+              <!-- Day Slots List -->
+              <div class="p-3 space-y-2.5 flex-1">
+                {#if daySlots.length === 0}
+                  <!-- Empty day placeholder -->
+                  <button
+                    type="button"
+                    class="w-full py-6 rounded-xl border border-dashed border-slate-700 hover:border-indigo-500/50 bg-slate-950/30 hover:bg-indigo-600/5 text-slate-500 hover:text-indigo-400 text-xs font-semibold flex flex-col items-center justify-center gap-2 transition-all"
+                    on:click={() => openCreateRoutineModal(dayName)}
+                  >
+                    <Plus class="w-5 h-5 opacity-50" />
+                    <span>{dayNameBn[dayName]}-তে ক্লাস নেই — যোগ করতে ক্লিক করুন</span>
+                  </button>
+                {:else}
                   {#each daySlots as slot (slot.id)}
                     {@const typeInfo = classTypeLabels[slot.classType] || classTypeLabels.theory}
                     <div class="p-3 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-slate-700 transition-all space-y-2">
@@ -726,12 +756,24 @@
                       </div>
                     </div>
                   {/each}
-                </div>
+
+                  <!-- Per-day Add Class Button at bottom of slot list -->
+                  <button
+                    type="button"
+                    class="w-full mt-1 py-2 rounded-xl border border-dashed border-indigo-500/30 hover:border-indigo-500/70 bg-indigo-600/5 hover:bg-indigo-600/15 text-indigo-400 hover:text-indigo-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all"
+                    on:click={() => openCreateRoutineModal(dayName)}
+                  >
+                    <Plus class="w-3.5 h-3.5" />
+                    <span>{dayNameBn[dayName]}-তে নতুন ক্লাস যোগ করুন</span>
+                  </button>
+                {/if}
               </div>
-            {/if}
+            </div>
           {/each}
         </div>
+
       {:else}
+
         <!-- Table View Display -->
         <div class="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
           <div class="overflow-x-auto">

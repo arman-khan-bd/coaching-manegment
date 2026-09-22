@@ -3,7 +3,7 @@ import { currentView, activeTab } from './store';
 
 export interface RouteState {
   path: string;
-  view: 'landing' | 'login' | 'register' | 'checkout' | 'dashboard';
+  view: 'landing' | 'login' | 'register' | 'checkout' | 'dashboard' | 'saas_admin';
   tab: string;
   step: number;
 }
@@ -104,6 +104,18 @@ export function resolveRoute(path: string, step: number = 1): RouteState {
     };
   }
 
+  // 6. SaaS Platform Super Admin (e.g. /admin or /saas-admin)
+  if (cleanPath.startsWith('/admin') || cleanPath.startsWith('/saas-admin')) {
+    const parts = cleanPath.split('/').filter(Boolean); // ['admin', 'plans']
+    const tab = parts[1] || 'overview';
+    return {
+      path: `/admin/${tab}`,
+      view: 'saas_admin',
+      tab,
+      step: 1,
+    };
+  }
+
   // Fallback to landing
   return { path: '/', view: 'landing', tab: 'overview', step: 1 };
 }
@@ -193,6 +205,12 @@ export function initRouter() {
         currentUrl.set(targetUrl);
         window.history.pushState({ path: targetUrl }, '', targetUrl);
       }
+    } else if (view === 'saas_admin') {
+      const targetUrl = `/admin/${tab || 'overview'}`;
+      if (window.location.pathname !== targetUrl && window.location.hash !== `#${targetUrl}`) {
+        currentUrl.set(targetUrl);
+        window.history.pushState({ path: targetUrl }, '', targetUrl);
+      }
     }
   });
 
@@ -220,6 +238,12 @@ export function initRouter() {
       const tab = get(activeTab) || 'overview';
       const slug = tabToSlug[tab] || 'overview';
       const targetUrl = `/dashboard/${slug}`;
+      if (window.location.pathname !== targetUrl) {
+        navigate(targetUrl, { replace: false });
+      }
+    } else if (view === 'saas_admin') {
+      const tab = get(activeTab) || 'overview';
+      const targetUrl = `/admin/${tab}`;
       if (window.location.pathname !== targetUrl) {
         navigate(targetUrl, { replace: false });
       }

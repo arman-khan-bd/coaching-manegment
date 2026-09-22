@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { courses, units, batches, teachers, students, addBatch, showToast, type Batch } from '../store';
+  import { courses, units, batches, teachers, students, addBatch, updateBatch, deleteBatch, showToast, type Batch } from '../store';
   import { navigate } from '../router';
   import SendSmsModal from '../components/SendSmsModal.svelte';
   import Modal from '../components/Modal.svelte';
@@ -17,10 +17,76 @@
     CheckCircle2,
     MessageSquare,
     CalendarClock,
+    Pencil,
+    Trash2,
   } from 'lucide-svelte';
 
   let subTab: 'batches' | 'courses' | 'units' = 'batches';
   let isAddBatchModalOpen = false;
+
+  // Edit Batch Modal State
+  let isEditBatchModalOpen = false;
+  let editBatch: Batch | null = null;
+  let editBatchName = '';
+  let editBatchCode = '';
+  let editCourseId = 'c-1';
+  let editTeacherId = 't-1';
+  let editRoom = '';
+  let editStartTime = '';
+  let editEndTime = '';
+  let editMaxCapacity = 30;
+  let editScheduleDays: string[] = [];
+  let editStatus: 'running' | 'upcoming' | 'completed' = 'running';
+
+  const daysOfWeek = ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+
+  function openEditBatch(b: Batch) {
+    editBatch = b;
+    editBatchName = b.name;
+    editBatchCode = b.code;
+    editCourseId = b.courseId;
+    editTeacherId = b.teacherId;
+    editRoom = b.roomNumber;
+    editStartTime = b.startTime;
+    editEndTime = b.endTime;
+    editMaxCapacity = b.maxCapacity;
+    editScheduleDays = [...b.scheduleDays];
+    editStatus = b.status as 'running' | 'upcoming' | 'completed';
+    isEditBatchModalOpen = true;
+  }
+
+  function toggleDay(day: string) {
+    editScheduleDays = editScheduleDays.includes(day)
+      ? editScheduleDays.filter((d) => d !== day)
+      : [...editScheduleDays, day];
+  }
+
+  function handleUpdateBatch() {
+    if (!editBatch || !editBatchName || !editBatchCode) {
+      showToast('error', 'Validation Error', 'Batch name and code are required.');
+      return;
+    }
+    updateBatch(editBatch.id, {
+      name: editBatchName,
+      code: editBatchCode,
+      courseId: editCourseId,
+      teacherId: editTeacherId,
+      roomNumber: editRoom,
+      startTime: editStartTime,
+      endTime: editEndTime,
+      maxCapacity: editMaxCapacity,
+      scheduleDays: editScheduleDays,
+      status: editStatus,
+    });
+    isEditBatchModalOpen = false;
+    editBatch = null;
+  }
+
+  function handleDeleteBatch(b: Batch) {
+    if (confirm(`"${b.name}" ব্যাচটি মুছে ফেলবেন?`)) {
+      deleteBatch(b.id);
+    }
+  }
 
   // SMS Modal State
   let isSmsModalOpen = false;
@@ -228,11 +294,21 @@
 
               <button
                 type="button"
-                class="font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
-                on:click={() => showToast('info', 'Batch Roster', `Managing roster for ${b.name}`)}
+                class="font-semibold text-amber-400 hover:text-amber-300 flex items-center gap-1 bg-amber-950/40 hover:bg-amber-900/50 px-2.5 py-1 rounded-lg border border-amber-500/20 transition-colors"
+                title="ব্যাচের তথ্য সম্পাদনা"
+                on:click={() => openEditBatch(b)}
               >
-                <span>Roster</span>
-                <ChevronRight class="w-3.5 h-3.5" />
+                <Pencil class="w-3.5 h-3.5" />
+                <span>Edit</span>
+              </button>
+
+              <button
+                type="button"
+                class="font-semibold text-rose-400 hover:text-rose-300 flex items-center gap-1 bg-rose-950/40 hover:bg-rose-900/50 px-2.5 py-1 rounded-lg border border-rose-500/20 transition-colors"
+                title="ব্যাচ মুছুন"
+                on:click={() => handleDeleteBatch(b)}
+              >
+                <Trash2 class="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
@@ -457,3 +533,93 @@
     isSmsModalOpen = false;
   }}
 />
+
+<!-- Edit Batch Modal -->
+<Modal open={isEditBatchModalOpen} title="ব্যাচের তথ্য সম্পাদনা" subtitle="Edit batch schedule, teacher, room & capacity" onClose={() => { isEditBatchModalOpen = false; editBatch = null; }}>
+  <form on:submit|preventDefault={handleUpdateBatch} class="space-y-4 text-xs">
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div>
+        <label for="edit-batch-name" class="block font-medium text-slate-300 mb-1">ব্যাচের নাম *</label>
+        <input id="edit-batch-name" type="text" bind:value={editBatchName} required class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none" />
+      </div>
+      <div>
+        <label for="edit-batch-code" class="block font-medium text-slate-300 mb-1">ব্যাচ কোড *</label>
+        <input id="edit-batch-code" type="text" bind:value={editBatchCode} required class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none" />
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div>
+        <label for="edit-batch-course" class="block font-medium text-slate-300 mb-1">কোর্স</label>
+        <select id="edit-batch-course" bind:value={editCourseId} class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:border-indigo-500 focus:outline-none">
+          {#each $courses as c}
+            <option value={c.id}>{c.title}</option>
+          {/each}
+        </select>
+      </div>
+      <div>
+        <label for="edit-batch-teacher" class="block font-medium text-slate-300 mb-1">শিক্ষক</label>
+        <select id="edit-batch-teacher" bind:value={editTeacherId} class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:border-indigo-500 focus:outline-none">
+          {#each $teachers as t}
+            <option value={t.id}>{t.name}</option>
+          {/each}
+        </select>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div>
+        <label for="edit-batch-room" class="block font-medium text-slate-300 mb-1">রুম নম্বর</label>
+        <input id="edit-batch-room" type="text" bind:value={editRoom} class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none" />
+      </div>
+      <div>
+        <label for="edit-batch-start" class="block font-medium text-slate-300 mb-1">শুরুর সময়</label>
+        <input id="edit-batch-start" type="text" bind:value={editStartTime} placeholder="08:00 AM" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none" />
+      </div>
+      <div>
+        <label for="edit-batch-end" class="block font-medium text-slate-300 mb-1">শেষ সময়</label>
+        <input id="edit-batch-end" type="text" bind:value={editEndTime} placeholder="10:00 AM" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none" />
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label for="edit-batch-cap" class="block font-medium text-slate-300 mb-1">সর্বোচ্চ আসন সংখ্যা</label>
+        <input id="edit-batch-cap" type="number" bind:value={editMaxCapacity} min="1" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:border-indigo-500 focus:outline-none" />
+      </div>
+      <div>
+        <label for="edit-batch-status" class="block font-medium text-slate-300 mb-1">স্ট্যাটাস</label>
+        <select id="edit-batch-status" bind:value={editStatus} class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:border-indigo-500 focus:outline-none">
+          <option value="running">Running</option>
+          <option value="upcoming">Upcoming</option>
+          <option value="completed">Completed</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Schedule Days Chip Toggle -->
+    <div>
+      <span class="block font-medium text-slate-300 mb-2">সাপ্তাহিক ক্লাসের দিন</span>
+      <div class="flex flex-wrap gap-2">
+        {#each daysOfWeek as day}
+          <button
+            type="button"
+            class="px-3 py-1.5 rounded-lg text-xs font-bold border transition-all {editScheduleDays.includes(day) ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-indigo-500/50'}"
+            on:click={() => toggleDay(day)}
+          >
+            {day}
+          </button>
+        {/each}
+      </div>
+      <p class="text-[11px] text-slate-500 mt-1.5">নির্বাচিত: {editScheduleDays.join(', ') || 'কোনো দিন নেই'}</p>
+    </div>
+
+    <div class="pt-4 flex items-center justify-end gap-3 border-t border-slate-800">
+      <button type="button" class="px-4 py-2.5 rounded-xl text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 transition-colors" on:click={() => { isEditBatchModalOpen = false; editBatch = null; }}>বাতিল</button>
+      <button type="submit" class="px-5 py-2.5 rounded-xl font-semibold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/30 transition-all">তথ্য সংরক্ষণ করুন</button>
+    </div>
+
+  </form>
+</Modal>
+

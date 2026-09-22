@@ -4,7 +4,7 @@
   import { Check, Shield, CreditCard, Smartphone, Building, ArrowLeft, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-svelte';
   import confetti from 'canvas-confetti';
 
-  let currentPlan: SubscriptionPlan = $selectedPlan || subscriptionPlans[1];
+  let currentPlan: SubscriptionPlan = $selectedPlan || $subscriptionPlans[1] || $subscriptionPlans[0];
   let billingCycle: 'monthly' | 'yearly' = 'monthly';
   let paymentMethod: 'card' | 'bkash' | 'nagad' | 'bank' = 'bkash';
 

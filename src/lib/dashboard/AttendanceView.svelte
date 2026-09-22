@@ -21,7 +21,7 @@
 
   let selectedBatchId = 'b-1';
   let attendanceDate = new Date().toISOString().split('T')[0];
-  let autoSendAbsentSms = true;
+  let isSendingSms = false;
 
   // Selected batch students
   $: currentBatch = $batches.find((b) => b.id === selectedBatchId) || $batches[0];
@@ -63,8 +63,23 @@
       studentId,
       status,
     }));
+    // Never auto-send SMS — user must manually click the Send SMS button
+    markBatchAttendance(selectedBatchId, records, false);
+  }
 
-    markBatchAttendance(selectedBatchId, records, autoSendAbsentSms);
+  async function handleSendAbsentSms() {
+    if (absentList.length === 0) {
+      showToast('warning', 'কোনো অনুপস্থিত নেই', 'সকল শিক্ষার্থী উপস্থিত রয়েছে।');
+      return;
+    }
+    isSendingSms = true;
+    // Save first then trigger SMS
+    const records = Object.entries(studentStatuses).map(([studentId, status]) => ({
+      studentId,
+      status,
+    }));
+    markBatchAttendance(selectedBatchId, records, true);
+    setTimeout(() => { isSendingSms = false; }, 1500);
   }
 
   $: absentList = batchStudents.filter((s) => studentStatuses[s.id] === 'absent');
@@ -135,30 +150,47 @@
     </div>
   </div>
 
-  <!-- Automated Parent SMS Notification Rule Banner -->
+  <!-- Absent SMS Manual Trigger Banner -->
   <div class="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
     <div class="flex items-start gap-3">
-      <div class="p-2.5 rounded-xl bg-emerald-500/15 text-emerald-400 shrink-0 mt-0.5">
+      <div class="p-2.5 rounded-xl bg-rose-500/15 text-rose-400 shrink-0 mt-0.5">
         <Smartphone class="w-5 h-5" />
       </div>
       <div class="text-xs">
         <div class="flex items-center gap-2">
-          <h4 class="font-bold text-white">Instant Absent Alert via Android SMS Gateway</h4>
-          <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-            Own SIM 1 (৳0.00 খরচ)
+          <h4 class="font-bold text-white">অনুপস্থিত অভিভাবক SMS সতর্কবার্তা</h4>
+          <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">
+            ম্যানুয়াল
           </span>
         </div>
         <p class="text-slate-400 mt-1 max-w-2xl leading-relaxed">
-          অনুপস্থিত চিহ্নিত শিক্ষার্থীদের অভিভাবকদের কাছে তাৎক্ষণিক নিজস্ব সিম থেকে সরাসরি বাংলা এসএমএস পাঠানো হবে:
-          <em class="text-slate-300">"সম্মানিত অভিভাবক, আপনার সন্তান আজ ক্লাসে অনুপস্থিত ছিল। এপেক্স অ্যাকাডেমিক কেয়ার..."</em>
+          হাজিরা সংরক্ষণের পর অনুপস্থিত শিক্ষার্থীদের অভিভাবককে SMS পাঠাতে নিচের বাটনে ক্লিক করুন।
+          বর্তমানে <strong class="text-rose-400">{absentList.length} জন অনুপস্থিত</strong> চিহ্নিত রয়েছে।
         </p>
       </div>
     </div>
 
-    <label class="flex items-center gap-2 cursor-pointer bg-slate-950 px-3.5 py-2 rounded-xl border border-slate-800 text-xs font-semibold text-slate-200 shrink-0">
-      <input type="checkbox" bind:checked={autoSendAbsentSms} class="rounded text-indigo-600 focus:ring-indigo-500" />
-      <span>Trigger Absent SMS Alert</span>
-    </label>
+    <button
+      type="button"
+      disabled={absentList.length === 0 || isSendingSms}
+      class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0
+        {absentList.length === 0
+          ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+          : 'bg-rose-600 hover:bg-rose-500 text-white shadow-md shadow-rose-600/30'}"
+      on:click={handleSendAbsentSms}
+    >
+      {#if isSendingSms}
+        <AlertTriangle class="w-4 h-4 animate-pulse" />
+        <span>পাঠানো হচ্ছে...</span>
+      {:else}
+        <Send class="w-4 h-4" />
+        <span>
+          {absentList.length > 0
+            ? `${absentList.length} জনকে Absent SMS পাঠান`
+            : 'কোনো অনুপস্থিত নেই'}
+        </span>
+      {/if}
+    </button>
   </div>
 
   <!-- Student Roster Table (Desktop: table, Mobile: Android cards) -->
