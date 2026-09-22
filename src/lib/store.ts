@@ -149,6 +149,23 @@ export function deletePlan(id: string) {
   showToast('warning', 'প্ল্যান অপসারিত', 'প্ল্যানটি সিস্টেম থেকে সরানো হয়েছে।');
 }
 
+export function togglePlanStatus(id: string) {
+  subscriptionPlans.update((all) =>
+    all.map((p) => {
+      if (p.id === id) {
+        const nextStatus = p.status === 'paused' ? 'active' : 'paused';
+        showToast(
+          nextStatus === 'active' ? 'success' : 'warning',
+          nextStatus === 'active' ? 'প্যাকেজ সক্রিয়' : 'প্যাকেজ সাময়িক স্থগিত (Paused)',
+          `"${p.name}" প্যাকেজ ${nextStatus === 'active' ? 'সক্রিয়' : 'পজ'} করা হয়েছে।`
+        );
+        return { ...p, status: nextStatus };
+      }
+      return p;
+    })
+  );
+}
+
 // ==========================================
 // SAAS COACHINGS / TENANTS STORE
 // ==========================================
@@ -392,6 +409,40 @@ export const platformSubscriptions = writable<PlatformSubscription[]>([
     autoRenew: true,
     invoiceId: 'INV-SAAS-2026-074',
   },
+  {
+    id: 'sub-106',
+    coachingId: 'inst-6',
+    coachingName: 'সানরাইজ ক্যাডেট কেয়ার (সিলেট)',
+    planId: 'pro',
+    planName: 'প্রো অ্যাকাডেমি (Pro)',
+    amount: 3490,
+    billingCycle: 'monthly',
+    status: 'pending_approval',
+    paymentMethod: 'bKash',
+    startDate: '2026-09-22',
+    nextRenewalDate: '2026-10-22',
+    autoRenew: true,
+    senderPhone: '01712-889900',
+    trxId: 'BKH8X99201A',
+    invoiceId: 'INV-SAAS-2026-112',
+  },
+  {
+    id: 'sub-107',
+    coachingId: 'inst-7',
+    coachingName: 'নলেজ ভ্যালি সায়েন্স একাডেমি (কুমিল্লা)',
+    planId: 'enterprise',
+    planName: 'মাল্টি-ব্রাঞ্চ এলিট (Enterprise)',
+    amount: 79900,
+    billingCycle: 'yearly',
+    status: 'pending_approval',
+    paymentMethod: 'Nagad',
+    startDate: '2026-09-22',
+    nextRenewalDate: '2027-09-22',
+    autoRenew: true,
+    senderPhone: '01811-334455',
+    trxId: 'NGD7P441199',
+    invoiceId: 'INV-SAAS-2026-113',
+  },
 ]);
 
 export function addPlatformSubscription(subData: Omit<PlatformSubscription, 'id'>) {
@@ -401,7 +452,7 @@ export function addPlatformSubscription(subData: Omit<PlatformSubscription, 'id'
     invoiceId: `INV-SAAS-${Date.now().toString().slice(-4)}`,
   };
   platformSubscriptions.update((all) => [newSub, ...all]);
-  showToast('success', 'সাবস্ক্রিপশন চালু', `"${newSub.coachingName}"-এর সাবস্ক্রিপশন সক্রিয় হয়েছে।`);
+  showToast('success', 'সাবস্ক্রিপশন যুক্ত', `"${newSub.coachingName}"-এর সাবস্ক্রিপশন রেকর্ড যোগ করা হয়েছে।`);
 }
 
 export function updatePlatformSubscription(id: string, updates: Partial<PlatformSubscription>) {
@@ -409,11 +460,83 @@ export function updatePlatformSubscription(id: string, updates: Partial<Platform
   showToast('info', 'সাবস্ক্রিপশন আপডেট', 'সাবস্ক্রিপশনের তথ্য সংরক্ষিত হয়েছে।');
 }
 
+export function approveSubscription(id: string) {
+  platformSubscriptions.update((all) =>
+    all.map((s) => {
+      if (s.id === id) {
+        // Also update tenant status if institute exists
+        coachingInstitutes.update((insts) =>
+          insts.map((i) => (i.id === s.coachingId ? { ...i, status: 'active', planId: s.planId, planName: s.planName } : i))
+        );
+        showToast('success', 'সাবস্ক্রিপশন অনুমোদিত (Approved)', `"${s.coachingName}"-এর সাবস্ক্রিপশন গ্রহণ ও সক্রিয় করা হয়েছে।`);
+        return { ...s, status: 'active', autoRenew: true };
+      }
+      return s;
+    })
+  );
+}
+
+export function rejectSubscription(id: string, reason: string = 'পেমেন্ট ভেরিফিকেশন ব্যর্থ') {
+  platformSubscriptions.update((all) =>
+    all.map((s) => {
+      if (s.id === id) {
+        showToast('error', 'সাবস্ক্রিপশন প্রত্যাখ্যান (Rejected)', `"${s.coachingName}"-এর অনুরোধ বাতিল করা হয়েছে।`);
+        return { ...s, status: 'rejected', rejectionReason: reason, autoRenew: false };
+      }
+      return s;
+    })
+  );
+}
+
+export function suspendSubscription(id: string) {
+  platformSubscriptions.update((all) =>
+    all.map((s) => {
+      if (s.id === id) {
+        showToast('warning', 'সাবস্ক্রিপশন স্থগিত (Suspended)', `"${s.coachingName}"-এর অ্যাক্সেস স্থগিত করা হয়েছে।`);
+        return { ...s, status: 'suspended', autoRenew: false };
+      }
+      return s;
+    })
+  );
+}
+
+export function activateSubscription(id: string) {
+  platformSubscriptions.update((all) =>
+    all.map((s) => {
+      if (s.id === id) {
+        showToast('success', 'সাবস্ক্রিপশন সক্রিয়', `"${s.coachingName}" পুনরায় চালু করা হয়েছে।`);
+        return { ...s, status: 'active' };
+      }
+      return s;
+    })
+  );
+}
+
+export function extendSubscription(id: string, days: number = 30) {
+  platformSubscriptions.update((all) =>
+    all.map((s) => {
+      if (s.id === id) {
+        const current = new Date(s.nextRenewalDate || new Date());
+        current.setDate(current.getDate() + days);
+        const nextDate = current.toISOString().split('T')[0];
+        showToast('info', 'মেয়াদ বৃদ্ধি', `মেয়াদ +${days} দিন বৃদ্ধি করে ${nextDate} করা হয়েছে।`);
+        return { ...s, nextRenewalDate: nextDate, status: 'active' };
+      }
+      return s;
+    })
+  );
+}
+
 export function cancelPlatformSubscription(id: string) {
   platformSubscriptions.update((all) =>
     all.map((s) => (s.id === id ? { ...s, status: 'cancelled', autoRenew: false } : s))
   );
   showToast('warning', 'সাবস্ক্রিপশন বাতিল', 'সাবস্ক্রিপশনটি বাতিল চিহ্নিত করা হয়েছে।');
+}
+
+export function deletePlatformSubscription(id: string) {
+  platformSubscriptions.update((all) => all.filter((s) => s.id !== id));
+  showToast('warning', 'সাবস্ক্রিপশন অপসারিত', 'সাবস্ক্রিপশন রেকর্ড ডিলিট করা হয়েছে।');
 }
 
 // ==========================================
@@ -516,6 +639,7 @@ export function deletePlatformUser(id: string) {
 // SAAS PLATFORM GLOBAL SETTINGS STORE
 // ==========================================
 export const platformSettings = writable<PlatformSettings>({
+  // 1. General Settings
   platformName: 'CoachFlow SaaS',
   tagline: 'Premier Multi-Tenant Coaching & Academy Management Cloud OS',
   supportEmail: 'support@coachflow.app',
@@ -525,17 +649,64 @@ export const platformSettings = writable<PlatformSettings>({
   defaultSmsRate: 0.35,
   maintenanceMode: false,
   globalAnnouncement: '🎉 CoachFlow v3.4 প্রকাশিত হয়েছে! নতুন ডুয়েল-সিম অ্যান্ড্রয়েড গেটওয়ে ও রেজাল্ট সিস্টেম লাইভ।',
+  currency: 'BDT',
+  currencySymbol: '৳',
+
+  // 2. Branding & Cloudinary
+  logoUrl: 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=200&auto=format&fit=crop&q=80',
+  faviconUrl: '/favicon.svg',
+  darkLogoUrl: 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=200&auto=format&fit=crop&q=80',
+  cloudinaryCloudName: 'coachflow-media',
+  cloudinaryUploadPreset: 'coachflow_saas_assets',
+  cloudinaryApiKey: '9182371948214',
+
+  // 3. SEO & Social Meta
+  metaTitle: 'CoachFlow SaaS - Premier Coaching & Academy Management System',
+  metaDescription: 'Complete multi-tenant Coaching and Tuition Management SaaS Platform in Bangladesh with batch scheduling, student & teacher portals, dual-engine SMS gateway, and fee automation.',
+  metaKeywords: 'coaching management bangladesh, coaching software, academy erp, sms gateway, student attendance, tuition fees billing',
+  ogImageUrl: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=1200&auto=format&fit=crop&q=80',
+  canonicalUrl: 'https://coaching-bd.netlify.app',
+  googleSiteVerification: 'google-site-verification=coachflow_live_89127cba',
+  robotsIndexing: true,
+
+  // 4. Tracking & Pixel Setup
+  facebookPixelId: '109823471829381',
+  fbAccessToken: 'EAAQ98z1K...FACEBOOK_CONVERSIONS_API_TOKEN',
+  conversionsApiEnabled: true,
+  googleAnalyticsId: 'G-CF9823019',
+  customHeadScripts: '<!-- Global site tag (gtag.js) - Google Analytics -->\n<script async src="https://www.googletagmanager.com/gtag/js?id=G-CF9823019"></script>',
+  customBodyScripts: '<!-- Facebook Pixel Base Code -->\n<noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=109823471829381&ev=PageView&noscript=1"/></noscript>',
+
+  // 5. Payment Gateways
   bkashConfig: {
     merchantNumber: '01711-456789 (মার্চেন্ট অ্যাকাউন্ট)',
     appKey: 'bkash_live_app_8921df0c',
+    appSecret: 'bkash_secret_998271dfba2',
+    username: 'coachflow_merchant',
+    password: '••••••••••••••••',
+    sandbox: false,
     active: true,
   },
   nagadConfig: {
     merchantNumber: '01822-987654 (মার্চেন্ট)',
+    merchantId: 'NGD_MERCHANT_8819',
+    publicKey: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...',
+    privateKey: '••••••••••••••••••••••••',
     active: true,
   },
   stripeConfig: {
     publishableKey: 'pk_live_51Pq98124bCoachFlowGlobal',
+    secretKey: 'sk_live_51Pq98124b••••••••••••••••••••••••',
+    webhookSecret: 'whsec_9918274ba1283c',
+    active: true,
+  },
+  bankConfig: {
+    bankName: 'Dutch-Bangla Bank PLC',
+    accountName: 'CoachFlow Technologies Ltd.',
+    accountNumber: '126.120.0098214',
+    branch: 'Farmgate Corporate Branch, Dhaka',
+    routingNumber: '090271829',
+    instructions: 'অনুগ্রহ করে ব্যাংকে ডিপোজিট বা ফান্ড ট্রান্সফার করার পর ট্রানজেকশন স্লিপের ছবি ও রেফারেন্স নম্বর আমাদের হটলাইনে পাঠান।',
     active: true,
   },
 });
@@ -556,10 +727,15 @@ export const platformTransactions = writable<PlatformTransaction[]>([
     type: 'subscription',
     itemTitle: 'প্রো অ্যাকাডেমি বার্ষিক লাইসেন্স (১ বছর)',
     amount: 34900,
+    subtotal: 34900,
+    vatAmount: 0,
     paymentMethod: 'bKash',
     trxId: 'BKH9A82J912',
+    senderPhone: '01711-456789',
+    receiptNumber: 'RCP-CF-2026-001',
     status: 'completed',
     date: '2026-02-15 11:30',
+    notes: 'অটো রিনিউয়াল কনফার্মেশন সম্পন্ন।',
   },
   {
     id: 'trx-1002',
@@ -568,10 +744,15 @@ export const platformTransactions = writable<PlatformTransaction[]>([
     type: 'subscription',
     itemTitle: 'মাল্টি-ব্রাঞ্চ এলিট বার্ষিক সাবস্ক্রিপশন',
     amount: 79900,
+    subtotal: 79900,
+    vatAmount: 0,
     paymentMethod: 'Bank Transfer',
     trxId: 'EBL-TRX-098212',
+    senderPhone: '01819-234567',
+    receiptNumber: 'RCP-CF-2026-002',
     status: 'completed',
     date: '2026-01-10 16:45',
+    notes: 'DBBL EFTN ব্যাংক ট্রান্সফার ভেরিফায়েড।',
   },
   {
     id: 'trx-1003',
@@ -580,10 +761,15 @@ export const platformTransactions = writable<PlatformTransaction[]>([
     type: 'sms_pack',
     itemTitle: 'Mega Cloud SMS Pack (৫,০০০ SMS)',
     amount: 1500,
+    subtotal: 1500,
+    vatAmount: 0,
     paymentMethod: 'bKash',
     trxId: 'BKH4K881249',
+    senderPhone: '01711-456789',
+    receiptNumber: 'RCP-CF-2026-003',
     status: 'completed',
     date: '2026-08-20 14:10',
+    notes: 'ক্লাউড SMS ক্রেডিট যোগ করা হয়েছে।',
   },
   {
     id: 'trx-1004',
@@ -592,10 +778,15 @@ export const platformTransactions = writable<PlatformTransaction[]>([
     type: 'subscription',
     itemTitle: 'প্রো অ্যাকাডেমি মাসিক ফি (সেপ্টেম্বর ২০২৬)',
     amount: 3490,
+    subtotal: 3490,
+    vatAmount: 0,
     paymentMethod: 'bKash',
     trxId: 'BKH7L912384',
+    senderPhone: '01912-345678',
+    receiptNumber: 'RCP-CF-2026-004',
     status: 'completed',
     date: '2026-09-18 10:15',
+    notes: 'bKash অনলাইন পেমেন্ট গেটওয়ে।',
   },
   {
     id: 'trx-1005',
@@ -604,12 +795,46 @@ export const platformTransactions = writable<PlatformTransaction[]>([
     type: 'subscription',
     itemTitle: 'স্টার্টার কোচিং মাসিক সাবস্ক্রিপশন',
     amount: 1490,
+    subtotal: 1490,
+    vatAmount: 0,
     paymentMethod: 'Nagad',
     trxId: 'NGD39821034',
+    senderPhone: '01733-112233',
+    receiptNumber: 'RCP-CF-2026-005',
     status: 'completed',
     date: '2026-08-12 18:22',
+    notes: 'নগদ ডিরেক্ট মার্চেন্ট পেমেন্ট।',
+  },
+  {
+    id: 'trx-1006',
+    coachingId: 'inst-6',
+    coachingName: 'সানরাইজ ক্যাডেট কেয়ার (সিলেট)',
+    type: 'subscription',
+    itemTitle: 'প্রো অ্যাকাডেমি মাসিক সাবস্ক্রিপশন (অনুরোধ)',
+    amount: 3490,
+    subtotal: 3490,
+    vatAmount: 0,
+    paymentMethod: 'bKash',
+    trxId: 'BKH8X99201A',
+    senderPhone: '01712-889900',
+    receiptNumber: 'RCP-CF-2026-006',
+    status: 'pending',
+    date: '2026-09-22 17:40',
+    notes: 'ম্যানুয়াল বিকাশ পেমেন্ট জমা দেওয়া হয়েছে। ভেরিফিকেশন অপেক্ষারত।',
   },
 ]);
+
+export function verifyPlatformTransaction(id: string) {
+  platformTransactions.update((all) =>
+    all.map((t) => {
+      if (t.id === id) {
+        showToast('success', 'পেমেন্ট অনুমোদিত (Verified)', `ট্রানজেকশন ${t.trxId} যাচাই ও সম্পন্ন করা হয়েছে।`);
+        return { ...t, status: 'completed' };
+      }
+      return t;
+    })
+  );
+}
 
 // ==========================================
 // INSTITUTE SETTINGS STORE (BANGLADESH CONFIGURED)

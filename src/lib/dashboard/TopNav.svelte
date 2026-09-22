@@ -18,6 +18,7 @@
     CheckCircle,
     UserCheck,
     Coins,
+    Shield,
   } from 'lucide-svelte';
 
   export let toggleMobile: () => void = () => {};
@@ -109,6 +110,17 @@
         </button>
       {/each}
     </div>
+
+    <!-- SaaS Admin Switcher Button -->
+    <button
+      type="button"
+      class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 transition-all text-xs font-semibold shadow-sm"
+      on:click={() => navigate('/admin')}
+      title="Open SaaS Super Admin Platform"
+    >
+      <Shield class="w-4 h-4 text-amber-400" />
+      <span class="hidden sm:inline">SaaS Admin</span>
+    </button>
 
     <!-- Cloud SMS Wallet Balance Widget -->
     <button

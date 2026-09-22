@@ -193,129 +193,74 @@
     </button>
   </div>
 
-  <!-- Student Roster Table (Desktop: table, Mobile: Android cards) -->
-  <div class="hidden md:block bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-    <table class="w-full text-left text-xs">
-      <thead class="bg-slate-950/70 border-b border-slate-800 text-slate-400 uppercase font-semibold text-[11px] tracking-wider">
-        <tr>
-          <th class="px-5 py-3.5">Roll No</th>
-          <th class="px-5 py-3.5">Student Name</th>
-          <th class="px-5 py-3.5">Guardian Contact</th>
-          <th class="px-5 py-3.5 text-center">Attendance Status</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-slate-800/60">
-        {#each batchStudents as s}
-          {@const currentStatus = studentStatuses[s.id] || 'present'}
-          <tr class="hover:bg-slate-800/40 transition-colors {currentStatus === 'absent' ? 'bg-rose-950/10' : ''}">
-            <td class="px-5 py-3.5 font-mono font-bold text-indigo-300">
-              {s.rollNo}
-            </td>
-            <td class="px-5 py-3.5">
-              <div class="flex items-center gap-2.5">
-                <img src={s.photo} alt={s.name} class="w-8 h-8 rounded-full object-cover border border-slate-700" />
-                <span class="font-bold text-white">{s.name}</span>
-              </div>
-            </td>
-            <td class="px-5 py-3.5 text-slate-300">
-              <span>{s.guardianName}</span>
-              <span class="text-slate-400 block text-[11px]">{s.guardianPhone}</span>
-            </td>
-            <td class="px-5 py-3.5 text-center">
-              <div class="inline-flex p-1 rounded-xl bg-slate-950 border border-slate-800">
-                <button
-                  type="button"
-                  class="px-3 py-1 rounded-lg font-semibold transition-all text-xs flex items-center gap-1
-                  {currentStatus === 'present' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}"
-                  on:click={() => toggleStudentStatus(s.id, 'present')}
-                >
-                  <CheckCircle2 class="w-3.5 h-3.5" />
-                  <span>Present</span>
-                </button>
-
-                <button
-                  type="button"
-                  class="px-3 py-1 rounded-lg font-semibold transition-all text-xs flex items-center gap-1
-                  {currentStatus === 'late' ? 'bg-amber-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}"
-                  on:click={() => toggleStudentStatus(s.id, 'late')}
-                >
-                  <Clock class="w-3.5 h-3.5" />
-                  <span>Late</span>
-                </button>
-
-                <button
-                  type="button"
-                  class="px-3 py-1 rounded-lg font-semibold transition-all text-xs flex items-center gap-1
-                  {currentStatus === 'absent' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}"
-                  on:click={() => toggleStudentStatus(s.id, 'absent')}
-                >
-                  <XCircle class="w-3.5 h-3.5" />
-                  <span>Absent</span>
-                </button>
-              </div>
-            </td>
-          </tr>
-        {/each}
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Mobile Android Attendance Cards (Visible on mobile only) -->
-  <div class="block md:hidden space-y-2.5">
-    {#each batchStudents as s}
-      {@const currentStatus = studentStatuses[s.id] || 'present'}
-      <div class="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-sm flex flex-col gap-2.5 {currentStatus === 'absent' ? 'border-rose-500/40 bg-rose-950/10' : ''}">
-        <div class="flex items-center justify-between gap-2">
-          <div class="flex items-center gap-2.5">
-            <img src={s.photo} alt={s.name} class="w-9 h-9 rounded-xl object-cover border border-slate-700 shrink-0" />
+  <!-- Student Attendance Bordered List View (Responsive on Desktop & Mobile) -->
+  <div class="space-y-3">
+    {#if batchStudents.length === 0}
+      <div class="text-center py-12 text-slate-400 text-xs bg-slate-900/60 rounded-2xl border border-slate-800">
+        এই ব্যাচে কোনো শিক্ষার্থী পাওয়া যায়নি
+      </div>
+    {:else}
+      {#each batchStudents as s}
+        {@const currentStatus = studentStatuses[s.id] || 'present'}
+        <div class="p-4 sm:p-5 rounded-2xl bg-slate-900/90 border {currentStatus === 'absent' ? 'border-rose-500/40 bg-rose-950/10' : currentStatus === 'late' ? 'border-amber-500/30' : 'border-slate-800'} hover:border-indigo-500/50 transition-all shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <!-- Student Details -->
+          <div class="flex items-center gap-3.5">
+            <img src={s.photo} alt={s.name} class="w-12 h-12 rounded-2xl object-cover border border-slate-700 shrink-0" />
             <div>
-              <div class="font-bold text-white text-xs leading-tight">{s.name}</div>
-              <div class="text-[11px] text-slate-400 mt-0.5">
-                <span class="text-indigo-400 font-mono font-bold">রোল: {s.rollNo}</span>
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-bold text-white text-sm sm:text-base">{s.name}</span>
+                <span class="px-2 py-0.5 rounded-md bg-indigo-950 text-indigo-300 font-mono text-xs font-bold border border-indigo-500/30">
+                  রোল: {s.rollNo}
+                </span>
+                <span class="text-[11px] px-2 py-0.5 rounded-full font-bold
+                  {currentStatus === 'present' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' :
+                   currentStatus === 'late' ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30' :
+                   'bg-rose-500/15 text-rose-400 border border-rose-500/30'}">
+                  {currentStatus === 'present' ? 'উপস্থিত' : currentStatus === 'late' ? 'দেরি' : 'অনুপস্থিত'}
+                </span>
+              </div>
+              <div class="text-xs text-slate-400 mt-1 flex items-center gap-2">
+                <span>অভিভাবক: <strong class="text-slate-300">{s.guardianName}</strong></span>
+                <span class="text-slate-600">•</span>
+                <a href="tel:{s.guardianPhone}" class="font-mono text-emerald-400 hover:underline">{s.guardianPhone}</a>
               </div>
             </div>
           </div>
-          <span class="text-[10px] px-2 py-0.5 rounded-full font-bold
-            {currentStatus === 'present' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' :
-             currentStatus === 'late' ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30' :
-             'bg-rose-500/15 text-rose-400 border border-rose-500/30'}">
-            {currentStatus === 'present' ? 'উপস্থিত' : currentStatus === 'late' ? 'দেরি' : 'অনুপস্থিত'}
-          </span>
+
+          <!-- Attendance Status Toggle Buttons -->
+          <div class="inline-flex p-1.5 rounded-xl bg-slate-950/80 border border-slate-800 shrink-0 justify-center">
+            <button
+              type="button"
+              class="px-3.5 py-1.5 rounded-lg font-semibold transition-all text-xs flex items-center gap-1.5
+              {currentStatus === 'present' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}"
+              on:click={() => toggleStudentStatus(s.id, 'present')}
+            >
+              <CheckCircle2 class="w-3.5 h-3.5" />
+              <span>উপস্থিত</span>
+            </button>
+
+            <button
+              type="button"
+              class="px-3.5 py-1.5 rounded-lg font-semibold transition-all text-xs flex items-center gap-1.5
+              {currentStatus === 'late' ? 'bg-amber-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}"
+              on:click={() => toggleStudentStatus(s.id, 'late')}
+            >
+              <Clock class="w-3.5 h-3.5" />
+              <span>দেরি</span>
+            </button>
+
+            <button
+              type="button"
+              class="px-3.5 py-1.5 rounded-lg font-semibold transition-all text-xs flex items-center gap-1.5
+              {currentStatus === 'absent' ? 'bg-rose-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}"
+              on:click={() => toggleStudentStatus(s.id, 'absent')}
+            >
+              <XCircle class="w-3.5 h-3.5" />
+              <span>অনুপস্থিত</span>
+            </button>
+          </div>
         </div>
-
-        <!-- Android 3-Segment Button Bar -->
-        <div class="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-slate-950/80 border border-slate-800/80">
-          <button
-            type="button"
-            class="py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition-all
-            {currentStatus === 'present' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}"
-            on:click={() => toggleStudentStatus(s.id, 'present')}
-          >
-            <CheckCircle2 class="w-3.5 h-3.5" />
-            <span>উপস্থিত</span>
-          </button>
-
-          <button
-            type="button"
-            class="py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition-all
-            {currentStatus === 'late' ? 'bg-amber-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}"
-            on:click={() => toggleStudentStatus(s.id, 'late')}
-          >
-            <Clock class="w-3.5 h-3.5" />
-            <span>দেরি</span>
-          </button>
-
-          <button
-            type="button"
-            class="py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition-all
-            {currentStatus === 'absent' ? 'bg-rose-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}"
-            on:click={() => toggleStudentStatus(s.id, 'absent')}
-          >
-            <XCircle class="w-3.5 h-3.5" />
-            <span>অনুপস্থিত</span>
-          </button>
-        </div>
-      </div>
-    {/each}
+      {/each}
+    {/if}
   </div>
 </div>

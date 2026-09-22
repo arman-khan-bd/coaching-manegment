@@ -1,0 +1,111 @@
+name: Build & Publish Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build Android APK & Publish Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+          cache-dependency-path: coachflow-android-gateway/package-lock.json
+
+      - name: 📦 Install Node Dependencies
+        working-directory: coachflow-android-gateway
+        run: |
+          npm ci --prefer-offline || npm install
+
+      - name: ☕ Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: 🤖 Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: 🔑 Ensure Android Debug Keystore
+        working-directory: coachflow-android-gateway/android/app
+        run: |
+          if [ ! -f debug.keystore ]; then
+            echo "Generating debug keystore..."
+            keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=CoachFlow Debug,O=CoachFlow,C=BD"
+          fi
+
+      - name: 🐘 Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: 🔨 Build Android APK
+        working-directory: coachflow-android-gateway/android
+        run: |
+          gradle assembleDebug --no-daemon --stacktrace
+
+      - name: 📦 Prepare APK Asset for Release
+        id: prepare_asset
+        run: |
+          BUILD_NUM="${{ github.run_number }}"
+          RELEASE_TAG="v1.0.${BUILD_NUM}"
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            RELEASE_TAG="${{ github.ref_name }}"
+          fi
+          
+          APK_SOURCE="coachflow-android-gateway/android/app/build/outputs/apk/debug/app-debug.apk"
+          APK_NAME="CoachFlow-Android-Gateway-${RELEASE_TAG}.apk"
+          
+          cp "$APK_SOURCE" "$APK_NAME"
+          echo "tag_name=${RELEASE_TAG}" >> $GITHUB_OUTPUT
+          echo "apk_path=${APK_NAME}" >> $GITHUB_OUTPUT
+
+      - name: 📤 Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coachflow-android-apk
+          path: ${{ steps.prepare_asset.outputs.apk_path }}
+          if-no-files-found: error
+
+      - name: 🚀 Publish to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        with:
+          tag_name: ${{ steps.prepare_asset.outputs.tag_name }}
+          name: "CoachFlow Android App & SMS Gateway ${{ steps.prepare_asset.outputs.tag_name }}"
+          draft: false
+          prerelease: false
+          files: ${{ steps.prepare_asset.outputs.apk_path }}
+          body: |
+            ## 📱 CoachFlow Android Companion & SMS Gateway (${{ steps.prepare_asset.outputs.tag_name }})
+            
+            Official Android release for **[CoachFlow SaaS](https://coaching-bd.netlify.app/)**.
+            
+            ---
+            
+            ### ✨ Core Features:
+            - **🌐 Web Administration Portal**: Full-featured, responsive WebView embedding the CoachFlow management dashboard.
+            - **📶 Dual-SIM SMS Gateway (SIM 1 Priority)**: Automatically routes all attendance, exam results, and tuition fee alerts through SIM 1.
+            - **⚡ Local REST API (`http://<phone-ip>:8080`)**: Dispatches and monitors SMS over local Wi-Fi.
+            - **🔋 Live Node Monitoring**: Battery level, carrier indicator, and safety counters.
+            - **🛡️ 24/7 Foreground Service**: Persistent sticky notification ensuring uninterrupted background execution.
+            
+            ---
+            
+            ### 📥 Download & Install:
+            Click the APK asset below to download and install on any Android phone (Android 7.0+):
+            - **File**: `${{ steps.prepare_asset.outputs.apk_path }}`
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

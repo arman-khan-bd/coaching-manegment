@@ -1,0 +1,18 @@
+{
+  "name": "CoachFlow - Coaching Management System",
+  "short_name": "CoachFlow",
+  "description": "All-in-one Coaching, Academy, and Dual SMS Gateway Management Portal",
+  "start_url": "/dashboard/overview",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#4f46e5",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

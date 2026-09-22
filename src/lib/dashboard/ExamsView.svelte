@@ -732,120 +732,103 @@
         </div>
       </div>
 
-      <!-- Marks Roster Table -->
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs">
-          <thead class="bg-slate-950/70 border-b border-slate-800 text-slate-400 uppercase font-semibold text-[11px] tracking-wider">
-            <tr>
-              <th class="px-5 py-3.5">রোল</th>
-              <th class="px-5 py-3.5">শিক্ষার্থীর নাম</th>
-              <th class="px-5 py-3.5 text-center">প্রাপ্ত নম্বর</th>
-              <th class="px-5 py-3.5 text-center">শতকরা (%)</th>
-              <th class="px-5 py-3.5 text-center">গ্রেড (GPA)</th>
-              <th class="px-5 py-3.5 text-center">স্ট্যাটাস</th>
-              <th class="px-5 py-3.5">মূল্যায়ন ও মন্তব্য</th>
-              <th class="px-5 py-3.5 text-right">কার্যক্রম</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-800/60">
-            {#if filteredMarks.length === 0}
-              <tr>
-                <td colspan="8" class="px-5 py-10 text-center text-slate-500">
-                  কোনো ফলাফল পাওয়া যায়নি। উপরে
-                  <button
-                    type="button"
-                    class="text-indigo-400 hover:underline font-semibold"
-                    on:click={openBulkMarksModal}
-                  >
-                    "ফলাফল এন্ট্রি / সম্পাদনা"
-                  </button>
-                  ক্লিক করে নম্বর যুক্ত করুন।
-                </td>
-              </tr>
-            {:else}
-              {#each filteredMarks as m, idx}
-                {@const pct = Math.round((m.marksObtained / currentExam.totalMarks) * 100)}
-                {@const isPassed = m.marksObtained >= currentExam.passMarks}
-                <tr class="hover:bg-slate-800/40 transition-colors">
-                  <td class="px-5 py-3.5 font-mono font-bold text-indigo-300">{m.rollNo}</td>
-                  <td class="px-5 py-3.5 font-bold text-white">
-                    {m.studentName}
-                  </td>
-                  <td class="px-5 py-3.5 font-mono font-bold text-base text-white text-center">
-                    {m.marksObtained}
-                    <span class="text-xs text-slate-500 font-normal">/ {currentExam.totalMarks}</span>
-                  </td>
-                  <td class="px-5 py-3.5 font-bold text-center {pct >= 80 ? 'text-emerald-400' : pct >= 50 ? 'text-amber-400' : 'text-rose-400'}">
-                    {pct}%
-                  </td>
-                  <td class="px-5 py-3.5 text-center">
+      <!-- Marks Roster Bordered List View -->
+      <div class="space-y-3 p-4">
+        {#if filteredMarks.length === 0}
+          <div class="p-12 text-center text-slate-500 rounded-2xl bg-slate-900/60 border border-slate-800">
+            কোনো ফলাফল পাওয়া যায়নি। উপরে
+            <button
+              type="button"
+              class="text-indigo-400 hover:underline font-semibold"
+              on:click={openBulkMarksModal}
+            >
+              "ফলাফল এন্ট্রি / সম্পাদনা"
+            </button>
+            ক্লিক করে নম্বর যুক্ত করুন।
+          </div>
+        {:else}
+          {#each filteredMarks as m, idx}
+            {@const pct = Math.round((m.marksObtained / currentExam.totalMarks) * 100)}
+            {@const isPassed = m.marksObtained >= currentExam.passMarks}
+            <div class="p-4 sm:p-5 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-indigo-500/50 transition-all shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <!-- Left: Student Info & Marks -->
+              <div class="flex items-start gap-3.5">
+                <div class="w-11 h-11 rounded-2xl {isPassed ? 'bg-emerald-950/60 border-emerald-500/30 text-emerald-400' : 'bg-rose-950/60 border-rose-500/30 text-rose-400'} border flex items-center justify-center font-bold font-mono text-sm shrink-0 mt-0.5">
+                  #{m.rollNo}
+                </div>
+                <div>
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="font-bold text-white text-sm sm:text-base">{m.studentName}</span>
                     <Badge variant={m.grade.startsWith('A') ? 'success' : m.grade.startsWith('F') ? 'danger' : 'warning'} size="sm">
                       {m.grade}
                     </Badge>
-                  </td>
-                  <td class="px-5 py-3.5 text-center">
                     {#if isPassed}
-                      <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                      <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400 bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
                         <Check class="w-3 h-3" /> পাস
                       </span>
                     {:else}
-                      <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-400 bg-rose-950/40 px-2 py-0.5 rounded-full border border-rose-500/20">
+                      <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-400 bg-rose-950/40 px-2.5 py-0.5 rounded-full border border-rose-500/20">
                         <X class="w-3 h-3" /> ফেইল
                       </span>
                     {/if}
-                  </td>
-                  <td class="px-5 py-3.5 text-slate-300 italic max-w-xs truncate">
-                    {m.remarks || '—'}
-                  </td>
-                  <td class="px-5 py-3.5 text-right">
-                    <div class="flex items-center justify-end gap-1.5">
-                      <!-- Edit Mark button -->
-                      <button
-                        type="button"
-                        class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
-                        title="নম্বর ও মন্তব্য সম্পাদনা করুন"
-                        on:click={() => openEditSingleMark(m)}
-                      >
-                        <Pencil class="w-3.5 h-3.5" />
-                      </button>
+                  </div>
 
-                      <!-- Send SMS button -->
-                      <button
-                        type="button"
-                        class="p-1.5 rounded-lg bg-emerald-600/15 hover:bg-emerald-600 text-emerald-400 hover:text-white transition-colors"
-                        title="অভিভাবককে রেজাল্ট SMS পাঠান"
-                        on:click={() => handleOpenMarkSms(m)}
-                      >
-                        <MessageSquare class="w-3.5 h-3.5" />
-                      </button>
+                  <div class="text-xs text-slate-400 mt-1 flex items-center gap-3">
+                    <span>প্রাপ্ত নম্বর: <strong class="text-white font-mono text-sm">{m.marksObtained}</strong> / {currentExam.totalMarks}</span>
+                    <span class="text-slate-600">•</span>
+                    <span>শতকরা: <strong class="{pct >= 80 ? 'text-emerald-400' : pct >= 50 ? 'text-amber-400' : 'text-rose-400'} font-bold font-mono">{pct}%</strong></span>
+                  </div>
 
-                      <!-- Print Report Card button -->
-                      <button
-                        type="button"
-                        class="px-2.5 py-1.5 rounded-lg bg-indigo-600/15 hover:bg-indigo-600 text-indigo-300 hover:text-white font-semibold transition-colors inline-flex items-center gap-1 text-xs"
-                        title="শিক্ষার্থীর নম্বরপত্র (Report Card) প্রিন্ট করুন"
-                        on:click={() => openReportCard(m)}
-                      >
-                        <Printer class="w-3 h-3" />
-                        <span>রিপোর্ট</span>
-                      </button>
-
-                      <!-- Delete mark button -->
-                      <button
-                        type="button"
-                        class="p-1.5 rounded-lg bg-rose-600/15 hover:bg-rose-600 text-rose-400 hover:text-white transition-colors"
-                        title="ফলাফল রেকর্ড মুছে ফেলুন"
-                        on:click={() => handleDeleteSingleMark(m)}
-                      >
-                        <Trash2 class="w-3.5 h-3.5" />
-                      </button>
+                  {#if m.remarks}
+                    <div class="text-xs text-slate-400 italic mt-1.5 flex items-center gap-1">
+                      <span class="text-slate-500">মন্তব্য:</span> "{m.remarks}"
                     </div>
-                  </td>
-                </tr>
-              {/each}
-            {/if}
-          </tbody>
-        </table>
+                  {/if}
+                </div>
+              </div>
+
+              <!-- Right: Actions -->
+              <div class="flex items-center justify-between lg:justify-end gap-2 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-800/80">
+                <button
+                  type="button"
+                  class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all border border-slate-700"
+                  title="নম্বর ও মন্তব্য সম্পাদনা করুন"
+                  on:click={() => openEditSingleMark(m)}
+                >
+                  <Pencil class="w-4 h-4" />
+                </button>
+
+                <button
+                  type="button"
+                  class="p-2 rounded-xl bg-emerald-600/15 hover:bg-emerald-600 text-emerald-400 hover:text-white transition-all border border-emerald-500/30"
+                  title="অভিভাবককে রেজাল্ট SMS পাঠান"
+                  on:click={() => handleOpenMarkSms(m)}
+                >
+                  <MessageSquare class="w-4 h-4" />
+                </button>
+
+                <button
+                  type="button"
+                  class="px-3 py-2 rounded-xl bg-indigo-600/15 hover:bg-indigo-600 text-indigo-300 hover:text-white font-semibold transition-all inline-flex items-center gap-1.5 text-xs border border-indigo-500/30"
+                  title="শিক্ষার্থীর নম্বরপত্র প্রিন্ট করুন"
+                  on:click={() => openReportCard(m)}
+                >
+                  <Printer class="w-4 h-4" />
+                  <span>নম্বরপত্র</span>
+                </button>
+
+                <button
+                  type="button"
+                  class="p-2 rounded-xl bg-rose-600/15 hover:bg-rose-600 text-rose-400 hover:text-white transition-all border border-rose-500/30"
+                  title="ফলাফল রেকর্ড মুছে ফেলুন"
+                  on:click={() => handleDeleteSingleMark(m)}
+                >
+                  <Trash2 class="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          {/each}
+        {/if}
       </div>
     </div>
   {/if}
@@ -1187,89 +1170,88 @@
       </div>
 
       <!-- Marks Rows Table -->
-      <div class="max-h-[60vh] overflow-y-auto rounded-xl border border-slate-800">
-        <table class="w-full text-left text-xs">
-          <thead class="bg-slate-950 sticky top-0 z-10 border-b border-slate-800 text-slate-400 uppercase font-semibold text-[11px]">
-            <tr>
-              <th class="px-4 py-3">রোল</th>
-              <th class="px-4 py-3">শিক্ষার্থী</th>
-              <th class="px-4 py-3 text-center w-36">প্রাপ্ত নম্বর (/ {currentExam.totalMarks})</th>
-              <th class="px-4 py-3 text-center w-32">লাইভ গ্রেড</th>
-              <th class="px-4 py-3">মন্তব্য ও প্রিসেট</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-800/60 bg-slate-900/50">
-            {#if bulkRows.length === 0}
-              <tr>
-                <td colspan="5" class="px-4 py-8 text-center text-slate-500">
-                  এই ব্যাচে কোনো শিক্ষার্থী নিবন্ধিত নেই। অনুগ্রহ করে প্রথমে ব্যাচে শিক্ষার্থী ভর্তি করুন।
-                </td>
-              </tr>
-            {:else}
-              {#each bulkRows as row, idx}
-                {@const gradeInfo = calculateBanglaGrade(row.marksObtained, currentExam.totalMarks, currentExam.passMarks)}
-                <tr class="hover:bg-slate-800/30 transition-colors">
-                  <td class="px-4 py-3 font-mono font-bold text-indigo-300">{row.rollNo}</td>
-                  <td class="px-4 py-3 font-semibold text-white">{row.studentName}</td>
-                  <td class="px-4 py-2 text-center">
-                    <input
-                      type="number"
-                      min="0"
-                      max={currentExam.totalMarks}
-                      bind:value={row.marksObtained}
-                      class="w-24 px-3 py-1.5 text-center font-mono font-bold rounded-lg bg-slate-950 border border-slate-700 text-white focus:outline-none focus:border-indigo-500"
-                    />
-                  </td>
-                  <td class="px-4 py-2 text-center">
-                    <span class="inline-block px-2.5 py-1 rounded-lg text-xs font-bold {gradeInfo.isPassed ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/30' : 'bg-rose-950 text-rose-300 border border-rose-500/30'}">
-                      {gradeInfo.grade} ({gradeInfo.percentage}%)
-                    </span>
-                  </td>
-                  <td class="px-4 py-2">
-                    <div class="space-y-1.5">
-                      <input
-                        type="text"
-                        bind:value={row.remarks}
-                        placeholder="মন্তব্য লিখুন..."
-                        class="w-full px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-                      />
-                      <div class="flex items-center gap-1 flex-wrap">
-                        <button
-                          type="button"
-                          class="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
-                          on:click={() => setQuickRemark(idx, 'চমৎকার পারফরম্যান্স')}
-                        >
-                          চমৎকার
-                        </button>
-                        <button
-                          type="button"
-                          class="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
-                          on:click={() => setQuickRemark(idx, 'সন্তোষজনক')}
-                        >
-                          সন্তোষজনক
-                        </button>
-                        <button
-                          type="button"
-                          class="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
-                          on:click={() => setQuickRemark(idx, 'আরও যত্নশীল হতে হবে')}
-                        >
-                          উন্নতি প্রয়োজন
-                        </button>
-                        <button
-                          type="button"
-                          class="px-1.5 py-0.5 rounded text-[10px] bg-rose-950 hover:bg-rose-900 text-rose-300 transition-colors"
-                          on:click={() => setQuickRemark(idx, 'অনুপস্থিত ছিল')}
-                        >
-                          অনুপস্থিত
-                        </button>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              {/each}
-            {/if}
-          </tbody>
-        </table>
+      <!-- Marks Rows Bordered List View -->
+      <div class="max-h-[60vh] overflow-y-auto space-y-2.5 pr-1">
+        {#if bulkRows.length === 0}
+          <div class="p-8 text-center text-slate-500 rounded-xl bg-slate-900/60 border border-slate-800">
+            এই ব্যাচে কোনো শিক্ষার্থী নিবন্ধিত নেই। অনুগ্রহ করে প্রথমে ব্যাচে শিক্ষার্থী ভর্তি করুন।
+          </div>
+        {:else}
+          {#each bulkRows as row, idx}
+            {@const gradeInfo = calculateBanglaGrade(row.marksObtained, currentExam.totalMarks, currentExam.passMarks)}
+            <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-indigo-500/40 transition-all flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-sm">
+              <!-- Roll & Name -->
+              <div class="flex items-center gap-3 min-w-[200px]">
+                <span class="w-9 h-9 rounded-xl bg-indigo-950/70 border border-indigo-500/30 text-indigo-300 font-mono font-bold text-xs flex items-center justify-center shrink-0">
+                  #{row.rollNo}
+                </span>
+                <div>
+                  <div class="font-bold text-white text-sm leading-tight">{row.studentName}</div>
+                  <div class="text-[11px] text-slate-400 mt-0.5">রোল নম্বর: {row.rollNo}</div>
+                </div>
+              </div>
+
+              <!-- Marks Input & Live Grade -->
+              <div class="flex items-center gap-3 shrink-0">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-xs text-slate-400">নম্বর:</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max={currentExam.totalMarks}
+                    bind:value={row.marksObtained}
+                    class="w-20 px-2.5 py-1.5 text-center font-mono font-bold rounded-lg bg-slate-950 border border-slate-700 text-white focus:outline-none focus:border-indigo-500 text-sm"
+                  />
+                  <span class="text-xs text-slate-500">/ {currentExam.totalMarks}</span>
+                </div>
+
+                <span class="px-2.5 py-1 rounded-lg text-xs font-bold {gradeInfo.isPassed ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/30' : 'bg-rose-950 text-rose-300 border border-rose-500/30'}">
+                  {gradeInfo.grade} ({gradeInfo.percentage}%)
+                </span>
+              </div>
+
+              <!-- Remarks & Presets -->
+              <div class="flex-1 min-w-[240px] space-y-1.5">
+                <input
+                  type="text"
+                  bind:value={row.remarks}
+                  placeholder="মন্তব্য লিখুন..."
+                  class="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                />
+                <div class="flex items-center gap-1 flex-wrap">
+                  <button
+                    type="button"
+                    class="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                    on:click={() => setQuickRemark(idx, 'চমৎকার পারফরম্যান্স')}
+                  >
+                    চমৎকার
+                  </button>
+                  <button
+                    type="button"
+                    class="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                    on:click={() => setQuickRemark(idx, 'সন্তোষজনক')}
+                  >
+                    সন্তোষজনক
+                  </button>
+                  <button
+                    type="button"
+                    class="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                    on:click={() => setQuickRemark(idx, 'আরও যত্নশীল হতে হবে')}
+                  >
+                    উন্নতি প্রয়োজন
+                  </button>
+                  <button
+                    type="button"
+                    class="px-1.5 py-0.5 rounded text-[10px] bg-rose-950 hover:bg-rose-900 text-rose-300 transition-colors"
+                    on:click={() => setQuickRemark(idx, 'অনুপস্থিত ছিল')}
+                  >
+                    অনুপস্থিত
+                  </button>
+                </div>
+              </div>
+            </div>
+          {/each}
+        {/if}
       </div>
 
       <!-- Footer Buttons -->

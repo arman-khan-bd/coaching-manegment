@@ -273,209 +273,106 @@
     </div>
   </div>
 
-  <!-- Students Table (Desktop: list view table, Mobile: Android cards) -->
-  <div class="hidden md:block bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-    <div class="overflow-x-auto">
-      <table class="w-full text-left text-xs">
-        <thead class="bg-slate-950/70 border-b border-slate-800 text-slate-400 uppercase font-semibold text-[11px] tracking-wider">
-          <tr>
-            <th class="px-5 py-3.5">Student Details</th>
-            <th class="px-5 py-3.5">Roll No</th>
-            <th class="px-5 py-3.5">Assigned Batches</th>
-            <th class="px-5 py-3.5">Guardian Contact</th>
-            <th class="px-5 py-3.5">Fee Status</th>
-            <th class="px-5 py-3.5 text-right">Actions</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-800/60">
-          {#each filteredStudents as s}
-            <tr class="hover:bg-slate-800/40 transition-colors">
-              <!-- Student Details -->
-              <td class="px-5 py-4">
-                <div class="flex items-center gap-3">
-                  <img src={s.photo} alt={s.name} class="w-10 h-10 rounded-full object-cover border border-slate-700" />
-                  <div>
-                    <div class="font-bold text-white text-sm">{s.name}</div>
-                    <div class="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
-                      <span>{s.email}</span>
-                      <span class="text-indigo-400 font-medium">({s.gender}, {s.bloodGroup})</span>
-                    </div>
-                  </div>
-                </div>
-              </td>
-
-              <!-- Roll No -->
-              <td class="px-5 py-4 font-mono font-bold text-indigo-300">
-                {s.rollNo}
-              </td>
-
-              <!-- Assigned Batches -->
-              <td class="px-5 py-4">
-                <div class="flex flex-wrap gap-1">
-                  {#each s.batchIds as bid}
-                    {@const batchObj = $batches.find((b) => b.id === bid)}
-                    {#if batchObj}
-                      <Badge variant="primary" size="sm">{batchObj.code}</Badge>
-                    {/if}
-                  {/each}
-                </div>
-              </td>
-
-              <!-- Guardian Contact -->
-              <td class="px-5 py-4 text-slate-300">
-                <div class="font-semibold text-white">{s.guardianName}</div>
-                <div class="text-[11px] text-slate-400">{s.guardianPhone}</div>
-              </td>
-
-              <!-- Fee Status -->
-              <td class="px-5 py-4">
+  <!-- Students Bordered List View (Responsive on Desktop & Mobile) -->
+  <div class="space-y-3">
+    {#if filteredStudents.length === 0}
+      <div class="text-center py-12 text-slate-400 text-xs bg-slate-900/60 rounded-2xl border border-slate-800">
+        কোনো শিক্ষার্থী পাওয়া যায়নি
+      </div>
+    {:else}
+      {#each filteredStudents as s}
+        <div class="p-4 sm:p-5 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-indigo-500/50 transition-all shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <!-- Left: Photo & Primary Info -->
+          <div class="flex items-start gap-3.5">
+            <img src={s.photo} alt={s.name} class="w-12 h-12 rounded-2xl object-cover border border-slate-700 shrink-0 mt-0.5" />
+            <div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-bold text-white text-sm sm:text-base">{s.name}</span>
+                <span class="px-2 py-0.5 rounded-md bg-indigo-950 text-indigo-300 font-mono text-xs font-bold border border-indigo-500/30">
+                  রোল: {s.rollNo}
+                </span>
                 {#if s.feesDue === 0}
                   <Badge variant="success" size="sm">পরিশোধিত</Badge>
                 {:else}
                   <Badge variant="danger" size="sm">৳{s.feesDue.toLocaleString()} বকেয়া</Badge>
                 {/if}
-              </td>
+              </div>
 
-              <!-- Actions -->
-              <td class="px-5 py-4 text-right">
-                <div class="flex items-center justify-end gap-1.5">
-                  <!-- Send SMS Button -->
-                  <button
-                    type="button"
-                    class="p-2 rounded-lg bg-emerald-600/15 hover:bg-emerald-600 text-emerald-400 hover:text-white transition-all"
-                    title="Send SMS to Guardian"
-                    on:click={() => handleOpenSms(s)}
-                  >
-                    <MessageSquare class="w-4 h-4" />
-                  </button>
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400 mt-1">
+                <span>{s.email}</span>
+                <span class="text-slate-600">•</span>
+                <span class="text-indigo-300 font-medium">লিঙ্গ: {s.gender}</span>
+                <span class="text-slate-600">•</span>
+                <span class="text-slate-300 font-medium">রক্তের গ্রুপ: {s.bloodGroup}</span>
+              </div>
 
-                  <!-- Edit Button -->
-                  <button
-                    type="button"
-                    class="p-2 rounded-lg bg-amber-600/15 hover:bg-amber-500 text-amber-400 hover:text-white transition-all"
-                    title="শিক্ষার্থীর তথ্য সম্পাদনা"
-                    on:click={() => openEditStudent(s)}
-                  >
-                    <Pencil class="w-4 h-4" />
-                  </button>
-
-                  <!-- Print ID Card Button -->
-                  <button
-                    type="button"
-                    class="p-2 rounded-lg bg-indigo-600/15 hover:bg-indigo-600 text-indigo-300 hover:text-white transition-all"
-                    title="Generate & Print Student ID Card"
-                    on:click={() => handleOpenCard(s)}
-                  >
-                    <QrCode class="w-4 h-4" />
-                  </button>
-
-                  <!-- Delete -->
-                  <button
-                    type="button"
-                    class="p-2 rounded-lg bg-rose-600/10 hover:bg-rose-600 text-rose-400 hover:text-white transition-all"
-                    title="Archive / Remove Student"
-                    on:click={() => deleteStudent(s.id)}
-                  >
-                    <Trash2 class="w-4 h-4" />
-                  </button>
-                </div>
-              </td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- Mobile Android App Student Cards (Visible on mobile only) -->
-  <div class="block md:hidden space-y-3">
-    {#each filteredStudents as s}
-      <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-md flex flex-col gap-3">
-        <div class="flex items-start justify-between gap-3">
-          <div class="flex items-center gap-3">
-            <img src={s.photo} alt={s.name} class="w-12 h-12 rounded-xl object-cover border border-slate-700 shrink-0" />
-            <div>
-              <div class="font-bold text-white text-sm leading-tight">{s.name}</div>
-              <div class="text-[11px] text-slate-400 mt-1 flex items-center gap-2">
-                <span class="text-indigo-400 font-bold font-mono">রোল: {s.rollNo}</span>
-                <span>•</span>
-                <span class="text-slate-300 font-medium">{s.bloodGroup}</span>
+              <!-- Batches -->
+              <div class="flex flex-wrap items-center gap-1.5 mt-2">
+                <span class="text-[11px] text-slate-500">ব্যাচ:</span>
+                {#each s.batchIds as bid}
+                  {@const batchObj = $batches.find((b) => b.id === bid)}
+                  {#if batchObj}
+                    <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
+                      {batchObj.name} ({batchObj.code})
+                    </span>
+                  {/if}
+                {/each}
               </div>
             </div>
           </div>
-          <div>
-            {#if s.feesDue === 0}
-              <Badge variant="success" size="sm">পরিশোধিত</Badge>
-            {:else}
-              <Badge variant="danger" size="sm">৳{s.feesDue.toLocaleString()} বকেয়া</Badge>
-            {/if}
+
+          <!-- Right: Guardian Info & Actions -->
+          <div class="flex flex-wrap items-center justify-between lg:justify-end gap-3.5 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-800/80">
+            <!-- Guardian Details -->
+            <div class="text-left lg:text-right px-3.5 py-1.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
+              <div class="text-xs font-semibold text-white">অভিভাবক: {s.guardianName}</div>
+              <a href="tel:{s.guardianPhone}" class="text-[11px] font-mono font-semibold text-emerald-400 hover:underline">
+                {s.guardianPhone}
+              </a>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <button
+                type="button"
+                class="px-2.5 py-1.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/40 font-semibold text-xs flex items-center gap-1.5 transition-all shadow-sm"
+                title="Send SMS to Guardian"
+                on:click={() => handleOpenSms(s)}
+              >
+                <MessageSquare class="w-3.5 h-3.5 text-emerald-400" />
+                <span>SMS</span>
+              </button>
+
+              <button
+                type="button"
+                class="p-2 rounded-xl bg-amber-500/15 hover:bg-amber-500 text-amber-400 hover:text-white border border-amber-500/30 transition-all"
+                title="শিক্ষার্থীর তথ্য সম্পাদনা"
+                on:click={() => openEditStudent(s)}
+              >
+                <Pencil class="w-4 h-4" />
+              </button>
+
+              <button
+                type="button"
+                class="p-2 rounded-xl bg-indigo-600/15 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 transition-all"
+                title="আইডি কার্ড প্রিন্ট"
+                on:click={() => handleOpenCard(s)}
+              >
+                <QrCode class="w-4 h-4" />
+              </button>
+
+              <button
+                type="button"
+                class="p-2 rounded-xl bg-rose-600/10 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-500/20 transition-all"
+                title="শিক্ষার্থী মুছুন"
+                on:click={() => deleteStudent(s.id)}
+              >
+                <Trash2 class="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
-
-        <!-- Batches Chips -->
-        <div class="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-800/70">
-          <span class="text-[10px] text-slate-400">ব্যাচ:</span>
-          {#each s.batchIds as bid}
-            {@const batchObj = $batches.find((b) => b.id === bid)}
-            {#if batchObj}
-              <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
-                {batchObj.name}
-              </span>
-            {/if}
-          {/each}
-        </div>
-
-        <!-- Guardian Details & 1-Tap Mobile Actions -->
-        <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-800/70 text-xs">
-          <div>
-            <div class="text-[10px] text-slate-400">অভিভাবক ({s.guardianName})</div>
-            <a href="tel:{s.guardianPhone}" class="text-[11px] font-semibold text-emerald-400 hover:underline">
-              {s.guardianPhone}
-            </a>
-          </div>
-
-          <div class="flex items-center gap-1.5">
-            <button
-              type="button"
-              class="px-2.5 py-1.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/40 font-semibold text-xs flex items-center gap-1"
-              on:click={() => handleOpenSms(s)}
-            >
-              <MessageSquare class="w-3.5 h-3.5 text-emerald-400" />
-              <span>SMS</span>
-            </button>
-            <button
-              type="button"
-              class="p-2 rounded-xl bg-amber-500/15 hover:bg-amber-500 text-amber-400 hover:text-white border border-amber-500/30"
-              title="সম্পাদনা"
-              on:click={() => openEditStudent(s)}
-            >
-              <Pencil class="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              class="p-2 rounded-xl bg-indigo-600/15 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30"
-              title="আইডি কার্ড"
-              on:click={() => handleOpenCard(s)}
-            >
-              <QrCode class="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              class="p-2 rounded-xl bg-rose-600/10 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-500/20"
-              title="মুছুন"
-              on:click={() => deleteStudent(s.id)}
-            >
-              <Trash2 class="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </div>
-    {/each}
-
-    {#if filteredStudents.length === 0}
-      <div class="text-center py-8 text-slate-400 text-xs bg-slate-900/40 rounded-2xl border border-slate-800">
-        কোনো শিক্ষার্থী পাওয়া যায়নি
-      </div>
+      {/each}
     {/if}
   </div>
 </div>

@@ -619,50 +619,64 @@
 
   <!-- TAB 4: OUTBOX LOGS -->
   {:else if activeSmsTab === 'logs'}
-    <div class="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs">
-          <thead class="bg-slate-950/70 border-b border-slate-800 text-slate-400 uppercase font-semibold text-[11px] tracking-wider">
-            <tr>
-              <th class="px-5 py-3.5">Recipient</th>
-              <th class="px-5 py-3.5">Phone Number</th>
-              <th class="px-5 py-3.5">Message Content</th>
-              <th class="px-5 py-3.5">Route / Gateway</th>
-              <th class="px-5 py-3.5">Carrier Cost</th>
-              <th class="px-5 py-3.5">Time</th>
-              <th class="px-5 py-3.5 text-right">Status</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-800/60">
-            {#each $smsLogs as log}
-              <tr class="hover:bg-slate-800/40 transition-colors">
-                <td class="px-5 py-3.5 font-bold text-white">{log.recipientName}</td>
-                <td class="px-5 py-3.5 font-mono text-slate-300">{log.recipientPhone}</td>
-                <td class="px-5 py-3.5 max-w-xs truncate text-slate-300" title={log.message}>
-                  {log.message}
-                </td>
-                <td class="px-5 py-3.5">
+    <!-- TAB 4: OUTBOX LOGS (Bordered List View) -->
+    <div class="space-y-3">
+      {#if $smsLogs.length === 0}
+        <div class="p-12 text-center text-slate-500 rounded-2xl bg-slate-900/60 border border-slate-800">
+          কোনো প্রেরিত এসএমএস হিস্ট্রি নেই।
+        </div>
+      {:else}
+        {#each $smsLogs as log}
+          <div class="p-4 sm:p-5 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-indigo-500/50 transition-all shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <!-- Left: Recipient & Message bubble -->
+            <div class="flex items-start gap-3.5 flex-1 min-w-0">
+              <div class="w-11 h-11 rounded-2xl {log.gateway === 'cloud' ? 'bg-indigo-950/60 border-indigo-500/30 text-indigo-400' : 'bg-emerald-950/60 border-emerald-500/30 text-emerald-400'} border flex items-center justify-center font-bold shrink-0 mt-0.5">
+                <MessageSquare class="w-5 h-5" />
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="font-bold text-white text-sm sm:text-base">{log.recipientName}</span>
+                  <a href="tel:{log.recipientPhone}" class="font-mono text-xs font-semibold text-emerald-400 hover:underline">
+                    {log.recipientPhone}
+                  </a>
                   {#if log.gateway === 'cloud'}
                     <Badge variant="primary" size="sm">Cloud SMS</Badge>
                   {:else}
                     <Badge variant="success" size="sm">Android SIM 1</Badge>
                   {/if}
-                </td>
-                <td class="px-5 py-3.5 font-mono font-bold {log.cost === 0 ? 'text-emerald-400' : 'text-slate-300'}">
+                </div>
+
+                <!-- Message bubble -->
+                <div class="mt-2 p-3 rounded-xl bg-slate-950/70 border border-slate-800/80 text-xs text-slate-200 leading-relaxed font-sans select-text">
+                  {log.message}
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Cost, Time & Delivery Status -->
+            <div class="flex items-center justify-between lg:justify-end gap-4 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-800/80 shrink-0">
+              <div class="text-left lg:text-right">
+                <div class="font-mono font-bold {log.cost === 0 ? 'text-emerald-400' : 'text-white'} text-sm">
                   ৳{log.cost.toFixed(2)}
-                </td>
-                <td class="px-5 py-3.5 text-slate-400 text-[11px]">{log.timestamp}</td>
-                <td class="px-5 py-3.5 text-right">
-                  <span class="inline-flex items-center gap-1 text-emerald-400 font-semibold text-xs">
-                    <CheckCircle2 class="w-3.5 h-3.5" />
-                    <span>Delivered</span>
-                  </span>
-                </td>
-              </tr>
-            {/each}
-          </tbody>
-        </table>
-      </div>
+                </div>
+                <div class="text-[10px] text-slate-500">খরচ</div>
+              </div>
+
+              <div class="text-left lg:text-right">
+                <div class="text-xs text-slate-400 font-mono">{log.timestamp}</div>
+                <div class="text-[10px] text-slate-500">প্রেরণের সময়</div>
+              </div>
+
+              <div>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-950/50 border border-emerald-500/30 text-emerald-400 font-semibold text-xs shadow-sm">
+                  <CheckCircle2 class="w-3.5 h-3.5" />
+                  <span>Delivered</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        {/each}
+      {/if}
     </div>
   {/if}
 </div>

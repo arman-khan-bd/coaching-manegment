@@ -774,60 +774,65 @@
 
       {:else}
 
-        <!-- Table View Display -->
-        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
-              <thead class="bg-slate-950 border-b border-slate-800 text-slate-400 uppercase font-semibold text-[11px]">
-                <tr>
-                  <th class="px-4 py-3">বার (Day)</th>
-                  <th class="px-4 py-3">সময় (Time)</th>
-                  <th class="px-4 py-3">বিষয় ও টপিক</th>
-                  <th class="px-4 py-3">ব্যাচ</th>
-                  <th class="px-4 py-3">দায়িত্বপ্রাপ্ত শিক্ষক</th>
-                  <th class="px-4 py-3">রুম</th>
-                  <th class="px-4 py-3">ধরন</th>
-                  <th class="px-4 py-3 text-right">অ্যাকশন</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-800/60">
-                {#each filteredRoutine as slot}
-                  {@const typeInfo = classTypeLabels[slot.classType] || classTypeLabels.theory}
-                  <tr class="hover:bg-slate-800/40 transition-colors">
-                    <td class="px-4 py-3 font-bold text-white">{dayNameBn[slot.day] || slot.day}</td>
-                    <td class="px-4 py-3 font-mono font-semibold text-indigo-300">{slot.startTime} - {slot.endTime}</td>
-                    <td class="px-4 py-3 font-medium text-white">{slot.subject}</td>
-                    <td class="px-4 py-3 text-slate-400 text-[11px]">{slot.batchName}</td>
-                    <td class="px-4 py-3 text-slate-300">{slot.teacherName}</td>
-                    <td class="px-4 py-3 font-mono text-slate-300">{slot.roomNumber}</td>
-                    <td class="px-4 py-3">
+        <!-- Routine Bordered List View -->
+        <div class="space-y-3">
+          {#if filteredRoutine.length === 0}
+            <div class="p-12 text-center text-slate-500 rounded-2xl bg-slate-900/60 border border-slate-800">
+              কোনো রুটিন সূচি পাওয়া যায়নি।
+            </div>
+          {:else}
+            {#each filteredRoutine as slot}
+              {@const typeInfo = classTypeLabels[slot.classType] || classTypeLabels.theory}
+              <div class="p-4 sm:p-5 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-indigo-500/50 transition-all shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <!-- Day, Time & Subject info -->
+                <div class="flex items-start gap-3.5">
+                  <div class="w-12 h-12 rounded-2xl bg-indigo-950/70 border border-indigo-500/30 flex flex-col items-center justify-center shrink-0 mt-0.5">
+                    <span class="text-[10px] text-slate-400 font-bold">বার</span>
+                    <span class="text-xs font-bold text-indigo-300">{dayNameBn[slot.day] || slot.day}</span>
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <span class="font-bold text-white text-sm sm:text-base">{slot.subject}</span>
                       <span class="px-2 py-0.5 rounded text-[10px] font-bold border {typeInfo.color}">
                         {typeInfo.label}
                       </span>
-                    </td>
-                    <td class="px-4 py-3 text-right">
-                      <div class="flex items-center justify-end gap-1.5">
-                        <button
-                          type="button"
-                          class="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300"
-                          on:click={() => openEditRoutineModal(slot)}
-                        >
-                          <Edit3 class="w-3 h-3" />
-                        </button>
-                        <button
-                          type="button"
-                          class="p-1 rounded bg-slate-800 hover:bg-rose-950 text-slate-400 hover:text-rose-400"
-                          on:click={() => deleteRoutineSlot(slot.id)}
-                        >
-                          <Trash2 class="w-3 h-3" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                {/each}
-              </tbody>
-            </table>
-          </div>
+                      <span class="px-2 py-0.5 rounded-md bg-slate-800 text-indigo-300 font-mono text-xs font-bold border border-slate-700">
+                        {slot.startTime} - {slot.endTime}
+                      </span>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400 mt-1.5">
+                      <span>ব্যাচ: <strong class="text-slate-300">{slot.batchName}</strong></span>
+                      <span class="text-slate-600">•</span>
+                      <span>শিক্ষক: <strong class="text-slate-300">{slot.teacherName}</strong></span>
+                      <span class="text-slate-600">•</span>
+                      <span>রুম নং: <strong class="text-white font-mono">{slot.roomNumber}</strong></span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex items-center justify-end gap-1.5 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-800/80">
+                  <button
+                    type="button"
+                    class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all border border-slate-700"
+                    title="রুটিন স্লট সম্পাদনা করুন"
+                    on:click={() => openEditRoutineModal(slot)}
+                  >
+                    <Edit3 class="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    class="p-2 rounded-xl bg-rose-600/15 hover:bg-rose-600 text-rose-400 hover:text-white transition-all border border-rose-500/30"
+                    title="রুটিন স্লট মুছুন"
+                    on:click={() => deleteRoutineSlot(slot.id)}
+                  >
+                    <Trash2 class="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            {/each}
+          {/if}
         </div>
       {/if}
     </div>

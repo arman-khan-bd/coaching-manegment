@@ -13,6 +13,7 @@ export interface SubscriptionPlan {
   smsCreditsIncluded: number;
   androidGatewayIncluded: boolean;
   popular?: boolean;
+  status?: 'active' | 'paused';
 }
 
 export interface Student {
@@ -334,12 +335,15 @@ export interface PlatformSubscription {
   planName: string;
   amount: number;
   billingCycle: 'monthly' | 'yearly';
-  status: 'active' | 'trial' | 'past_due' | 'cancelled';
+  status: 'active' | 'pending_approval' | 'rejected' | 'trial' | 'past_due' | 'cancelled' | 'suspended';
   paymentMethod: 'bKash' | 'Nagad' | 'Stripe' | 'Bank Transfer' | 'Cash';
   startDate: string;
   nextRenewalDate: string;
   autoRenew: boolean;
   invoiceId?: string;
+  senderPhone?: string;
+  trxId?: string;
+  rejectionReason?: string;
 }
 
 export interface PlatformUser {
@@ -356,6 +360,7 @@ export interface PlatformUser {
 }
 
 export interface PlatformSettings {
+  // 1. General Settings
   platformName: string;
   tagline: string;
   supportEmail: string;
@@ -365,17 +370,64 @@ export interface PlatformSettings {
   defaultSmsRate: number;
   maintenanceMode: boolean;
   globalAnnouncement: string;
+  currency: string;
+  currencySymbol: string;
+
+  // 2. Branding & Cloudinary
+  logoUrl: string;
+  faviconUrl: string;
+  darkLogoUrl?: string;
+  cloudinaryCloudName?: string;
+  cloudinaryUploadPreset?: string;
+  cloudinaryApiKey?: string;
+
+  // 3. SEO & Social Meta
+  metaTitle: string;
+  metaDescription: string;
+  metaKeywords: string;
+  ogImageUrl: string;
+  canonicalUrl?: string;
+  googleSiteVerification?: string;
+  robotsIndexing: boolean;
+
+  // 4. Tracking & Pixel Setup
+  facebookPixelId: string;
+  fbAccessToken?: string;
+  conversionsApiEnabled: boolean;
+  googleAnalyticsId: string;
+  customHeadScripts?: string;
+  customBodyScripts?: string;
+
+  // 5. Payment Gateways
   bkashConfig: {
     merchantNumber: string;
     appKey: string;
+    appSecret: string;
+    username?: string;
+    password?: string;
+    sandbox: boolean;
     active: boolean;
   };
   nagadConfig: {
     merchantNumber: string;
+    merchantId?: string;
+    publicKey?: string;
+    privateKey?: string;
     active: boolean;
   };
   stripeConfig: {
     publishableKey: string;
+    secretKey?: string;
+    webhookSecret?: string;
+    active: boolean;
+  };
+  bankConfig?: {
+    bankName: string;
+    accountName: string;
+    accountNumber: string;
+    branch: string;
+    routingNumber: string;
+    instructions: string;
     active: boolean;
   };
 }
@@ -387,9 +439,14 @@ export interface PlatformTransaction {
   type: 'subscription' | 'sms_pack' | 'addon';
   itemTitle: string;
   amount: number;
-  paymentMethod: 'bKash' | 'Nagad' | 'Stripe' | 'Bank Transfer';
+  paymentMethod: 'bKash' | 'Nagad' | 'Stripe' | 'Bank Transfer' | 'Cash';
   trxId: string;
   status: 'completed' | 'pending' | 'failed' | 'refunded';
   date: string;
+  senderPhone?: string;
+  receiptNumber?: string;
+  subtotal?: number;
+  vatAmount?: number;
+  notes?: string;
 }
 

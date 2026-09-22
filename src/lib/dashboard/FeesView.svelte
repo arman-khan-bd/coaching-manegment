@@ -14,6 +14,7 @@
     Plus,
     Filter,
     MessageSquare,
+    Receipt,
   } from 'lucide-svelte';
 
   let statusFilter: 'all' | 'paid' | 'partial' | 'unpaid' = 'all';
@@ -198,39 +199,26 @@
     </span>
   </div>
 
-  <!-- Invoices Table (Desktop: table, Mobile: Android Cards) -->
-  <div class="hidden md:block bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-    <div class="overflow-x-auto">
-      <table class="w-full text-left text-xs">
-        <thead class="bg-slate-950/70 border-b border-slate-800 text-slate-400 uppercase font-semibold text-[11px] tracking-wider">
-          <tr>
-            <th class="px-5 py-3.5">ইনভয়েস নং</th>
-            <th class="px-5 py-3.5">শিক্ষার্থী ও কোর্স</th>
-            <th class="px-5 py-3.5">মোট ফি</th>
-            <th class="px-5 py-3.5">পরিশোধ</th>
-            <th class="px-5 py-3.5">বকেয়া</th>
-            <th class="px-5 py-3.5">পরিশোধের তারিখ</th>
-            <th class="px-5 py-3.5">স্ট্যাটাস</th>
-            <th class="px-5 py-3.5 text-right">অ্যাকশন</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-800/60">
-          {#each filteredInvoices as inv}
-            <tr class="hover:bg-slate-800/40 transition-colors">
-              <td class="px-5 py-3.5 font-mono font-bold text-indigo-300">
-                {inv.invoiceNo}
-              </td>
-              <td class="px-5 py-3.5">
-                <div class="font-bold text-white">{inv.studentName}</div>
-                <div class="text-[11px] text-slate-400">{inv.batchName}</div>
-              </td>
-              <td class="px-5 py-3.5 font-bold text-white">৳{inv.amount.toLocaleString()}</td>
-              <td class="px-5 py-3.5 font-bold text-emerald-400">৳{inv.paidAmount.toLocaleString()}</td>
-              <td class="px-5 py-3.5 font-mono font-bold {inv.dueAmount > 0 ? 'text-rose-400' : 'text-slate-400'}">
-                ৳{inv.dueAmount.toLocaleString()}
-              </td>
-              <td class="px-5 py-3.5 text-slate-400 text-[11px]">{inv.dueDate}</td>
-              <td class="px-5 py-3.5">
+  <!-- Invoices Bordered List View (Responsive on Desktop & Mobile) -->
+  <div class="space-y-3">
+    {#if filteredInvoices.length === 0}
+      <div class="text-center py-12 text-slate-400 text-xs bg-slate-900/60 rounded-2xl border border-slate-800">
+        কোনো ইনভয়েস পাওয়া যায়নি
+      </div>
+    {:else}
+      {#each filteredInvoices as inv}
+        <div class="p-4 sm:p-5 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-indigo-500/50 transition-all shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <!-- Left: Invoice # & Student info -->
+          <div class="flex items-start gap-3.5">
+            <div class="w-11 h-11 rounded-2xl {inv.status === 'paid' ? 'bg-emerald-950/60 border-emerald-500/30 text-emerald-400' : inv.status === 'partial' ? 'bg-amber-950/60 border-amber-500/30 text-amber-400' : 'bg-rose-950/60 border-rose-500/30 text-rose-400'} border flex items-center justify-center font-bold shrink-0 mt-0.5">
+              <Receipt class="w-5 h-5" />
+            </div>
+            <div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-bold text-white text-sm sm:text-base">{inv.studentName}</span>
+                <span class="px-2 py-0.5 rounded-md bg-slate-800 text-indigo-300 font-mono text-xs font-bold border border-slate-700">
+                  {inv.invoiceNo}
+                </span>
                 {#if inv.status === 'paid'}
                   <Badge variant="success" size="sm">পরিশোধিত ({inv.paymentMethod || 'Cash'})</Badge>
                 {:else if inv.status === 'partial'}
@@ -238,135 +226,73 @@
                 {:else}
                   <Badge variant="danger" size="sm">বকেয়া</Badge>
                 {/if}
-              </td>
-              <td class="px-5 py-3.5 text-right">
-                <div class="flex items-center justify-end gap-1.5">
-                  {#if inv.dueAmount > 0}
-                    <!-- Send Due SMS Reminder Button -->
-                    <button
-                      type="button"
-                      class="p-1.5 rounded-lg bg-rose-600/15 hover:bg-rose-600 text-rose-300 hover:text-white transition-colors"
-                      title="Send Due Reminder SMS to Guardian"
-                      on:click={() => handleOpenFeeSms(inv)}
-                    >
-                      <MessageSquare class="w-4 h-4" />
-                    </button>
+              </div>
 
-                    <button
-                      type="button"
-                      class="px-2.5 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white font-semibold text-xs transition-colors"
-                      on:click={() => openCollectModal(inv)}
-                    >
-                      আদায়
-                    </button>
-                  {/if}
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400 mt-1">
+                <span class="text-slate-300">কোর্স/ব্যাচ: <strong class="text-white">{inv.batchName}</strong></span>
+                <span class="text-slate-600">•</span>
+                <span>পরিশোধের তারিখ: <strong class="text-slate-300 font-mono">{inv.dueDate}</strong></span>
+              </div>
+            </div>
+          </div>
 
-                  <button
-                    type="button"
-                    class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
-                    title="Print Receipt Voucher"
-                    on:click={() => openReceiptModal(inv)}
-                  >
-                    <Printer class="w-4 h-4" />
-                  </button>
+          <!-- Middle / Right: Financial Stats and Actions -->
+          <div class="flex flex-wrap items-center justify-between lg:justify-end gap-3.5 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-800/80">
+            <!-- 3 Stat Blocks -->
+            <div class="grid grid-cols-3 gap-2 px-3 py-1.5 rounded-xl bg-slate-950/70 border border-slate-800/90 text-center shrink-0">
+              <div class="px-2">
+                <div class="text-[10px] text-slate-400">মোট ফি</div>
+                <div class="text-xs font-bold text-white font-mono mt-0.5">৳{inv.amount.toLocaleString()}</div>
+              </div>
+              <div class="px-2 border-x border-slate-800/80">
+                <div class="text-[10px] text-slate-400">জমা</div>
+                <div class="text-xs font-bold text-emerald-400 font-mono mt-0.5">৳{inv.paidAmount.toLocaleString()}</div>
+              </div>
+              <div class="px-2">
+                <div class="text-[10px] text-slate-400">বকেয়া</div>
+                <div class="text-xs font-bold {inv.dueAmount > 0 ? 'text-rose-400' : 'text-slate-400'} font-mono mt-0.5">
+                  ৳{inv.dueAmount.toLocaleString()}
                 </div>
-              </td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- Mobile Android App Invoice Cards (Visible on mobile only) -->
-  <div class="block md:hidden space-y-3">
-    {#each filteredInvoices as inv}
-      <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-md flex flex-col gap-3">
-        <!-- Top header row -->
-        <div class="flex items-start justify-between gap-2">
-          <div>
-            <div class="text-sm font-bold text-white leading-tight">{inv.studentName}</div>
-            <div class="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1.5">
-              <span class="font-mono text-indigo-300 font-bold">{inv.invoiceNo}</span>
-              <span>•</span>
-              <span>{inv.batchName}</span>
+              </div>
             </div>
-          </div>
-          <div>
-            {#if inv.status === 'paid'}
-              <Badge variant="success" size="sm">পরিশোধিত</Badge>
-            {:else if inv.status === 'partial'}
-              <Badge variant="warning" size="sm">আংশিক বকেয়া</Badge>
-            {:else}
-              <Badge variant="danger" size="sm">বকেয়া</Badge>
-            {/if}
-          </div>
-        </div>
 
-        <!-- 3-Column Financial Stat Boxes -->
-        <div class="grid grid-cols-3 gap-2 p-2.5 rounded-xl bg-slate-950/70 border border-slate-800/80 text-center">
-          <div>
-            <div class="text-[10px] text-slate-400">মোট ফি</div>
-            <div class="text-xs font-bold text-white font-['Outfit'] mt-0.5">৳{inv.amount.toLocaleString()}</div>
-          </div>
-          <div>
-            <div class="text-[10px] text-slate-400">জমা</div>
-            <div class="text-xs font-bold text-emerald-400 font-['Outfit'] mt-0.5">৳{inv.paidAmount.toLocaleString()}</div>
-          </div>
-          <div>
-            <div class="text-[10px] text-slate-400">বকেয়া</div>
-            <div class="text-xs font-bold {inv.dueAmount > 0 ? 'text-rose-400' : 'text-slate-400'} font-['Outfit'] mt-0.5">
-              ৳{inv.dueAmount.toLocaleString()}
-            </div>
-          </div>
-        </div>
+            <!-- Action buttons -->
+            <div class="flex items-center gap-1.5 flex-wrap">
+              {#if inv.dueAmount > 0}
+                <button
+                  type="button"
+                  class="px-2.5 py-1.5 rounded-xl bg-rose-600/15 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 font-semibold text-xs flex items-center gap-1 transition-all"
+                  title="Send Due SMS"
+                  on:click={() => handleOpenFeeSms(inv)}
+                >
+                  <MessageSquare class="w-3.5 h-3.5 text-rose-400" />
+                  <span>তাগাদা</span>
+                </button>
 
-        <!-- Footer with date & 1-tap actions -->
-        <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-800/70 text-xs">
-          <div class="text-[10px] text-slate-400">
-            তারিখ: <span class="text-slate-300">{inv.dueDate}</span>
-          </div>
-
-          <div class="flex items-center gap-1.5">
-            {#if inv.dueAmount > 0}
-              <button
-                type="button"
-                class="px-2.5 py-1.5 rounded-xl bg-rose-600/15 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 font-semibold text-xs flex items-center gap-1"
-                title="Send Due SMS"
-                on:click={() => handleOpenFeeSms(inv)}
-              >
-                <MessageSquare class="w-3.5 h-3.5 text-rose-400" />
-                <span>তাগাদা</span>
-              </button>
+                <button
+                  type="button"
+                  class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-md shadow-emerald-600/20 transition-all"
+                  on:click={() => openCollectModal(inv)}
+                >
+                  ফি আদায়
+                </button>
+              {/if}
 
               <button
                 type="button"
-                class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-md shadow-emerald-600/20"
-                on:click={() => openCollectModal(inv)}
+                class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-all"
+                title="Print Receipt Voucher"
+                on:click={() => openReceiptModal(inv)}
               >
-                ফি আদায়
+                <Printer class="w-4 h-4" />
               </button>
-            {/if}
-
-            <button
-              type="button"
-              class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700"
-              title="Print Receipt"
-              on:click={() => openReceiptModal(inv)}
-            >
-              <Printer class="w-4 h-4" />
-            </button>
+            </div>
           </div>
         </div>
-      </div>
-    {/each}
-
-    {#if filteredInvoices.length === 0}
-      <div class="text-center py-8 text-slate-400 text-xs bg-slate-900/40 rounded-2xl border border-slate-800">
-        কোনো ইনভয়েস পাওয়া যায়নি
-      </div>
+      {/each}
     {/if}
   </div>
+
 </div>
 
 <!-- Collect Payment Modal -->

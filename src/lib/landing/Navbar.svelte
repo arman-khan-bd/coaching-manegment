@@ -1,6 +1,6 @@
 <script lang="ts">
   import { navigate } from '../router';
-  import { GraduationCap, ArrowRight, Sparkles, UserPlus } from 'lucide-svelte';
+  import { GraduationCap, ArrowRight, Sparkles, UserPlus, Shield } from 'lucide-svelte';
 
   function scrollTo(id: string) {
     const el = document.getElementById(id);
@@ -46,6 +46,15 @@
         on:click={() => navigate('/login')}
       >
         Sign In
+      </button>
+
+      <button
+        type="button"
+        class="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-all shadow-sm"
+        on:click={() => navigate('/admin')}
+      >
+        <Shield class="w-3.5 h-3.5 text-amber-400" />
+        <span>SaaS Admin</span>
       </button>
 
       <button
