@@ -44,6 +44,16 @@ export default function App() {
   const serverPort = 8080;
   const apiKey = 'gw_apk_live_gp_9f82d02c81e9bca23';
 
+  // 10-Second Polling Outbox State
+  const [coachingCenterId, setCoachingCenterId] = useState('aac-dhaka-01');
+  const [apiBaseUrl, setApiBaseUrl] = useState('https://coaching-bd.netlify.app');
+  const [pollingActive, setPollingActive] = useState(true);
+  const [pollCountdown, setPollCountdown] = useState(10);
+  const [lastPollTime, setLastPollTime] = useState('পোলিং শুরু হয়নি');
+  const [lastPollStatus, setLastPollStatus] = useState('১০-সেকেন্ড পোলিং সক্রিয় ও প্রস্তুত');
+  const [isPolling, setIsPolling] = useState(false);
+  const isPollingRef = useRef(false);
+
   // Live Logs
   const [logs, setLogs] = useState<LogItem[]>([
     {
@@ -76,6 +86,23 @@ export default function App() {
     initGateway();
   }, []);
 
+  // 10-Second Polling Timer
+  useEffect(() => {
+    let interval: any;
+    if (pollingActive) {
+      interval = setInterval(() => {
+        setPollCountdown((prev) => {
+          if (prev <= 1) {
+            executePollQueue();
+            return 10;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [pollingActive, coachingCenterId, apiBaseUrl]);
+
   async function initGateway() {
     await SmsGateway.requestPermissions();
     const sims = await SmsGateway.getSimCards();
@@ -89,10 +116,96 @@ export default function App() {
     }
   }
 
+  // Poll 10-Second Outbox Queue for the logged-in coaching center
+  async function executePollQueue() {
+    if (!coachingCenterId.trim() || isPollingRef.current) return;
+    isPollingRef.current = true;
+    setIsPolling(true);
+    const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+    try {
+      const cleanBase = apiBaseUrl.trim().replace(/\/+$/, '');
+      const cleanId = encodeURIComponent(coachingCenterId.trim());
+      const endpoint = `${cleanBase}/api/sms/${cleanId}`;
+
+      const resp = await fetch(endpoint, {
+        headers: { Accept: 'application/json' },
+      });
+
+      if (!resp.ok) {
+        setLastPollTime(timeNow);
+        setLastPollStatus(`পোলিং প্রতিক্রিয়া: HTTP ${resp.status} (${timeNow})`);
+        return;
+      }
+
+      const json = await resp.json();
+      const messages = json.messages || [];
+
+      setLastPollTime(timeNow);
+
+      if (messages.length === 0) {
+        // "and not get not send"
+        setLastPollStatus(`কোনো পেন্ডিং SMS নেই (Next check in 10s) — ${timeNow}`);
+        return;
+      }
+
+      // "if found send sms using sim"
+      setLastPollStatus(`${messages.length}টি SMS পাওয়া গেছে, SIM 1 দিয়ে প্রেরণ চলছে...`);
+
+      for (const item of messages) {
+        appendLog(item.to, item.message, 'processing');
+        try {
+          const res = await SmsGateway.sendSms(item.to, item.message);
+          if (res.success) {
+            setDailySent((prev) => prev + 1);
+            updateLatestLogStatus('sent');
+
+            // Notify API that SMS is delivered
+            await fetch(`${cleanBase}/api/sms/${cleanId}/status`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                id: item.id,
+                status: 'sent',
+                simSlot: 1,
+              }),
+            }).catch(() => {});
+          } else {
+            updateLatestLogStatus('failed');
+            await fetch(`${cleanBase}/api/sms/${cleanId}/status`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                id: item.id,
+                status: 'failed',
+                simSlot: 1,
+                errorMessage: res.error || 'SIM 1 transmission failed',
+              }),
+            }).catch(() => {});
+          }
+        } catch (e: any) {
+          updateLatestLogStatus('failed');
+        }
+      }
+    } catch (err: any) {
+      setLastPollTime(timeNow);
+      setLastPollStatus(`সংযোগ ত্রুটি (${err.message || 'Offline'}) — ${timeNow}`);
+    } finally {
+      setIsPolling(false);
+      isPollingRef.current = false;
+    }
+  }
+
   // Handle messages received from Web Dashboard
   async function handleWebViewMessage(event: any) {
     try {
       const data = JSON.parse(event.nativeEvent.data);
+
+      if (data.type === 'COACHING_AUTH_SYNC' && data.coachingCenterId) {
+        setCoachingCenterId(data.coachingCenterId);
+        setLastPollStatus(`লগইন সমন্বিত: Coaching ID ${data.coachingCenterId}`);
+      }
+
       if (data.type === 'SEND_SMS') {
         const { to, message, recipientName } = data;
         appendLog(to, message, 'processing');
@@ -176,7 +289,7 @@ export default function App() {
   const sim1 = simCards.find((s) => s.isFirstSim) || simCards[0];
   const sim2 = simCards.find((s) => !s.isFirstSim && s.slotIndex === 1);
 
-  // Injected JS to notify website about native Android gateway presence
+  // Injected JS to notify website about native Android gateway presence and read logged-in coaching ID
   const injectedJavascript = `
     (function() {
       window.__IS_COACHFLOW_ANDROID_APP__ = true;
@@ -186,6 +299,21 @@ export default function App() {
         slot: 1
       };
       console.log('CoachFlow Native Android Gateway Connected (SIM 1 Active)');
+
+      // Detect logged in coaching center ID and notify React Native
+      try {
+        var rawSettings = localStorage.getItem('coachflow_institute_settings');
+        if (rawSettings) {
+          var parsed = JSON.parse(rawSettings);
+          if (parsed && (parsed.coachingCenterId || parsed.branchCode)) {
+            var cid = parsed.coachingCenterId || parsed.branchCode;
+            window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'COACHING_AUTH_SYNC',
+              coachingCenterId: cid
+            }));
+          }
+        }
+      } catch (e) {}
     })();
     true;
   `;
@@ -359,6 +487,85 @@ export default function App() {
             </Text>
           </View>
 
+          {/* 10-Second Polling Outbox Queue Worker Card */}
+          <View style={styles.card}>
+            <View style={styles.pollHeaderRow}>
+              <View style={{ flex: 1 }}>
+                <View style={styles.pollBadgeRow}>
+                  <View style={[styles.statusDot, pollingActive ? styles.dotGreen : styles.dotRed]} />
+                  <Text style={styles.pollBadgeText}>
+                    {pollingActive ? '১০-সেকেন্ড পোলিং সক্রিয়' : 'পোলিং বন্ধ'}
+                  </Text>
+                </View>
+                <Text style={styles.cardTitle}>📡 10s SMS Outbox Queue</Text>
+              </View>
+
+              <View style={styles.countdownBadge}>
+                <Text style={styles.countdownNumber}>⏱️ {pollCountdown}s</Text>
+              </View>
+            </View>
+
+            <Text style={styles.cardSubtitle}>
+              ওয়েব থেকে পাঠানো SMS প্রতি ১০ সেকেন্ডে এই ফোন স্বয়ংক্রিয়ভাবে ডাউনলোড করে SIM 1 দিয়ে পাঠায়।
+            </Text>
+
+            {/* Coaching Center ID Input */}
+            <Text style={styles.inputLabel}>Coaching Center ID (লগইন আইডি):</Text>
+            <TextInput
+              style={styles.input}
+              value={coachingCenterId}
+              onChangeText={setCoachingCenterId}
+              placeholder="e.g. aac-dhaka-01"
+              placeholderTextColor="#64748b"
+              autoCapitalize="none"
+            />
+            <Text style={styles.hintText}>
+              লগইন অবস্থায় অটোমেটিক সেট হয়। অথবা ম্যানুয়ালি দিতে পারেন।
+            </Text>
+
+            {/* Cloud API Base URL */}
+            <Text style={[styles.inputLabel, { marginTop: 10 }]}>Server / Web API URL:</Text>
+            <TextInput
+              style={styles.input}
+              value={apiBaseUrl}
+              onChangeText={setApiBaseUrl}
+              placeholder="https://coaching-bd.netlify.app"
+              placeholderTextColor="#64748b"
+              autoCapitalize="none"
+            />
+
+            {/* Polling Status Box */}
+            <View style={styles.pollStatusBox}>
+              <Text style={styles.pollStatusLabel}>সর্বশেষ পোলিং অবস্থা:</Text>
+              <Text style={styles.pollStatusText}>{lastPollStatus}</Text>
+              <Text style={styles.pollTimeText}>সময়: {lastPollTime}</Text>
+            </View>
+
+            {/* Buttons Row */}
+            <View style={styles.pollBtnRow}>
+              <TouchableOpacity
+                style={[styles.pollNowBtn, isPolling && styles.btnDisabled]}
+                disabled={isPolling}
+                onPress={() => executePollQueue()}
+              >
+                {isPolling ? (
+                  <ActivityIndicator color="#ffffff" size="small" />
+                ) : (
+                  <Text style={styles.pollNowBtnText}>🔄 এখনই পোল করুন</Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.pollToggleBtn, !pollingActive && styles.pollToggleBtnOff]}
+                onPress={() => setPollingActive((prev) => !prev)}
+              >
+                <Text style={styles.pollToggleBtnText}>
+                  {pollingActive ? 'পোলিং পজ করুন' : 'পোলিং চালু করুন'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
           {/* Quick Manual Test SMS Sender */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>✉️ Send Test SMS via SIM 1</Text>
@@ -427,8 +634,42 @@ export default function App() {
       {/* TAB 3: REST API SERVER CONFIG */}
       {activeTab === 'api' && (
         <ScrollView style={styles.scrollContent} contentContainerStyle={styles.scrollInner}>
+          {/* 10s Cloud Polling REST API Card */}
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>🌐 Local HTTP Gateway REST API</Text>
+            <Text style={styles.cardTitle}>☁️ 10-Second Polling REST API (Cloud Outbox)</Text>
+            <Text style={styles.cardSubtitle}>
+              যেকোনো ওয়েবসাইট, ব্যাকএন্ড বা স্ক্রিপ্ট থেকে এই API-তে SMS পাঠালে এই ফোন ১০ সেকেন্ডে পেয়ে SIM 1 দিয়ে পাঠাবে।
+            </Text>
+
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Phone Polling Endpoint (GET):</Text>
+              <Text style={[styles.infoValue, { color: '#10b981' }]}>
+                {apiBaseUrl}/api/sms/{coachingCenterId}
+              </Text>
+            </View>
+
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>External Trigger Endpoint (POST):</Text>
+              <Text style={[styles.infoValue, { color: '#38bdf8' }]}>
+                {apiBaseUrl}/api/sms/{coachingCenterId}
+              </Text>
+            </View>
+
+            <View style={styles.codeBlock}>
+              <Text style={styles.codeText}>
+                {`curl -X POST ${apiBaseUrl}/api/sms/${coachingCenterId} \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "to": "+8801711456789",
+    "message": "অভিভাবক, আপনার সন্তান ক্লাসে উপস্থিত।",
+    "recipientName": "ফারহান শাকিল"
+  }'`}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>🌐 Local HTTP Direct REST API (Wi-Fi)</Text>
             <Text style={styles.cardSubtitle}>
               Send SMS from your PC, netlify server, or external scripts by making HTTP requests to this phone!
             </Text>
@@ -829,5 +1070,102 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     marginBottom: 6,
+  },
+  pollHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 6,
+  },
+  pollBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  pollBadgeText: {
+    color: '#10b981',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  countdownBadge: {
+    backgroundColor: '#312e81',
+    borderWidth: 1,
+    borderColor: '#6366f1',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  countdownNumber: {
+    color: '#e0e7ff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  hintText: {
+    color: '#64748b',
+    fontSize: 10,
+    marginTop: 3,
+  },
+  pollStatusBox: {
+    backgroundColor: '#020617',
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#1e293b',
+    marginTop: 10,
+  },
+  pollStatusLabel: {
+    color: '#94a3b8',
+    fontSize: 10,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+  },
+  pollStatusText: {
+    color: '#38bdf8',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  pollTimeText: {
+    color: '#64748b',
+    fontSize: 10,
+    marginTop: 2,
+  },
+  pollBtnRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  pollNowBtn: {
+    flex: 1,
+    backgroundColor: '#4f46e5',
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pollNowBtnText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  pollToggleBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#1e293b',
+    borderWidth: 1,
+    borderColor: '#334155',
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pollToggleBtnOff: {
+    backgroundColor: '#064e3b',
+    borderColor: '#059669',
+  },
+  pollToggleBtnText: {
+    color: '#cbd5e1',
+    fontSize: 11,
+    fontWeight: '600',
   },
 });

@@ -248,6 +248,7 @@ export interface InstituteSettings {
   // 6. SMS & Automation
   defaultSmsGateway: 'cloud' | 'android';
   smsSenderId?: string;
+  coachingCenterId?: string; // Unique coaching center ID for 10-second Android polling queue
   autoSmsOnAdmission?: boolean;
   autoSmsOnAttendance?: boolean;
   autoSmsOnFeePayment?: boolean;
@@ -260,6 +261,19 @@ export interface InstituteSettings {
   showBloodGroupOnId?: boolean;
   showGuardianPhoneOnId?: boolean;
   showBarcodeOnId?: boolean;
+}
+
+export interface SmsQueueItem {
+  id: string;
+  coachingCenterId: string;
+  recipientPhone: string;
+  recipientName?: string;
+  message: string;
+  status: 'pending' | 'processing' | 'sent' | 'failed';
+  simSlot?: number;
+  errorMessage?: string;
+  createdAt: string;
+  sentAt?: string;
 }
 
 export interface ToastMessage {

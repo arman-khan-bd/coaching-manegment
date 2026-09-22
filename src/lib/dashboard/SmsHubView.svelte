@@ -11,7 +11,10 @@
     toggleAndroidGateway,
     showToast,
     addSmsTemplate,
+    smsQueue,
+    instituteSettings,
   } from '../store';
+  import { enqueueSmsToQueue } from '../smsQueueApi';
   import Badge from '../components/Badge.svelte';
   import Modal from '../components/Modal.svelte';
   import {
@@ -55,6 +58,34 @@
   $: isBanglaMsg = /[\u0980-\u09FF]/.test(messageContent);
   $: partLimit = isBanglaMsg ? 70 : 160;
   $: smsParts = Math.ceil(charCount / partLimit) || 1;
+
+  // 10-Second Polling Queue State
+  let testQueuePhone = '+880 1711-456789';
+  let testQueueMsg = 'সম্মানিত অভিভাবক, ১০-সেকেন্ড আউটবক্স টেস্ট সফল! আপনার ফোন থেকে SIM 1 দিয়ে পাঠানো হচ্ছে।';
+  let isQueueing = false;
+
+  $: coachingCenterId = $instituteSettings.coachingCenterId || 'aac-dhaka-01';
+  $: pendingQueueItems = $smsQueue.filter((q) => q.coachingCenterId === coachingCenterId && q.status === 'pending');
+  $: completedQueueItems = $smsQueue.filter((q) => q.coachingCenterId === coachingCenterId && q.status === 'sent');
+
+  async function handleEnqueueTest() {
+    if (!testQueuePhone.trim() || !testQueueMsg.trim()) {
+      showToast('error', 'তথ্য দিন', 'মোবাইল নম্বর এবং মেসেজ দিন।');
+      return;
+    }
+    isQueueing = true;
+    try {
+      const res = await enqueueSmsToQueue(coachingCenterId, testQueuePhone, 'টেস্ট অভিভাবক', testQueueMsg);
+      if (res && res.item) {
+        smsQueue.update((q) => [res.item, ...q.filter((x) => x.id !== res.item.id)]);
+        showToast('success', 'SMS কিউতে যুক্ত হয়েছে', `Coaching ID: ${coachingCenterId} এর কিউতে জমা হয়েছে। ফোন ১০ সেকেন্ডে পেয়ে SIM 1 দিয়ে পাঠাবে।`);
+      }
+    } catch (e: any) {
+      showToast('error', 'ব্যর্থ', e.message || 'Error enqueueing SMS');
+    } finally {
+      isQueueing = false;
+    }
+  }
 
   function insertVariable(varName: string) {
     messageContent += ` ${varName}`;
@@ -347,6 +378,207 @@
         >
           <span>Download Android Gateway APK (v3.4.1)</span>
         </button>
+      </div>
+    </div>
+
+    <!-- 10-SECOND POLLING OUTBOX QUEUE MONITOR -->
+    <div class="mt-6 rounded-3xl bg-slate-900/80 border border-slate-800 p-6 space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+            <h3 class="text-base font-bold text-white font-['Outfit']">
+              ১০-সেকেন্ড আউটবক্স পোলিং কিউ (Android SIM 1 Auto-Sender)
+            </h3>
+          </div>
+          <p class="text-xs text-slate-400 mt-0.5">
+            ওয়েব বা যেকোনো API থেকে SMS রিকোয়েস্ট আসলে কিউতে জমা হয়। লগইন থাকা অ্যান্ড্রয়েড ফোন প্রতি ১০ সেকেন্ডে এই API কল করে SIM 1 দিয়ে মেসেজ সেন্ড করে।
+          </p>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <span class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-950/60 text-emerald-300 border border-emerald-500/30">
+            ১০ সেকেন্ড পোলিং সক্রিয়
+          </span>
+        </div>
+      </div>
+
+      <!-- Credentials & Endpoints Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+        <!-- 1. Coaching Center ID -->
+        <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+          <span class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">
+            Coaching Center ID (লগইন আইডি)
+          </span>
+          <div class="flex items-center justify-between bg-slate-900 px-3 py-2 rounded-xl border border-slate-800">
+            <span class="font-mono font-bold text-indigo-400 text-sm">{coachingCenterId}</span>
+            <button
+              type="button"
+              class="text-slate-400 hover:text-white p-1 rounded transition-colors"
+              title="Copy Coaching ID"
+              on:click={() => copyToClipboard(coachingCenterId, 'Coaching Center ID')}
+            >
+              <Copy class="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <p class="text-[11px] text-slate-500">
+            অ্যান্ড্রয়েড অ্যাপে এই আইডি সেট থাকলে ফোন প্রতি ১০ সেকেন্ডে এই কোচিং সেন্টারের SMS তুলবে।
+          </p>
+        </div>
+
+        <!-- 2. Phone Polling GET Endpoint -->
+        <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+          <span class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">
+            ফোন পোলিং API (GET)
+          </span>
+          <div class="flex items-center justify-between bg-slate-900 px-3 py-2 rounded-xl border border-slate-800">
+            <span class="font-mono text-emerald-400 truncate text-[11px]">/api/sms/{coachingCenterId}</span>
+            <button
+              type="button"
+              class="text-slate-400 hover:text-white p-1 rounded transition-colors shrink-0"
+              title="Copy URL"
+              on:click={() => copyToClipboard(`/api/sms/${coachingCenterId}`, 'Polling API URL')}
+            >
+              <Copy class="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <p class="text-[11px] text-slate-500">
+            ফোন প্রতি ১০ সেকেন্ডে এই API কল করে। মেসেজ পেলে SIM 1 দিয়ে সেন্ড করে, না পেলে কিছু করে না।
+          </p>
+        </div>
+
+        <!-- 3. External Trigger POST Endpoint -->
+        <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+          <span class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">
+            যেকোনো জায়গা থেকে SMS ট্রিগার (POST)
+          </span>
+          <div class="flex items-center justify-between bg-slate-900 px-3 py-2 rounded-xl border border-slate-800">
+            <span class="font-mono text-amber-400 truncate text-[11px]">POST /api/sms/{coachingCenterId}</span>
+            <button
+              type="button"
+              class="text-slate-400 hover:text-white p-1 rounded transition-colors shrink-0"
+              title="Copy Endpoint"
+              on:click={() => copyToClipboard(`POST /api/sms/${coachingCenterId}`, 'POST Trigger Endpoint')}
+            >
+              <Copy class="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <p class="text-[11px] text-slate-500">
+            বডি: <code class="text-slate-400">&#123; "to": "017...", "message": "..." &#125;</code> (যেকোনো সাইট থেকে কল করা যাবে)।
+          </p>
+        </div>
+      </div>
+
+      <!-- Quick Test Enqueue Form -->
+      <div class="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80">
+        <h4 class="text-xs font-bold text-slate-200 mb-3 flex items-center gap-1.5">
+          <Send class="w-3.5 h-3.5 text-indigo-400" />
+          <span>১০-সেকেন্ড পোলিং টেস্ট SMS কিউ করুন</span>
+        </h4>
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+          <div class="sm:col-span-4">
+            <input
+              type="text"
+              bind:value={testQueuePhone}
+              placeholder="মোবাইল নম্বর (+880 17...)"
+              class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+          <div class="sm:col-span-6">
+            <input
+              type="text"
+              bind:value={testQueueMsg}
+              placeholder="মেসেজ লিখুন..."
+              class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+          <div class="sm:col-span-2">
+            <button
+              type="button"
+              class="w-full h-full py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
+              disabled={isQueueing}
+              on:click={handleEnqueueTest}
+            >
+              <Plus class="w-3.5 h-3.5" />
+              <span>{isQueueing ? 'যোগ হচ্ছে...' : 'কিউ করুন'}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modern Bordered List View: Active Outbox Queue Items -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-between text-xs text-slate-400">
+          <span class="font-bold text-slate-300">
+            রিয়েল-টাইম আউটবক্স কিউ ({$smsQueue.length} টি রেকর্ড)
+          </span>
+          <span class="text-[11px] text-emerald-400">
+            {pendingQueueItems.length} টি অপেক্ষমাণ (১০ সেকেন্ডের মধ্যে SIM 1 পাঠাবে)
+          </span>
+        </div>
+
+        {#if $smsQueue.length === 0}
+          <div class="p-6 text-center text-xs text-slate-500 border border-slate-800 rounded-2xl bg-slate-950">
+            আউটবক্স কিউ বর্তমানে খালি। কোনো নতুন SMS পাঠানো হলে এখানে প্রদর্শিত হবে।
+          </div>
+        {:else}
+          <div class="border border-slate-800 rounded-2xl overflow-hidden divide-y divide-slate-800 bg-slate-950/60">
+            {#each $smsQueue as item}
+              <div class="p-3.5 hover:bg-slate-900/50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                <div class="flex items-start gap-3">
+                  <div class="w-8 h-8 rounded-xl shrink-0 flex items-center justify-center font-bold text-xs
+                    {item.status === 'pending' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
+                     item.status === 'sent' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
+                     'bg-rose-500/20 text-rose-300 border border-rose-500/30'}">
+                    {#if item.status === 'pending'}
+                      ⏳
+                    {:else if item.status === 'sent'}
+                      ✓
+                    {:else}
+                      ✕
+                    {/if}
+                  </div>
+
+                  <div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <span class="font-bold text-white">{item.recipientPhone}</span>
+                      {#if item.recipientName}
+                        <span class="text-slate-400">({item.recipientName})</span>
+                      {/if}
+                      <span class="text-[10px] text-indigo-400 font-mono bg-indigo-950/50 px-2 py-0.5 rounded border border-indigo-800/40">
+                        {item.coachingCenterId}
+                      </span>
+                    </div>
+                    <p class="text-slate-300 mt-1 line-clamp-1">{item.message}</p>
+                    <span class="text-[10px] text-slate-500 mt-0.5 block">
+                      তৈরি: {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      {#if item.sentAt}
+                        • SIM 1 ডেলিভারি: {new Date(item.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      {/if}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="shrink-0 flex items-center gap-2 self-end sm:self-center">
+                  {#if item.status === 'pending'}
+                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 flex items-center gap-1">
+                      <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
+                      অপেক্ষমাণ (ফোন পোলিং করবে)
+                    </span>
+                  {:else if item.status === 'sent'}
+                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                      SIM 1 দিয়ে প্রেরিত (৳0.00)
+                    </span>
+                  {:else}
+                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30">
+                      ব্যর্থ
+                    </span>
+                  {/if}
+                </div>
+              </div>
+            {/each}
+          </div>
+        {/if}
       </div>
     </div>
 

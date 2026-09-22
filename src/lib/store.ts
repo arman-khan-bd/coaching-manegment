@@ -23,6 +23,7 @@ import type {
   PlatformUser,
   PlatformSettings,
   PlatformTransaction,
+  SmsQueueItem,
 } from './types';
 import {
   syncStudentToDb,
@@ -33,6 +34,7 @@ import {
   syncInstituteSettingsToDb,
   loadInstituteSettingsFromDb,
 } from './supabase';
+import { enqueueSmsToQueue } from './smsQueueApi';
 
 // ==========================================
 // NAVIGATION & AUTH STORES
@@ -905,6 +907,7 @@ export const defaultInstituteSettings: InstituteSettings = {
   // 6. SMS & Automation
   defaultSmsGateway: 'android',
   smsSenderId: 'APEXCARE',
+  coachingCenterId: 'aac-dhaka-01',
   autoSmsOnAdmission: true,
   autoSmsOnAttendance: true,
   autoSmsOnFeePayment: true,
@@ -1595,6 +1598,21 @@ export const smsLogs = writable<SmsLog[]>([
   },
 ]);
 
+// 10-Second Polling Outbox Queue store
+export const smsQueue = writable<SmsQueueItem[]>([
+  {
+    id: 'sms-demo-1',
+    coachingCenterId: 'aac-dhaka-01',
+    recipientPhone: '+8801711456789',
+    recipientName: 'ফারহান শাকিল',
+    message: 'সম্মানিত অভিভাবক, ফারহান শাকিল আজ ফিজিক্স ক্লাসে উপস্থিত হয়েছে। - এপেক্স কেয়ার',
+    status: 'sent',
+    simSlot: 1,
+    createdAt: new Date(Date.now() - 3600000).toISOString(),
+    sentAt: new Date(Date.now() - 3590000).toISOString(),
+  },
+]);
+
 // ==========================================
 // STORE ACTIONS & HELPER METHODS
 // ==========================================
@@ -1986,6 +2004,21 @@ export function sendSms(
 
   smsLogs.update((logs) => [newLog, ...logs]);
   syncSmsLogToDb(newLog);
+
+  // 10-Second Outbox Queue for Android Gateway Polling
+  if (gateway === 'android_sim1') {
+    let coachingId = 'aac-dhaka-01';
+    const unsub = instituteSettings.subscribe((s) => {
+      if (s?.coachingCenterId) coachingId = s.coachingCenterId;
+    });
+    unsub();
+
+    enqueueSmsToQueue(coachingId, recipientPhone, recipientName, message).then((res) => {
+      if (res && res.item) {
+        smsQueue.update((q) => [res.item, ...q.filter((x) => x.id !== res.item.id)]);
+      }
+    });
+  }
 
   // Direct bridge to React Native Companion App if running inside Android WebView
   if (gateway === 'android_sim1' && typeof window !== 'undefined' && (window as any).ReactNativeWebView) {
