@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "coaching-management",
+  "pages_build_output_dir": "dist",
+  "vars": {
+    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_ibH84sYVdp6hleVaGN_i4g_6PQX3ajJ",
+    "NEXT_PUBLIC_SUPABASE_URL": "https://qmrpvrsysbbmjxjdrzaj.supabase.co",
+    "VITE_CLOUDINARY_CLOUD": "dj7pg5slk",
+    "VITE_CLOUDINARY_PRESET": "coaching",
+    "VITE_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_ibH84sYVdp6hleVaGN_i4g_6PQX3ajJ",
+    "VITE_SUPABASE_URL": "https://qmrpvrsysbbmjxjdrzaj.supabase.co"
+  }
+}
