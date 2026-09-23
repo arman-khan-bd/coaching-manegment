@@ -1,9 +1,25 @@
 <script lang="ts">
-  import { courses, units, batches, teachers, students, addBatch, updateBatch, deleteBatch, showToast, type Batch } from '../store';
+  import {
+    courses,
+    units,
+    batches,
+    teachers,
+    students,
+    addBatch,
+    updateBatch,
+    deleteBatch,
+    addCourse,
+    updateCourse,
+    deleteCourse,
+    showToast,
+    type Batch,
+    type Course,
+  } from '../store';
   import { navigate } from '../router';
   import SendSmsModal from '../components/SendSmsModal.svelte';
   import Modal from '../components/Modal.svelte';
   import Badge from '../components/Badge.svelte';
+  import ConfirmModal from '../components/ConfirmModal.svelte';
   import {
     BookOpen,
     Layers,
@@ -23,6 +39,115 @@
 
   let subTab: 'batches' | 'courses' | 'units' = 'batches';
   let isAddBatchModalOpen = false;
+
+  // Confirm delete states
+  let isConfirmDeleteBatchOpen = false;
+  let batchToDelete: Batch | null = null;
+  let isConfirmDeleteCourseOpen = false;
+  let courseToDelete: Course | null = null;
+
+  function promptDeleteBatch(b: Batch) {
+    batchToDelete = b;
+    isConfirmDeleteBatchOpen = true;
+  }
+
+  function handleConfirmDeleteBatch() {
+    if (batchToDelete) {
+      deleteBatch(batchToDelete.id);
+      isConfirmDeleteBatchOpen = false;
+      batchToDelete = null;
+    }
+  }
+
+  function promptDeleteCourse(c: Course) {
+    courseToDelete = c;
+    isConfirmDeleteCourseOpen = true;
+  }
+
+  function handleConfirmDeleteCourse() {
+    if (courseToDelete) {
+      deleteCourse(courseToDelete.id);
+      isConfirmDeleteCourseOpen = false;
+      courseToDelete = null;
+    }
+  }
+
+  // Course Add/Edit States
+  let isAddCourseModalOpen = false;
+  let isEditCourseModalOpen = false;
+  let editCourse: Course | null = null;
+
+  let courseTitle = '';
+  let courseCode = '';
+  let courseCategory = 'HSC Science';
+  let courseDescription = '';
+  let courseDurationWeeks = 24;
+  let courseFeeAmount = 10000;
+  let courseUnitsCount = 10;
+  let courseThumbnail = 'https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?auto=format&fit=crop&w=600&q=80';
+
+  function openAddCourse() {
+    courseTitle = '';
+    courseCode = `CRS-${Date.now().toString().slice(-4)}`;
+    courseCategory = 'HSC Science';
+    courseDescription = '';
+    courseDurationWeeks = 24;
+    courseFeeAmount = 10000;
+    courseUnitsCount = 8;
+    courseThumbnail = 'https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?auto=format&fit=crop&w=600&q=80';
+    isAddCourseModalOpen = true;
+  }
+
+  function handleCreateCourse() {
+    if (!courseTitle || !courseCode) {
+      showToast('error', 'ভুল তথ্য', 'কোর্সের শিরোনাম ও কোড আবশ্যক।');
+      return;
+    }
+    addCourse({
+      code: courseCode,
+      title: courseTitle,
+      category: courseCategory,
+      description: courseDescription,
+      durationWeeks: courseDurationWeeks,
+      feeAmount: courseFeeAmount,
+      unitsCount: courseUnitsCount,
+      thumbnail: courseThumbnail,
+      status: 'published',
+    });
+    isAddCourseModalOpen = false;
+  }
+
+  function openEditCourse(c: Course) {
+    editCourse = c;
+    courseTitle = c.title;
+    courseCode = c.code;
+    courseCategory = c.category;
+    courseDescription = c.description;
+    courseDurationWeeks = c.durationWeeks;
+    courseFeeAmount = c.feeAmount;
+    courseUnitsCount = c.unitsCount;
+    courseThumbnail = c.thumbnail;
+    isEditCourseModalOpen = true;
+  }
+
+  function handleUpdateCourse() {
+    if (!editCourse || !courseTitle || !courseCode) {
+      showToast('error', 'ভুল তথ্য', 'কোর্সের শিরোনাম ও কোড আবশ্যক।');
+      return;
+    }
+    updateCourse(editCourse.id, {
+      code: courseCode,
+      title: courseTitle,
+      category: courseCategory,
+      description: courseDescription,
+      durationWeeks: courseDurationWeeks,
+      feeAmount: courseFeeAmount,
+      unitsCount: courseUnitsCount,
+      thumbnail: courseThumbnail,
+    });
+    isEditCourseModalOpen = false;
+    editCourse = null;
+  }
 
   // Edit Batch Modal State
   let isEditBatchModalOpen = false;
@@ -80,12 +205,6 @@
     });
     isEditBatchModalOpen = false;
     editBatch = null;
-  }
-
-  function handleDeleteBatch(b: Batch) {
-    if (confirm(`"${b.name}" ব্যাচটি মুছে ফেলবেন?`)) {
-      deleteBatch(b.id);
-    }
   }
 
   // SMS Modal State
@@ -198,6 +317,15 @@
           <Plus class="w-4 h-4" />
           <span>New Batch</span>
         </button>
+      {:else if subTab === 'courses'}
+        <button
+          type="button"
+          class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-md shadow-indigo-600/30 transition-all flex items-center gap-1.5"
+          on:click={openAddCourse}
+        >
+          <Plus class="w-4 h-4" />
+          <span>New Course</span>
+        </button>
       {/if}
 
       <button
@@ -214,7 +342,12 @@
   <!-- TAB 1: BATCHES -->
   {#if subTab === 'batches'}
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {#each $batches as b}
+      {#if $batches.length === 0}
+        <div class="col-span-full text-center py-12 text-slate-400 text-xs bg-slate-900/60 rounded-2xl border border-slate-800">
+          কোনো অ্যাকাডেমিক ব্যাচ নেই। উপরে "+ New Batch" বাটনে ক্লিক করে নতুন ব্যাচ তৈরি করুন।
+        </div>
+      {:else}
+        {#each $batches as b}
         {@const courseObj = $courses.find((c) => c.id === b.courseId)}
         {@const teacherObj = $teachers.find((t) => t.id === b.teacherId)}
         {@const occupancyPercent = Math.round((b.enrolledCount / b.maxCapacity) * 100)}
@@ -306,7 +439,7 @@
                 type="button"
                 class="font-semibold text-rose-400 hover:text-rose-300 flex items-center gap-1 bg-rose-950/40 hover:bg-rose-900/50 px-2.5 py-1 rounded-lg border border-rose-500/20 transition-colors"
                 title="ব্যাচ মুছুন"
-                on:click={() => handleDeleteBatch(b)}
+                on:click={() => promptDeleteBatch(b)}
               >
                 <Trash2 class="w-3.5 h-3.5" />
               </button>
@@ -314,12 +447,18 @@
           </div>
         </div>
       {/each}
+      {/if}
     </div>
 
   <!-- TAB 2: COURSES -->
   {:else if subTab === 'courses'}
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {#each $courses as c}
+      {#if $courses.length === 0}
+        <div class="col-span-full text-center py-12 text-slate-400 text-xs bg-slate-900/60 rounded-2xl border border-slate-800">
+          কোনো কোর্স তৈরি করা হয়নি। উপরে "+ New Course" বাটনে ক্লিক করে নতুন কোর্স যুক্ত করুন।
+        </div>
+      {:else}
+        {#each $courses as c}
         <div class="rounded-3xl bg-slate-900/80 border border-slate-800 overflow-hidden flex flex-col justify-between hover:border-slate-700 transition-colors shadow-lg">
           <div class="h-36 w-full relative overflow-hidden bg-slate-950">
             <img src={c.thumbnail} alt={c.title} class="w-full h-full object-cover opacity-60" />
@@ -354,19 +493,38 @@
             </div>
 
             <div class="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between text-xs">
-              <span class="text-slate-400">Status: <strong class="text-emerald-400">Published</strong></span>
-              <button
-                type="button"
-                class="font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
-                on:click={() => (subTab = 'units')}
-              >
-                <span>View Syllabus Units</span>
-                <ChevronRight class="w-3.5 h-3.5" />
-              </button>
+              <span class="text-slate-400">Status: <strong class="text-emerald-400">{c.status || 'Published'}</strong></span>
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  class="p-1.5 rounded-lg bg-slate-800 hover:bg-amber-500/20 text-amber-400 transition-colors"
+                  title="কোর্স সম্পাদনা"
+                  on:click={() => openEditCourse(c)}
+                >
+                  <Pencil class="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  class="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-rose-400 transition-colors"
+                  title="কোর্স মুছুন"
+                  on:click={() => promptDeleteCourse(c)}
+                >
+                  <Trash2 class="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  class="font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 ml-1"
+                  on:click={() => (subTab = 'units')}
+                >
+                  <span>Units</span>
+                  <ChevronRight class="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
       {/each}
+      {/if}
     </div>
 
   <!-- TAB 3: UNITS & SYLLABUS -->
@@ -622,4 +780,116 @@
 
   </form>
 </Modal>
+
+<!-- Add Course Modal -->
+<Modal open={isAddCourseModalOpen} title="Create New Course" subtitle="Register academic course, syllabus structure & tuition fee" onClose={() => (isAddCourseModalOpen = false)}>
+  <form on:submit|preventDefault={handleCreateCourse} class="space-y-4 text-xs">
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label for="new-course-title" class="block font-medium text-slate-300 mb-1">Course Title *</label>
+        <input id="new-course-title" type="text" bind:value={courseTitle} placeholder="যেমন: HSC পদার্থবিজ্ঞান ১ম ও ২য় পত্র" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none" required />
+      </div>
+      <div>
+        <label for="new-course-code" class="block font-medium text-slate-300 mb-1">Course Code *</label>
+        <input id="new-course-code" type="text" bind:value={courseCode} placeholder="HSC-PHY-01" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none" required />
+      </div>
+    </div>
+    <div class="grid grid-cols-3 gap-3">
+      <div>
+        <label for="new-course-cat" class="block font-medium text-slate-300 mb-1">Category</label>
+        <select id="new-course-cat" bind:value={courseCategory} class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:border-indigo-500 focus:outline-none">
+          <option value="HSC Science">HSC Science</option>
+          <option value="Engineering Admission">Engineering Admission</option>
+          <option value="Medical Admission">Medical Admission</option>
+          <option value="SSC Science">SSC Science</option>
+          <option value="General Academic">General Academic</option>
+        </select>
+      </div>
+      <div>
+        <label for="new-course-weeks" class="block font-medium text-slate-300 mb-1">Duration (Weeks)</label>
+        <input id="new-course-weeks" type="number" bind:value={courseDurationWeeks} min="1" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:border-indigo-500 focus:outline-none" />
+      </div>
+      <div>
+        <label for="new-course-fee" class="block font-medium text-slate-300 mb-1">Tuition Fee (৳)</label>
+        <input id="new-course-fee" type="number" bind:value={courseFeeAmount} min="0" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:border-indigo-500 focus:outline-none" />
+      </div>
+    </div>
+    <div>
+      <label for="new-course-desc" class="block font-medium text-slate-300 mb-1">Description</label>
+      <textarea id="new-course-desc" bind:value={courseDescription} rows="2" placeholder="কোর্স সম্পর্কে সংক্ষিপ্ত বিবরণ..." class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none"></textarea>
+    </div>
+    <div class="pt-4 flex items-center justify-end gap-3 border-t border-slate-800">
+      <button type="button" class="px-4 py-2.5 rounded-xl text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 transition-colors" on:click={() => (isAddCourseModalOpen = false)}>বাতিল</button>
+      <button type="submit" class="px-5 py-2.5 rounded-xl font-semibold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/30 transition-all">কোর্স তৈরি করুন</button>
+    </div>
+  </form>
+</Modal>
+
+<!-- Edit Course Modal -->
+<Modal open={isEditCourseModalOpen} title="Edit Course" subtitle="Modify course metadata, tuition fee & duration" onClose={() => { isEditCourseModalOpen = false; editCourse = null; }}>
+  <form on:submit|preventDefault={handleUpdateCourse} class="space-y-4 text-xs">
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label for="edit-course-title" class="block font-medium text-slate-300 mb-1">Course Title *</label>
+        <input id="edit-course-title" type="text" bind:value={courseTitle} class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:border-indigo-500 focus:outline-none" required />
+      </div>
+      <div>
+        <label for="edit-course-code" class="block font-medium text-slate-300 mb-1">Course Code *</label>
+        <input id="edit-course-code" type="text" bind:value={courseCode} class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:border-indigo-500 focus:outline-none" required />
+      </div>
+    </div>
+    <div class="grid grid-cols-3 gap-3">
+      <div>
+        <label for="edit-course-cat" class="block font-medium text-slate-300 mb-1">Category</label>
+        <select id="edit-course-cat" bind:value={courseCategory} class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:border-indigo-500 focus:outline-none">
+          <option value="HSC Science">HSC Science</option>
+          <option value="Engineering Admission">Engineering Admission</option>
+          <option value="Medical Admission">Medical Admission</option>
+          <option value="SSC Science">SSC Science</option>
+          <option value="General Academic">General Academic</option>
+        </select>
+      </div>
+      <div>
+        <label for="edit-course-weeks" class="block font-medium text-slate-300 mb-1">Duration (Weeks)</label>
+        <input id="edit-course-weeks" type="number" bind:value={courseDurationWeeks} min="1" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:border-indigo-500 focus:outline-none" />
+      </div>
+      <div>
+        <label for="edit-course-fee" class="block font-medium text-slate-300 mb-1">Tuition Fee (৳)</label>
+        <input id="edit-course-fee" type="number" bind:value={courseFeeAmount} min="0" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:border-indigo-500 focus:outline-none" />
+      </div>
+    </div>
+    <div>
+      <label for="edit-course-desc" class="block font-medium text-slate-300 mb-1">Description</label>
+      <textarea id="edit-course-desc" bind:value={courseDescription} rows="2" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:border-indigo-500 focus:outline-none"></textarea>
+    </div>
+    <div class="pt-4 flex items-center justify-end gap-3 border-t border-slate-800">
+      <button type="button" class="px-4 py-2.5 rounded-xl text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 transition-colors" on:click={() => { isEditCourseModalOpen = false; editCourse = null; }}>বাতিল</button>
+      <button type="submit" class="px-5 py-2.5 rounded-xl font-semibold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/30 transition-all">তথ্য সংরক্ষণ করুন</button>
+    </div>
+  </form>
+</Modal>
+
+<!-- Delete Batch Confirmation -->
+<ConfirmModal
+  open={isConfirmDeleteBatchOpen}
+  title="ব্যাচ মুছুন"
+  message="আপনি কি নিশ্চিত যে এই ব্যাচটি মুছে ফেলতে চান? সংশ্লিষ্ট সমস্ত তথ্য ও ক্লাস শিডিউল মুছে যাবে।"
+  itemName={batchToDelete ? `${batchToDelete.name} (${batchToDelete.code})` : ''}
+  confirmText="মুছে ফেলুন"
+  confirmVariant="danger"
+  onConfirm={handleConfirmDeleteBatch}
+  onCancel={() => { isConfirmDeleteBatchOpen = false; batchToDelete = null; }}
+/>
+
+<!-- Delete Course Confirmation -->
+<ConfirmModal
+  open={isConfirmDeleteCourseOpen}
+  title="কোর্স মুছুন"
+  message="আপনি কি নিশ্চিত যে এই কোর্সটি মুছে ফেলতে চান? এটি ডাটাবেজ থেকে স্থায়ীভাবে মুছে যাবে।"
+  itemName={courseToDelete ? `${courseToDelete.title} (${courseToDelete.code})` : ''}
+  confirmText="মুছে ফেলুন"
+  confirmVariant="danger"
+  onConfirm={handleConfirmDeleteCourse}
+  onCancel={() => { isConfirmDeleteCourseOpen = false; courseToDelete = null; }}
+/>
 

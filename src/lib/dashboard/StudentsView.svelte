@@ -21,6 +21,23 @@
     Pencil,
   } from 'lucide-svelte';
   import CloudinaryUpload from '../components/CloudinaryUpload.svelte';
+  import ConfirmModal from '../components/ConfirmModal.svelte';
+
+  let isConfirmDeleteOpen = false;
+  let studentToDelete: Student | null = null;
+
+  function promptDeleteStudent(s: Student) {
+    studentToDelete = s;
+    isConfirmDeleteOpen = true;
+  }
+
+  function handleConfirmDelete() {
+    if (studentToDelete) {
+      deleteStudent(studentToDelete.id);
+      isConfirmDeleteOpen = false;
+      studentToDelete = null;
+    }
+  }
 
   let searchQuery = '';
   let selectedBatchFilter = 'all';
@@ -365,7 +382,7 @@
                 type="button"
                 class="p-2 rounded-xl bg-rose-600/10 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-500/20 transition-all"
                 title="শিক্ষার্থী মুছুন"
-                on:click={() => deleteStudent(s.id)}
+                on:click={() => promptDeleteStudent(s)}
               >
                 <Trash2 class="w-4 h-4" />
               </button>
@@ -622,4 +639,15 @@
     </div>
   </form>
 </Modal>
+
+<ConfirmModal
+  open={isConfirmDeleteOpen}
+  title="শিক্ষার্থী মুছুন"
+  message="আপনি কি নিশ্চিত যে এই শিক্ষার্থীর ফাইল ও সমস্ত রেকর্ড মুছে ফেলতে চান? এটি ডাটাবেজ থেকে স্থায়ীভাবে মুছে ফেলা হবে।"
+  itemName={studentToDelete?.name || ''}
+  confirmText="মুছে ফেলুন"
+  confirmVariant="danger"
+  onConfirm={handleConfirmDelete}
+  onCancel={() => { isConfirmDeleteOpen = false; studentToDelete = null; }}
+/>
 

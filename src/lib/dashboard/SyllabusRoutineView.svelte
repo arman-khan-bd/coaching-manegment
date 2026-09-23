@@ -17,6 +17,7 @@
   import type { SyllabusItem, RoutineSlot } from '../types';
   import Badge from '../components/Badge.svelte';
   import Modal from '../components/Modal.svelte';
+  import ConfirmModal from '../components/ConfirmModal.svelte';
   import SyllabusRoutinePrintModal from '../components/SyllabusRoutinePrintModal.svelte';
   import {
     BookOpen,
@@ -83,6 +84,38 @@
   let rtTeacherId = 't-1';
   let rtRoom = 'রুম ২০৪ (লেকচার হল ১)';
   let rtClassType: 'theory' | 'model_test' | 'practical' | 'doubt_solve' = 'theory';
+
+  // Confirm Delete Syllabus State
+  let isConfirmDeleteSylOpen = false;
+  let sylToDelete: SyllabusItem | null = null;
+
+  function promptDeleteSyllabus(item: SyllabusItem) {
+    sylToDelete = item;
+    isConfirmDeleteSylOpen = true;
+  }
+
+  function handleConfirmDeleteSyllabus() {
+    if (!sylToDelete) return;
+    deleteSyllabusItem(sylToDelete.id);
+    showToast('info', 'অধ্যায় সফলভাবে মুছে ফেলা হয়েছে', `${sylToDelete.chapterTitle} মুছে ফেলা হয়েছে।`);
+    sylToDelete = null;
+  }
+
+  // Confirm Delete Routine State
+  let isConfirmDeleteRtOpen = false;
+  let rtToDelete: RoutineSlot | null = null;
+
+  function promptDeleteRoutine(slot: RoutineSlot) {
+    rtToDelete = slot;
+    isConfirmDeleteRtOpen = true;
+  }
+
+  function handleConfirmDeleteRoutine() {
+    if (!rtToDelete) return;
+    deleteRoutineSlot(rtToDelete.id);
+    showToast('info', 'ক্লাস রুটিন স্লট মুছে ফেলা হয়েছে', `${rtToDelete.subject} (${rtToDelete.batchName}) মুছে ফেলা হয়েছে।`);
+    rtToDelete = null;
+  }
 
   const daysList = ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
   const dayNameBn: Record<string, string> = {
@@ -553,7 +586,7 @@
                       type="button"
                       title="অধ্যায় মুছুন"
                       class="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-950/60 text-slate-400 hover:text-rose-400 transition-colors"
-                      on:click={() => deleteSyllabusItem(item.id)}
+                      on:click={() => promptDeleteSyllabus(item)}
                     >
                       <Trash2 class="w-3.5 h-3.5" />
                     </button>
@@ -825,7 +858,7 @@
                     type="button"
                     class="p-2 rounded-xl bg-rose-600/15 hover:bg-rose-600 text-rose-400 hover:text-white transition-all border border-rose-500/30"
                     title="রুটিন স্লট মুছুন"
-                    on:click={() => deleteRoutineSlot(slot.id)}
+                    on:click={() => promptDeleteRoutine(slot)}
                   >
                     <Trash2 class="w-4 h-4" />
                   </button>
@@ -1150,3 +1183,30 @@
   }}
   onClose={() => (isPrintModalOpen = false)}
 />
+
+<!-- Confirm Delete Syllabus Modal -->
+<ConfirmModal
+  open={isConfirmDeleteSylOpen}
+  title="সিলেবাস অধ্যায় মুছবেন?"
+  message="আপনি কি নিশ্চিতভাবে এই সিলেবাস অধ্যায়টি মুছে ফেলতে চান? এটি স্থায়ীভাবে ডাটাবেস থেকে মুছে যাবে।"
+  itemName={sylToDelete ? `${sylToDelete.chapterTitle} (${sylToDelete.courseName})` : ''}
+  confirmText="মুছে ফেলুন"
+  cancelText="বাতিল"
+  variant="danger"
+  onConfirm={handleConfirmDeleteSyllabus}
+  onClose={() => { isConfirmDeleteSylOpen = false; sylToDelete = null; }}
+/>
+
+<!-- Confirm Delete Routine Slot Modal -->
+<ConfirmModal
+  open={isConfirmDeleteRtOpen}
+  title="ক্লাস রুটিন স্লট মুছবেন?"
+  message="আপনি কি নিশ্চিতভাবে এই রুটিন স্লটটি মুছে ফেলতে চান? এটি স্থায়ীভাবে ডাটাবেস থেকে মুছে যাবে।"
+  itemName={rtToDelete ? `${rtToDelete.subject} - ${rtToDelete.batchName} (${rtToDelete.dayOfWeek})` : ''}
+  confirmText="মুছে ফেলুন"
+  cancelText="বাতিল"
+  variant="danger"
+  onConfirm={handleConfirmDeleteRoutine}
+  onClose={() => { isConfirmDeleteRtOpen = false; rtToDelete = null; }}
+/>
+

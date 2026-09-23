@@ -22,6 +22,7 @@
   import SendSmsModal from '../components/SendSmsModal.svelte';
   import Modal from '../components/Modal.svelte';
   import Badge from '../components/Badge.svelte';
+  import ConfirmModal from '../components/ConfirmModal.svelte';
   import {
     Award,
     CheckCircle2,
@@ -221,10 +222,20 @@
     isEditExamModalOpen = false;
   }
 
-  function handleDeleteCurrentExam() {
+  let isConfirmDeleteExamOpen = false;
+  let examToDelete: Exam | null = null;
+
+  function promptDeleteCurrentExam() {
     if (!currentExam) return;
-    if (confirm(`আপনি কি নিশ্চিত যে "${currentExam.title}" পরীক্ষা ও এর সকল ফলাফল মুছে ফেলতে চান?`)) {
-      deleteExam(currentExam.id);
+    examToDelete = currentExam;
+    isConfirmDeleteExamOpen = true;
+  }
+
+  function handleConfirmDeleteExam() {
+    if (examToDelete) {
+      deleteExam(examToDelete.id);
+      isConfirmDeleteExamOpen = false;
+      examToDelete = null;
       if ($exams.length > 0) {
         selectedExamId = $exams[0].id;
       }
@@ -391,9 +402,19 @@
     isSingleMarkModalOpen = false;
   }
 
-  function handleDeleteSingleMark(m: ExamMark) {
-    if (confirm(`আপনি কি "${m.studentName}"-এর ফলাফল মুছে ফেলতে চান?`)) {
-      deleteExamMark(m.id);
+  let isConfirmDeleteMarkOpen = false;
+  let markToDelete: ExamMark | null = null;
+
+  function promptDeleteSingleMark(m: ExamMark) {
+    markToDelete = m;
+    isConfirmDeleteMarkOpen = true;
+  }
+
+  function handleConfirmDeleteMark() {
+    if (markToDelete) {
+      deleteExamMark(markToDelete.id);
+      isConfirmDeleteMarkOpen = false;
+      markToDelete = null;
     }
   }
 
@@ -625,7 +646,7 @@
               type="button"
               class="p-2 rounded-lg text-rose-400 hover:text-white bg-rose-950/40 hover:bg-rose-900 transition-colors"
               title="এই পরীক্ষা মুছে ফেলুন"
-              on:click={handleDeleteCurrentExam}
+              on:click={promptDeleteCurrentExam}
             >
               <Trash2 class="w-3.5 h-3.5" />
             </button>
@@ -837,7 +858,7 @@
                   type="button"
                   class="p-2 rounded-xl bg-rose-600/15 hover:bg-rose-600 text-rose-400 hover:text-white transition-all border border-rose-500/30"
                   title="ফলাফল রেকর্ড মুছে ফেলুন"
-                  on:click={() => handleDeleteSingleMark(m)}
+                  on:click={() => promptDeleteSingleMark(m)}
                 >
                   <Trash2 class="w-4 h-4" />
                 </button>
@@ -1634,4 +1655,28 @@
   onClose={() => {
     isSmsModalOpen = false;
   }}
+/>
+
+<!-- Delete Exam Confirmation Modal -->
+<ConfirmModal
+  open={isConfirmDeleteExamOpen}
+  title="পরীক্ষা মুছে ফেলুন"
+  message="আপনি কি নিশ্চিত যে এই পরীক্ষাটি মুছে ফেলতে চান? সংশ্লিষ্ট সকল শিক্ষার্থীর পরীক্ষার মার্কস ও ফলাফল রেকর্ড মুছে যাবে।"
+  itemName={examToDelete ? `${examToDelete.title} (${examToDelete.examType})` : ''}
+  confirmText="মুছে ফেলুন"
+  confirmVariant="danger"
+  onConfirm={handleConfirmDeleteExam}
+  onCancel={() => { isConfirmDeleteExamOpen = false; examToDelete = null; }}
+/>
+
+<!-- Delete Exam Mark Confirmation Modal -->
+<ConfirmModal
+  open={isConfirmDeleteMarkOpen}
+  title="ফলাফল রেকর্ড মুছুন"
+  message="আপনি কি নিশ্চিত যে এই শিক্ষার্থীর পরীক্ষার ফলাফল রেকর্ডটি মুছে ফেলতে চান?"
+  itemName={markToDelete ? `${markToDelete.studentName} (রোল: ${markToDelete.rollNo} • নম্বর: ${markToDelete.marksObtained})` : ''}
+  confirmText="মুছে ফেলুন"
+  confirmVariant="danger"
+  onConfirm={handleConfirmDeleteMark}
+  onCancel={() => { isConfirmDeleteMarkOpen = false; markToDelete = null; }}
 />

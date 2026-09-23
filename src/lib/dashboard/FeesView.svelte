@@ -1,8 +1,22 @@
 <script lang="ts">
-  import { feeInvoices, students, collectPayment, sendSms, instituteSettings, showToast, type FeeInvoice } from '../store';
+  import {
+    feeInvoices,
+    students,
+    batches,
+    courses,
+    collectPayment,
+    addInvoice,
+    updateInvoice,
+    deleteInvoice,
+    sendSms,
+    instituteSettings,
+    showToast,
+    type FeeInvoice,
+  } from '../store';
   import SendSmsModal from '../components/SendSmsModal.svelte';
   import Modal from '../components/Modal.svelte';
   import Badge from '../components/Badge.svelte';
+  import ConfirmModal from '../components/ConfirmModal.svelte';
   import {
     CreditCard,
     DollarSign,
@@ -15,9 +29,104 @@
     Filter,
     MessageSquare,
     Receipt,
+    Pencil,
+    Trash2,
   } from 'lucide-svelte';
 
   let statusFilter: 'all' | 'paid' | 'partial' | 'unpaid' = 'all';
+
+  // Invoice Add/Edit States
+  let isAddInvoiceModalOpen = false;
+  let isEditInvoiceModalOpen = false;
+  let editInvoice: FeeInvoice | null = null;
+
+  let newStudentId = '';
+  let newStudentName = '';
+  let newBatchId = '';
+  let newBatchName = '';
+  let newCourseName = '';
+  let newAmount = 3000;
+  let newDueDate = new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0];
+
+  function openAddInvoice() {
+    newStudentId = $students[0]?.id || '';
+    newStudentName = $students[0]?.name || '';
+    newBatchId = $batches[0]?.id || '';
+    newBatchName = $batches[0]?.name || '';
+    newCourseName = $courses[0]?.title || 'অ্যাকাডেমিক কোর্স';
+    newAmount = 3000;
+    newDueDate = new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0];
+    isAddInvoiceModalOpen = true;
+  }
+
+  function handleCreateInvoice() {
+    if (!newStudentName || newAmount <= 0) {
+      showToast('error', 'ভুল তথ্য', 'শিক্ষার্থীর নাম ও ফি এর পরিমাণ আবশ্যক।');
+      return;
+    }
+    const invNo = `INV-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    addInvoice({
+      invoiceNo: invNo,
+      studentId: newStudentId,
+      studentName: newStudentName,
+      batchId: newBatchId,
+      batchName: newBatchName,
+      courseName: newCourseName,
+      amount: newAmount,
+      paidAmount: 0,
+      dueAmount: newAmount,
+      status: 'unpaid',
+      issueDate: new Date().toISOString().split('T')[0],
+      dueDate: newDueDate,
+      paymentMethod: 'bKash',
+    });
+    isAddInvoiceModalOpen = false;
+  }
+
+  function openEditInvoice(inv: FeeInvoice) {
+    editInvoice = inv;
+    newStudentName = inv.studentName;
+    newBatchName = inv.batchName;
+    newCourseName = inv.courseName;
+    newAmount = inv.amount;
+    newDueDate = inv.dueDate;
+    isEditInvoiceModalOpen = true;
+  }
+
+  function handleUpdateInvoice() {
+    if (!editInvoice || newAmount <= 0) return;
+    const paid = editInvoice.paidAmount;
+    const due = Math.max(0, newAmount - paid);
+    const status = due === 0 ? 'paid' : paid > 0 ? 'partial' : 'unpaid';
+    updateInvoice(editInvoice.id, {
+      studentName: newStudentName,
+      batchName: newBatchName,
+      courseName: newCourseName,
+      amount: newAmount,
+      dueAmount: due,
+      status,
+      dueDate: newDueDate,
+    });
+    isEditInvoiceModalOpen = false;
+    editInvoice = null;
+  }
+
+  // Delete invoice with confirm modal
+  let isConfirmDeleteInvoiceOpen = false;
+  let invoiceToDelete: FeeInvoice | null = null;
+
+  function promptDeleteInvoice(inv: FeeInvoice) {
+    invoiceToDelete = inv;
+    isConfirmDeleteInvoiceOpen = true;
+  }
+
+  function handleConfirmDeleteInvoice() {
+    if (invoiceToDelete) {
+      deleteInvoice(invoiceToDelete.id);
+      isConfirmDeleteInvoiceOpen = false;
+      invoiceToDelete = null;
+    }
+  }
 
   // Payment Collection Modal State
   let isPayModalOpen = false;
@@ -126,7 +235,16 @@
       <p class="text-xs text-slate-400 mt-1">Track payments, issue printable vouchers, and auto-dispatch receipt SMS.</p>
     </div>
 
-    <div class="flex items-center gap-2.5 self-start sm:self-auto">
+    <div class="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
+      <button
+        type="button"
+        class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-all flex items-center gap-2 shadow-md shadow-indigo-600/30"
+        on:click={openAddInvoice}
+      >
+        <Plus class="w-4 h-4" />
+        <span>নতুন ইনভয়েস তৈরি</span>
+      </button>
+
       <button
         type="button"
         class="px-4 py-2.5 rounded-xl bg-rose-600/15 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 font-semibold text-xs transition-all flex items-center gap-2 shadow-sm"
@@ -285,6 +403,24 @@
                 on:click={() => openReceiptModal(inv)}
               >
                 <Printer class="w-4 h-4" />
+              </button>
+
+              <button
+                type="button"
+                class="p-2 rounded-xl bg-slate-800 hover:bg-amber-500/20 text-amber-400 border border-slate-700 transition-all"
+                title="ইনভয়েস সম্পাদন"
+                on:click={() => openEditInvoice(inv)}
+              >
+                <Pencil class="w-4 h-4" />
+              </button>
+
+              <button
+                type="button"
+                class="p-2 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-rose-400 border border-slate-700 transition-all"
+                title="ইনভয়েস মুছুন"
+                on:click={() => promptDeleteInvoice(inv)}
+              >
+                <Trash2 class="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -464,4 +600,117 @@
   onClose={() => {
     isSmsModalOpen = false;
   }}
+/>
+
+<!-- Add Invoice Modal -->
+<Modal open={isAddInvoiceModalOpen} title="নতুন ইনভয়েস তৈরি" subtitle="শিক্ষার্থীর অনুকূলে টিউশন ফি বা পরীক্ষার ইনভয়েস যোগ করুন" onClose={() => (isAddInvoiceModalOpen = false)}>
+  <form on:submit|preventDefault={handleCreateInvoice} class="space-y-4 text-xs">
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label for="inv-student-select" class="block font-medium text-slate-300 mb-1">শিক্ষার্থী নির্বাচন *</label>
+        <select
+          id="inv-student-select"
+          class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:border-indigo-500 focus:outline-none"
+          bind:value={newStudentId}
+          on:change={(e) => {
+            const stu = $students.find((s) => s.id === e.currentTarget.value);
+            if (stu) newStudentName = stu.name;
+          }}
+        >
+          <option value="">-- শিক্ষার্থী বাছাই করুন --</option>
+          {#each $students as s}
+            <option value={s.id}>{s.name} ({s.rollNo})</option>
+          {/each}
+        </select>
+      </div>
+      <div>
+        <label for="inv-student-name" class="block font-medium text-slate-300 mb-1">অথবা নাম লিখুন *</label>
+        <input id="inv-student-name" type="text" bind:value={newStudentName} placeholder="যেমন: ফারহান শাকিল" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:border-indigo-500 focus:outline-none" required />
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label for="inv-batch-select" class="block font-medium text-slate-300 mb-1">ব্যাচ</label>
+        <select
+          id="inv-batch-select"
+          class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:border-indigo-500 focus:outline-none"
+          bind:value={newBatchId}
+          on:change={(e) => {
+            const b = $batches.find((x) => x.id === e.currentTarget.value);
+            if (b) newBatchName = b.name;
+          }}
+        >
+          <option value="">-- ব্যাচ বাছাই করুন --</option>
+          {#each $batches as b}
+            <option value={b.id}>{b.name}</option>
+          {/each}
+        </select>
+      </div>
+      <div>
+        <label for="inv-course-name" class="block font-medium text-slate-300 mb-1">কোর্স/বিবরণ</label>
+        <input id="inv-course-name" type="text" bind:value={newCourseName} placeholder="যেমন: HSC পদার্থবিজ্ঞান" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:border-indigo-500 focus:outline-none" />
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label for="inv-amount" class="block font-medium text-slate-300 mb-1">ফি-এর পরিমাণ (৳) *</label>
+        <input id="inv-amount" type="number" bind:value={newAmount} min="1" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:border-indigo-500 focus:outline-none" required />
+      </div>
+      <div>
+        <label for="inv-due-date" class="block font-medium text-slate-300 mb-1">পরিশোধের শেষ তারিখ *</label>
+        <input id="inv-due-date" type="date" bind:value={newDueDate} class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:border-indigo-500 focus:outline-none" required />
+      </div>
+    </div>
+
+    <div class="pt-4 flex items-center justify-end gap-3 border-t border-slate-800">
+      <button type="button" class="px-4 py-2.5 rounded-xl text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 transition-colors" on:click={() => (isAddInvoiceModalOpen = false)}>বাতিল</button>
+      <button type="submit" class="px-5 py-2.5 rounded-xl font-semibold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/30 transition-all">ইনভয়েস তৈরি করুন</button>
+    </div>
+  </form>
+</Modal>
+
+<!-- Edit Invoice Modal -->
+<Modal open={isEditInvoiceModalOpen} title="ইনভয়েস সম্পাদন" subtitle="ইনভয়েসের তথ্য, বকেয়া ও তারিখ পরিবর্তন করুন" onClose={() => { isEditInvoiceModalOpen = false; editInvoice = null; }}>
+  <form on:submit|preventDefault={handleUpdateInvoice} class="space-y-4 text-xs">
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label for="edit-inv-student" class="block font-medium text-slate-300 mb-1">শিক্ষার্থীর নাম</label>
+        <input id="edit-inv-student" type="text" bind:value={newStudentName} class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:border-indigo-500 focus:outline-none" required />
+      </div>
+      <div>
+        <label for="edit-inv-batch" class="block font-medium text-slate-300 mb-1">ব্যাচ / কোর্স</label>
+        <input id="edit-inv-batch" type="text" bind:value={newBatchName} class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:border-indigo-500 focus:outline-none" />
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label for="edit-inv-amount" class="block font-medium text-slate-300 mb-1">মোট ফি (৳)</label>
+        <input id="edit-inv-amount" type="number" bind:value={newAmount} min="1" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:border-indigo-500 focus:outline-none" required />
+      </div>
+      <div>
+        <label for="edit-inv-due-date" class="block font-medium text-slate-300 mb-1">পরিশোধের শেষ তারিখ</label>
+        <input id="edit-inv-due-date" type="date" bind:value={newDueDate} class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:border-indigo-500 focus:outline-none" required />
+      </div>
+    </div>
+
+    <div class="pt-4 flex items-center justify-end gap-3 border-t border-slate-800">
+      <button type="button" class="px-4 py-2.5 rounded-xl text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 transition-colors" on:click={() => { isEditInvoiceModalOpen = false; editInvoice = null; }}>বাতিল</button>
+      <button type="submit" class="px-5 py-2.5 rounded-xl font-semibold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/30 transition-all">তথ্য সংরক্ষণ করুন</button>
+    </div>
+  </form>
+</Modal>
+
+<!-- Delete Invoice Confirmation -->
+<ConfirmModal
+  open={isConfirmDeleteInvoiceOpen}
+  title="ইনভয়েস মুছুন"
+  message="আপনি কি নিশ্চিত যে এই ইনভয়েসটি ডাটাবেজ থেকে মুছে ফেলতে চান? সংশ্লিষ্ট ফি ও বকেয়া হিসাব সমন্বয় হবে।"
+  itemName={invoiceToDelete ? `${invoiceToDelete.studentName} (ইনভয়েস #${invoiceToDelete.invoiceNo} - ৳${invoiceToDelete.amount})` : ''}
+  confirmText="মুছে ফেলুন"
+  confirmVariant="danger"
+  onConfirm={handleConfirmDeleteInvoice}
+  onCancel={() => { isConfirmDeleteInvoiceOpen = false; invoiceToDelete = null; }}
 />

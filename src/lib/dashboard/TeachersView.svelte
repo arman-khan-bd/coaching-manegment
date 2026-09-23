@@ -4,9 +4,27 @@
   import Modal from '../components/Modal.svelte';
   import Badge from '../components/Badge.svelte';
   import CloudinaryUpload from '../components/CloudinaryUpload.svelte';
+  import ConfirmModal from '../components/ConfirmModal.svelte';
   import { UserCheck, Plus, Mail, Phone, GraduationCap, MessageSquare, Pencil, Trash2 } from 'lucide-svelte';
 
   let isAddModalOpen = false;
+
+  // Confirm Delete State
+  let isConfirmDeleteOpen = false;
+  let teacherToDelete: Teacher | null = null;
+
+  function promptDeleteTeacher(t: Teacher) {
+    teacherToDelete = t;
+    isConfirmDeleteOpen = true;
+  }
+
+  function handleConfirmDeleteTeacher() {
+    if (teacherToDelete) {
+      deleteTeacher(teacherToDelete.id);
+      isConfirmDeleteOpen = false;
+      teacherToDelete = null;
+    }
+  }
 
   // Edit Modal State
   let isEditModalOpen = false;
@@ -55,11 +73,7 @@
     editTeacher = null;
   }
 
-  function handleDeleteTeacher(t: Teacher) {
-    if (confirm(`"${t.name}" কে সিস্টেম থেকে মুছে ফেলবেন?`)) {
-      deleteTeacher(t.id);
-    }
-  }
+
 
   // SMS Modal State
   let isSmsModalOpen = false;
@@ -262,7 +276,7 @@
           <button
             type="button"
             class="py-2 px-3 rounded-xl bg-slate-800/80 hover:bg-rose-500/20 text-rose-400 font-semibold text-xs transition-all flex items-center justify-center gap-1.5"
-            on:click={() => handleDeleteTeacher(t)}
+            on:click={() => promptDeleteTeacher(t)}
             title="শিক্ষককে মুছে ফেলুন"
           >
             <Trash2 class="w-3.5 h-3.5" />
@@ -464,4 +478,15 @@
   onClose={() => {
     isSmsModalOpen = false;
   }}
+/>
+
+<ConfirmModal
+  open={isConfirmDeleteOpen}
+  title="শিক্ষক অপসারণ"
+  message="আপনি কি নিশ্চিত যে এই শিক্ষককে সিস্টেম ও ডাটাবেজ থেকে মুছে ফেলতে চান?"
+  itemName={teacherToDelete ? `${teacherToDelete.name} (${teacherToDelete.designation})` : ''}
+  confirmText="মুছে ফেলুন"
+  confirmVariant="danger"
+  onConfirm={handleConfirmDeleteTeacher}
+  onCancel={() => { isConfirmDeleteOpen = false; teacherToDelete = null; }}
 />

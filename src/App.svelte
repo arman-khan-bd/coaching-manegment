@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { currentView, activeTab, currentRole, instituteSettings } from './lib/store';
+  import { currentView, activeTab, currentRole, instituteSettings, refreshCurrentTenantDataFromDb, switchActiveTenant } from './lib/store';
   import ToastContainer from './lib/components/ToastContainer.svelte';
 
   // Landing Components
@@ -54,9 +54,15 @@
 
   onMount(() => {
     initRouter();
+    refreshCurrentTenantDataFromDb();
     initSupabaseAuth((user) => {
       if (user) {
         currentRole.set(user.role);
+        if (user.coaching_center_id) {
+          switchActiveTenant(user.coaching_center_id);
+        } else {
+          refreshCurrentTenantDataFromDb();
+        }
         if (user.institute_name) {
           instituteSettings.update((curr) => ({ ...curr, name: user.institute_name || curr.name }));
         }

@@ -13,6 +13,7 @@
   import type { SmsTemplate } from '../types';
   import Badge from '../components/Badge.svelte';
   import Modal from '../components/Modal.svelte';
+  import ConfirmModal from '../components/ConfirmModal.svelte';
   import SendSmsModal from '../components/SendSmsModal.svelte';
   import {
     FileText,
@@ -271,11 +272,20 @@
     isEditModalOpen = false;
   }
 
-  // Delete Handler
-  function handleDelete(id: string, title: string) {
-    if (confirm(`আপনি কি নিশ্চিতভাবে '${title}' টেমপ্লেটটি মুছে ফেলতে চান?`)) {
-      deleteSmsTemplate(id);
-    }
+  // Delete Confirmation State
+  let isConfirmDeleteOpen = false;
+  let templateToDelete: { id: string; title: string } | null = null;
+
+  function promptDelete(id: string, title: string) {
+    templateToDelete = { id, title };
+    isConfirmDeleteOpen = true;
+  }
+
+  function handleConfirmDelete() {
+    if (!templateToDelete) return;
+    deleteSmsTemplate(templateToDelete.id);
+    showToast('info', 'টেমপ্লেট মুছে ফেলা হয়েছে', `'${templateToDelete.title}' সফলভাবে মুছে ফেলা হয়েছে।`);
+    templateToDelete = null;
   }
 
   // Copy text to clipboard
@@ -526,7 +536,7 @@
                   type="button"
                   title="টেমপ্লেট মুছে ফেলুন"
                   class="p-1.5 rounded-lg bg-slate-800/80 hover:bg-rose-950/60 text-slate-400 hover:text-rose-400 transition-colors"
-                  on:click={() => handleDelete(tpl.id, tpl.title)}
+                  on:click={() => promptDelete(tpl.id, tpl.title)}
                 >
                   <Trash2 class="w-3.5 h-3.5" />
                 </button>
@@ -878,3 +888,17 @@
   templates={testTemplatesList}
   onClose={() => (isTestModalOpen = false)}
 />
+
+<!-- Confirm Delete SMS Template Modal -->
+<ConfirmModal
+  open={isConfirmDeleteOpen}
+  title="এসএমএস টেমপ্লেট মুছবেন?"
+  message="আপনি কি নিশ্চিতভাবে এই এসএমএস টেমপ্লেটটি মুছে ফেলতে চান? এটি স্থায়ীভাবে ডাটাবেস থেকে মুছে যাবে।"
+  itemName={templateToDelete?.title || ''}
+  confirmText="মুছে ফেলুন"
+  cancelText="বাতিল"
+  variant="danger"
+  onConfirm={handleConfirmDelete}
+  onClose={() => { isConfirmDeleteOpen = false; templateToDelete = null; }}
+/>
+
