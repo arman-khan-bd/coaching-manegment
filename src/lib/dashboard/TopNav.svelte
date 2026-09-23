@@ -57,12 +57,12 @@
   };
 </script>
 
-<header class="sticky top-0 z-20 h-16 bg-slate-900/95 border-b border-slate-800 backdrop-blur-xl px-3 sm:px-6 flex items-center justify-between gap-3">
+<header class="sticky top-0 z-20 h-16 bg-slate-900/95 border-b border-slate-800 backdrop-blur-xl px-2.5 sm:px-6 flex items-center justify-between gap-2 sm:gap-3">
   <!-- Left: Mobile Menu & Android Title / Desktop Search -->
-  <div class="flex items-center gap-2.5 flex-1 min-w-0">
+  <div class="flex items-center gap-2 sm:gap-2.5 flex-1 min-w-0">
     <button
       type="button"
-      class="p-2 rounded-xl text-slate-400 hover:text-white md:hidden hover:bg-slate-800 transition-colors shrink-0"
+      class="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:text-white md:hidden hover:bg-slate-800 transition-colors shrink-0"
       on:click={toggleMobile}
       aria-label="Open sidebar"
     >
@@ -70,17 +70,17 @@
     </button>
 
     <!-- Mobile Native Android App Bar Title (sm:hidden) -->
-    <div class="sm:hidden flex items-center gap-2 min-w-0">
+    <div class="sm:hidden flex items-center gap-2 min-w-0 max-w-[130px] xs:max-w-[180px]">
       {#if $instituteSettings.icon || $instituteSettings.logo}
         <img
           src={$instituteSettings.icon || $instituteSettings.logo}
           alt={$instituteSettings.name}
-          class="w-7 h-7 rounded-lg object-cover border border-slate-700 shrink-0 bg-slate-950"
+          class="w-6 h-6 rounded-lg object-cover border border-slate-700 shrink-0 bg-slate-950"
         />
       {/if}
       <div class="flex flex-col min-w-0">
         <span class="text-xs font-bold text-white truncate">{pageTitles[$activeTab]?.bn || 'ড্যাশবোর্ড'}</span>
-        <span class="text-[10px] text-indigo-400 truncate">{$instituteSettings.name}</span>
+        <span class="text-[9px] text-indigo-400 truncate">{$instituteSettings.name}</span>
       </div>
     </div>
 
@@ -96,7 +96,7 @@
   </div>
 
   <!-- Right: Role Switcher, SMS Wallet Widget, Profile -->
-  <div class="flex items-center gap-3">
+  <div class="flex items-center gap-1.5 sm:gap-3 shrink-0">
     <!-- Role Switcher -->
     <div class="hidden lg:flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-[11px]">
       <span class="text-slate-400 px-2 font-medium">Role:</span>
@@ -114,34 +114,34 @@
     <!-- SaaS Admin Switcher Button -->
     <button
       type="button"
-      class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 transition-all text-xs font-semibold shadow-sm"
+      class="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 transition-all text-xs font-semibold shadow-sm"
       on:click={() => navigate('/admin')}
       title="Open SaaS Super Admin Platform"
     >
-      <Shield class="w-4 h-4 text-amber-400" />
+      <Shield class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
       <span class="hidden sm:inline">SaaS Admin</span>
     </button>
 
     <!-- Cloud SMS Wallet Balance Widget -->
     <button
       type="button"
-      class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-900/40 transition-colors text-xs font-semibold"
+      class="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-900/40 transition-colors text-xs font-semibold"
       on:click={() => navigate('/dashboard/sms')}
     >
-      <Coins class="w-4 h-4 text-indigo-400" />
+      <Coins class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-400 shrink-0" />
       <span class="hidden sm:inline">SMS Credits:</span>
-      <span class="font-bold text-white">{$smsAccount.cloudBalance.toLocaleString()}</span>
+      <span class="font-bold text-white text-[11px] sm:text-xs">{$smsAccount.cloudBalance.toLocaleString()}</span>
     </button>
 
     <!-- Notification Bell -->
     <button
       type="button"
-      class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors relative"
+      class="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors relative"
       on:click={() => showToast('info', 'Notifications', 'All system sync services and parent SMS pipelines are operating normally.')}
       aria-label="View notifications"
     >
       <Bell class="w-4 h-4" />
-      <span class="w-2 h-2 rounded-full bg-indigo-500 absolute top-2 right-2"></span>
+      <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-indigo-500 absolute top-2 right-2"></span>
     </button>
 
     <!-- Logout -->

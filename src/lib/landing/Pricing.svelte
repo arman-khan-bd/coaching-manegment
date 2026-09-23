@@ -27,17 +27,17 @@
       </p>
 
       <!-- Billing Cycle Toggle -->
-      <div class="mt-8 inline-flex items-center p-1.5 rounded-2xl bg-slate-900 border border-slate-800 shadow-inner">
+      <div class="mt-6 sm:mt-8 inline-flex flex-col sm:flex-row items-center p-1.5 rounded-2xl bg-slate-900 border border-slate-800 shadow-inner max-w-full">
         <button
           type="button"
-          class="px-5 py-2 rounded-xl text-sm font-semibold transition-all {billingCycle === 'monthly' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30' : 'text-slate-400 hover:text-white'}"
+          class="w-full sm:w-auto px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all {billingCycle === 'monthly' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30' : 'text-slate-400 hover:text-white'}"
           on:click={() => (billingCycle = 'monthly')}
         >
           Monthly Billing
         </button>
         <button
           type="button"
-          class="px-5 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-1.5 {billingCycle === 'yearly' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30' : 'text-slate-400 hover:text-white'}"
+          class="w-full sm:w-auto px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-1.5 {billingCycle === 'yearly' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30' : 'text-slate-400 hover:text-white'}"
           on:click={() => (billingCycle = 'yearly')}
         >
           <span>Yearly Billing</span>
@@ -47,11 +47,11 @@
     </div>
 
     <!-- Pricing Cards -->
-    <div class="mt-16 grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
+    <div class="mt-12 sm:mt-16 grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 items-stretch">
       {#each $subscriptionPlans as plan}
         {@const price = billingCycle === 'monthly' ? plan.priceMonthly : Math.round(plan.priceYearly / 12)}
         <div
-          class="relative rounded-3xl p-8 flex flex-col justify-between transition-all duration-300
+          class="relative rounded-3xl p-6 sm:p-8 flex flex-col justify-between transition-all duration-300
           {plan.popular
             ? 'bg-gradient-to-b from-indigo-950/60 via-slate-900 to-slate-900 border-2 border-indigo-500 shadow-2xl shadow-indigo-500/15 lg:-translate-y-2'
             : 'bg-slate-900/60 border border-slate-800 hover:border-slate-700'}"

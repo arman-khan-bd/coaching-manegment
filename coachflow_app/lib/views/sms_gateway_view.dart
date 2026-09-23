@@ -253,7 +253,7 @@ class _SmsGatewayViewState extends State<SmsGatewayView> {
                   TextField(
                     controller: _apiUrlController,
                     style: const TextStyle(color: Colors.white, fontSize: 13, fontFamily: 'monospace'),
-                    decoration: _inputDecoration('https://coaching-bd.netlify.app'),
+                    decoration: _inputDecoration('https://ihut.shop'),
                     onChanged: (val) => _pollingService.setApiBaseUrl(val),
                   ),
                   const SizedBox(height: 12),

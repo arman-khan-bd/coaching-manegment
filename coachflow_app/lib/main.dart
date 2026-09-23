@@ -116,7 +116,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
             // 1. FULLSCREEN IMMERSIVE WEBVIEW (DIRECT TO /dashboard ROUTE)
             const Positioned.fill(
               child: WebViewDashboardView(
-                initialUrl: 'https://coaching-bd.netlify.app/dashboard',
+                initialUrl: 'https://ihut.shop/dashboard',
               ),
             ),
 

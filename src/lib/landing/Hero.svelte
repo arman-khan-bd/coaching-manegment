@@ -21,11 +21,11 @@
 
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
     <!-- Announcement Banner -->
-    <div class="flex justify-center">
-      <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-950/70 border border-indigo-500/30 text-indigo-300 text-xs font-semibold backdrop-blur-md shadow-inner">
-        <Sparkles class="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
-        <span>CodeCanyon Grade Architecture • Dual Cloud + Android Own-SIM Gateway</span>
-        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+    <div class="flex justify-center px-2">
+      <div class="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-full bg-indigo-950/70 border border-indigo-500/30 text-indigo-300 text-[10px] sm:text-xs font-semibold backdrop-blur-md shadow-inner text-center">
+        <Sparkles class="w-3.5 h-3.5 text-indigo-400 animate-pulse shrink-0" />
+        <span>Dual Cloud + Android SIM Gateway OS</span>
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>
       </div>
     </div>
 
@@ -80,16 +80,16 @@
     <div class="mt-14 relative mx-auto max-w-5xl rounded-3xl p-3 bg-gradient-to-b from-indigo-500/20 via-slate-800/40 to-transparent border border-indigo-500/20 shadow-2xl backdrop-blur-sm">
       <div class="rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden shadow-2xl">
         <!-- Top bar mockup -->
-        <div class="px-5 py-3.5 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <span class="w-3 h-3 rounded-full bg-rose-500/80"></span>
-            <span class="w-3 h-3 rounded-full bg-amber-500/80"></span>
-            <span class="w-3 h-3 rounded-full bg-emerald-500/80"></span>
-            <span class="ml-3 text-xs text-slate-400 font-mono">https://apexhorizon.coachflow.app/dashboard</span>
+        <div class="px-3.5 sm:px-5 py-2.5 sm:py-3.5 bg-slate-950 border-b border-slate-800 flex items-center justify-between gap-2">
+          <div class="flex items-center gap-1.5 sm:gap-2 min-w-0">
+            <span class="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-rose-500/80 shrink-0"></span>
+            <span class="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-amber-500/80 shrink-0"></span>
+            <span class="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-emerald-500/80 shrink-0"></span>
+            <span class="ml-2 sm:ml-3 text-[11px] sm:text-xs text-slate-400 font-mono hidden sm:inline truncate">https://apexhorizon.ihut.shop/dashboard</span>
           </div>
-          <div class="flex items-center gap-2 text-xs text-emerald-400 font-medium bg-emerald-950/60 px-2.5 py-1 rounded-full border border-emerald-500/30">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-            <span>Android Gateway SIM 1: Active</span>
+          <div class="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-emerald-400 font-medium bg-emerald-950/60 px-2 sm:px-2.5 py-1 rounded-full border border-emerald-500/30 shrink-0">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0"></span>
+            <span>Android SIM 1: Active</span>
           </div>
         </div>
 

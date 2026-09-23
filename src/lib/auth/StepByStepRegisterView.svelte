@@ -233,37 +233,37 @@
   }
 </script>
 
-<div class="min-h-screen bg-slate-950 text-slate-100 flex flex-col py-8 px-4 sm:px-6 lg:px-8 relative overflow-hidden font-sans">
+<div class="min-h-screen bg-slate-950 text-slate-100 flex flex-col py-5 sm:py-8 px-3 sm:px-6 lg:px-8 relative overflow-hidden font-sans">
   <!-- Glowing Background Orbs -->
-  <div class="absolute top-10 left-1/4 w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[160px] pointer-events-none"></div>
-  <div class="absolute bottom-10 right-1/4 w-[500px] h-[500px] bg-emerald-600/10 rounded-full blur-[160px] pointer-events-none"></div>
+  <div class="absolute top-10 left-1/4 w-[350px] sm:w-[500px] h-[350px] sm:h-[500px] bg-indigo-600/10 rounded-full blur-[100px] sm:blur-[160px] pointer-events-none"></div>
+  <div class="absolute bottom-10 right-1/4 w-[350px] sm:w-[500px] h-[350px] sm:h-[500px] bg-emerald-600/10 rounded-full blur-[100px] sm:blur-[160px] pointer-events-none"></div>
 
   <!-- Header Bar -->
-  <header class="max-w-4xl w-full mx-auto flex items-center justify-between pb-6 border-b border-slate-800/80 mb-8 relative z-10">
+  <header class="max-w-4xl w-full mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-4 sm:pb-6 border-b border-slate-800/80 mb-6 sm:mb-8 relative z-10">
     <button
       type="button"
       class="flex items-center gap-3 text-left group"
       on:click={() => navigate('/')}
     >
-      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition-transform">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition-transform shrink-0">
         <GraduationCap class="w-5 h-5 text-white" />
       </div>
       <div>
         <div class="flex items-center gap-2">
-          <span class="text-lg font-bold tracking-tight text-white font-['Outfit']">CoachFlow SaaS</span>
+          <span class="text-base sm:text-lg font-bold tracking-tight text-white font-['Outfit']">CoachFlow SaaS</span>
           <span class="px-2 py-0.5 text-[9px] font-bold uppercase rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
-            নিবন্ধন পোর্টাল
+            নিবন্ধন
           </span>
         </div>
-        <p class="text-[11px] text-slate-400">Bangladesh Coaching Management Platform</p>
+        <p class="text-[10px] sm:text-[11px] text-slate-400">Bangladesh Coaching Management Platform</p>
       </div>
     </button>
 
-    <div class="flex items-center gap-3 text-xs">
-      <span class="text-slate-400 hidden sm:inline">ইতিমধ্যে অ্যাকাউন্ট আছে?</span>
+    <div class="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-3 text-xs pt-1 sm:pt-0">
+      <span class="text-slate-400 text-xs">ইতিমধ্যে অ্যাকাউন্ট আছে?</span>
       <button
         type="button"
-        class="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-indigo-300 hover:text-white transition-all font-semibold"
+        class="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-indigo-300 hover:text-white transition-all font-semibold text-xs"
         on:click={() => navigate('/login')}
       >
         লগইন করুন (Sign In)
@@ -275,82 +275,86 @@
   <main class="max-w-4xl w-full mx-auto flex-1 flex flex-col justify-between relative z-10">
     
     <!-- Multi-Step Progress Tracker Bar -->
-    <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-4 sm:p-6 mb-8 shadow-xl">
-      <div class="grid grid-cols-4 gap-2 sm:gap-4 text-center">
+    <div class="bg-slate-900/90 border border-slate-800 rounded-2xl sm:rounded-3xl p-3 sm:p-6 mb-6 sm:mb-8 shadow-xl">
+      <div class="grid grid-cols-4 gap-1.5 sm:gap-4 text-center">
         <!-- Step 1 -->
         <button
           type="button"
-          class="flex flex-col items-center gap-1.5 text-center transition-all {currentStep >= 1 ? 'opacity-100' : 'opacity-40'}"
+          class="flex flex-col items-center gap-1 text-center transition-all {currentStep >= 1 ? 'opacity-100' : 'opacity-40'}"
           on:click={() => (currentStep > 1 ? setRegisterStep(1) : null)}
         >
-          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center font-bold text-xs sm:text-sm border transition-all
+          <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center font-bold text-xs sm:text-sm border transition-all
             {currentStep === 1 ? 'bg-indigo-600 text-white border-indigo-400 shadow-lg shadow-indigo-600/30' : currentStep > 1 ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : 'bg-slate-800 text-slate-400 border-slate-700'}">
             {#if currentStep > 1}
-              <Check class="w-4 h-4" />
+              <Check class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             {:else}
               ১
             {/if}
           </div>
-          <span class="text-[10px] sm:text-xs font-semibold {currentStep === 1 ? 'text-indigo-300' : 'text-slate-400'}">
-            অ্যাডমিন প্রোফাইল
+          <span class="text-[9px] sm:text-xs font-semibold {currentStep === 1 ? 'text-indigo-300 font-bold' : 'text-slate-400'}">
+            <span class="sm:hidden">অ্যাডমিন</span>
+            <span class="hidden sm:inline">অ্যাডমিন প্রোফাইল</span>
           </span>
         </button>
 
         <!-- Step 2 -->
         <button
           type="button"
-          class="flex flex-col items-center gap-1.5 text-center transition-all {currentStep >= 2 ? 'opacity-100' : 'opacity-40'}"
+          class="flex flex-col items-center gap-1 text-center transition-all {currentStep >= 2 ? 'opacity-100' : 'opacity-40'}"
           on:click={() => (currentStep > 2 ? setRegisterStep(2) : null)}
         >
-          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center font-bold text-xs sm:text-sm border transition-all
+          <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center font-bold text-xs sm:text-sm border transition-all
             {currentStep === 2 ? 'bg-indigo-600 text-white border-indigo-400 shadow-lg shadow-indigo-600/30' : currentStep > 2 ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : 'bg-slate-800 text-slate-400 border-slate-700'}">
             {#if currentStep > 2}
-              <Check class="w-4 h-4" />
+              <Check class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             {:else}
               ২
             {/if}
           </div>
-          <span class="text-[10px] sm:text-xs font-semibold {currentStep === 2 ? 'text-indigo-300' : 'text-slate-400'}">
-            কোচিং বিবরণ
+          <span class="text-[9px] sm:text-xs font-semibold {currentStep === 2 ? 'text-indigo-300 font-bold' : 'text-slate-400'}">
+            <span class="sm:hidden">কোচিং</span>
+            <span class="hidden sm:inline">কোচিং বিবরণ</span>
           </span>
         </button>
 
         <!-- Step 3 -->
         <button
           type="button"
-          class="flex flex-col items-center gap-1.5 text-center transition-all {currentStep >= 3 ? 'opacity-100' : 'opacity-40'}"
+          class="flex flex-col items-center gap-1 text-center transition-all {currentStep >= 3 ? 'opacity-100' : 'opacity-40'}"
           on:click={() => (currentStep > 3 ? setRegisterStep(3) : null)}
         >
-          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center font-bold text-xs sm:text-sm border transition-all
+          <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center font-bold text-xs sm:text-sm border transition-all
             {currentStep === 3 ? 'bg-indigo-600 text-white border-indigo-400 shadow-lg shadow-indigo-600/30' : currentStep > 3 ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : 'bg-slate-800 text-slate-400 border-slate-700'}">
             {#if currentStep > 3}
-              <Check class="w-4 h-4" />
+              <Check class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             {:else}
               ৩
             {/if}
           </div>
-          <span class="text-[10px] sm:text-xs font-semibold {currentStep === 3 ? 'text-indigo-300' : 'text-slate-400'}">
-            প্যাকেজ ও গেটওয়ে
+          <span class="text-[9px] sm:text-xs font-semibold {currentStep === 3 ? 'text-indigo-300 font-bold' : 'text-slate-400'}">
+            <span class="sm:hidden">প্যাকেজ</span>
+            <span class="hidden sm:inline">প্যাকেজ ও গেটওয়ে</span>
           </span>
         </button>
 
         <!-- Step 4 -->
         <button
           type="button"
-          class="flex flex-col items-center gap-1.5 text-center transition-all {currentStep >= 4 ? 'opacity-100' : 'opacity-40'}"
+          class="flex flex-col items-center gap-1 text-center transition-all {currentStep >= 4 ? 'opacity-100' : 'opacity-40'}"
         >
-          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center font-bold text-xs sm:text-sm border transition-all
+          <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center font-bold text-xs sm:text-sm border transition-all
             {currentStep === 4 ? 'bg-indigo-600 text-white border-indigo-400 shadow-lg shadow-indigo-600/30' : 'bg-slate-800 text-slate-400 border-slate-700'}">
             ৪
           </div>
-          <span class="text-[10px] sm:text-xs font-semibold {currentStep === 4 ? 'text-indigo-300' : 'text-slate-400'}">
-            যাচাই ও সমাপ্তি
+          <span class="text-[9px] sm:text-xs font-semibold {currentStep === 4 ? 'text-indigo-300 font-bold' : 'text-slate-400'}">
+            <span class="sm:hidden">সমাপ্তি</span>
+            <span class="hidden sm:inline">যাচাই ও সমাপ্তি</span>
           </span>
         </button>
       </div>
 
       <!-- Linear visual indicator -->
-      <div class="w-full bg-slate-800 h-1.5 rounded-full mt-4 overflow-hidden">
+      <div class="w-full bg-slate-800 h-1.5 rounded-full mt-3 sm:mt-4 overflow-hidden">
         <div
           class="h-full bg-gradient-to-r from-indigo-500 via-violet-500 to-emerald-400 transition-all duration-300"
           style="width: {(currentStep / 4) * 100}%"
@@ -359,7 +363,7 @@
     </div>
 
     <!-- Active Step Content Area -->
-    <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative">
+    <div class="bg-slate-900/90 border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-2xl relative">
       
       <!-- ========================================================= -->
       <!-- STEP 1: ADMIN & LOGIN CREDENTIALS                         -->
@@ -588,19 +592,19 @@
           </div>
 
           <!-- Billing Toggle -->
-          <div class="flex items-center justify-between bg-slate-950 p-3 rounded-2xl border border-slate-800">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950 p-3 rounded-2xl border border-slate-800">
             <span class="text-xs font-semibold text-slate-300">বিলিং সাইকেল:</span>
-            <div class="inline-flex p-1 rounded-xl bg-slate-900 border border-slate-800 text-xs">
+            <div class="inline-flex p-1 rounded-xl bg-slate-900 border border-slate-800 text-xs w-full sm:w-auto justify-center">
               <button
                 type="button"
-                class="px-4 py-1.5 rounded-lg font-semibold transition-all {billingCycle === 'monthly' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}"
+                class="flex-1 sm:flex-none px-3.5 sm:px-4 py-1.5 rounded-lg font-semibold transition-all {billingCycle === 'monthly' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}"
                 on:click={() => (billingCycle = 'monthly')}
               >
                 মাসিক বিলিং
               </button>
               <button
                 type="button"
-                class="px-4 py-1.5 rounded-lg font-semibold transition-all flex items-center gap-1.5 {billingCycle === 'yearly' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}"
+                class="flex-1 sm:flex-none px-3.5 sm:px-4 py-1.5 rounded-lg font-semibold transition-all flex items-center justify-center gap-1.5 {billingCycle === 'yearly' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}"
                 on:click={() => (billingCycle = 'yearly')}
               >
                 <span>বার্ষিক বিলিং</span>
@@ -708,7 +712,7 @@
               </div>
             </div>
 
-            <div class="grid grid-cols-3 gap-3 text-center">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 text-center">
               <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
                 <span class="text-[10px] text-slate-400 uppercase block">নির্বাচিত প্যাকেজ</span>
                 <strong class="text-indigo-400 font-bold block">{activePlan.name}</strong>
@@ -736,12 +740,12 @@
       {/if}
 
       <!-- Bottom Navigation Button Bar -->
-      <div class="pt-6 border-t border-slate-800 flex items-center justify-between gap-4 mt-8">
-        <div>
+      <div class="pt-5 sm:pt-6 border-t border-slate-800 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 mt-6 sm:mt-8">
+        <div class="w-full sm:w-auto">
           {#if currentStep > 1}
             <button
               type="button"
-              class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all text-xs font-bold flex items-center gap-1.5"
+              class="w-full sm:w-auto justify-center px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all text-xs font-bold flex items-center gap-1.5"
               on:click={prevStep}
             >
               <ArrowLeft class="w-4 h-4" />
@@ -750,7 +754,7 @@
           {:else}
             <button
               type="button"
-              class="px-4 py-2.5 rounded-xl text-slate-400 hover:text-white transition-colors text-xs font-medium"
+              class="w-full sm:w-auto text-center px-4 py-2.5 rounded-xl text-slate-400 hover:text-white transition-colors text-xs font-medium"
               on:click={() => navigate('/')}
             >
               হোম পেজে ফিরে যান
@@ -758,11 +762,11 @@
           {/if}
         </div>
 
-        <div>
+        <div class="w-full sm:w-auto">
           {#if currentStep < 4}
             <button
               type="button"
-              class="px-6 py-2.5 rounded-xl font-bold text-white bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-lg shadow-indigo-600/30 transition-all flex items-center gap-2 text-xs"
+              class="w-full sm:w-auto justify-center px-6 py-2.5 rounded-xl font-bold text-white bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-lg shadow-indigo-600/30 transition-all flex items-center gap-2 text-xs"
               on:click={nextStep}
             >
               <span>পরবর্তী ধাপ</span>
@@ -772,7 +776,7 @@
             <button
               type="button"
               disabled={isSubmitting || submissionSuccess}
-              class="px-8 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-xl shadow-emerald-600/30 transition-all flex items-center gap-2 text-xs disabled:opacity-50"
+              class="w-full sm:w-auto justify-center px-6 sm:px-8 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-xl shadow-emerald-600/30 transition-all flex items-center gap-2 text-xs disabled:opacity-50"
               on:click={handleFinalSubmit}
             >
               {#if isSubmitting}

@@ -146,23 +146,23 @@
 
 <div class="space-y-6">
   <!-- Header Banner -->
-  <div class="rounded-3xl p-6 bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border border-slate-800 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
+  <div class="rounded-2xl sm:rounded-3xl p-4 sm:p-6 bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border border-slate-800 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-5 sm:gap-6">
     <div>
       <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-300 text-xs font-semibold mb-2 border border-indigo-500/20">
-        <Sparkles class="w-3.5 h-3.5" />
+        <Sparkles class="w-3.5 h-3.5 shrink-0" />
         <span>Multi-Student ID Card Studio & Batch Printing</span>
       </div>
-      <h2 class="text-2xl font-bold text-white font-['Outfit']">Bulk Student ID Card Generator</h2>
+      <h2 class="text-xl sm:text-2xl font-bold text-white font-['Outfit']">Bulk Student ID Card Generator</h2>
       <p class="text-xs text-slate-300 mt-1 max-w-xl leading-relaxed">
         Choose a design template, select students, and batch print multi-card sheets formatted for standard ID badge cutters and laminators.
       </p>
     </div>
 
     <!-- Print Action Buttons -->
-    <div class="flex items-center gap-3">
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
       <button
         type="button"
-        class="px-5 py-2.5 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-600/30 transition-all flex items-center gap-2 text-xs"
+        class="w-full sm:w-auto px-4 sm:px-5 py-2.5 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center gap-2 text-xs"
         on:click={handlePrint}
       >
         <Printer class="w-4 h-4" />
@@ -171,7 +171,7 @@
 
       <button
         type="button"
-        class="px-4 py-2.5 rounded-xl font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors flex items-center gap-2 text-xs"
+        class="w-full sm:w-auto px-4 py-2.5 rounded-xl font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors flex items-center justify-center gap-2 text-xs"
         on:click={handleExportHtml}
       >
         <Download class="w-4 h-4" />
@@ -181,10 +181,10 @@
   </div>
 
   <!-- STEP 1: ID CARD DESIGN TEMPLATE SELECTOR (Prominently at the top) -->
-  <div class="rounded-3xl bg-slate-900/80 border border-slate-800 p-6 shadow-xl space-y-3 no-print">
-    <div class="flex items-center justify-between">
+  <div class="rounded-2xl sm:rounded-3xl bg-slate-900/80 border border-slate-800 p-4 sm:p-6 shadow-xl space-y-3 no-print">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
       <div class="flex items-center gap-2">
-        <Palette class="w-4 h-4 text-indigo-400" />
+        <Palette class="w-4 h-4 text-indigo-400 shrink-0" />
         <h3 class="text-sm font-bold text-white uppercase tracking-wide font-['Outfit']">
           Step 1: Select ID Card Design Template
         </h3>
@@ -220,19 +220,19 @@
   </div>
 
   <!-- STEP 2: STUDENT SELECTION & FILTERS -->
-  <div class="rounded-3xl bg-slate-900/80 border border-slate-800 p-6 shadow-xl space-y-4 no-print">
+  <div class="rounded-2xl sm:rounded-3xl bg-slate-900/80 border border-slate-800 p-4 sm:p-6 shadow-xl space-y-4 no-print">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-800">
       <div class="flex items-center gap-2">
-        <Users class="w-4 h-4 text-indigo-400" />
+        <Users class="w-4 h-4 text-indigo-400 shrink-0" />
         <h3 class="text-sm font-bold text-white uppercase tracking-wide font-['Outfit']">
-          Step 2: Choose Students to Generate Cards ({selectedStudentIds.size} of {filteredStudents.length} selected)
+          Step 2: Choose Students ({selectedStudentIds.size} of {filteredStudents.length} selected)
         </h3>
       </div>
 
       <div class="flex items-center gap-2.5">
         <button
           type="button"
-          class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors flex items-center gap-1.5"
+          class="w-full sm:w-auto px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors flex items-center justify-center gap-1.5"
           on:click={toggleSelectAll}
         >
           {#if selectedStudentIds.size === filteredStudents.length}
@@ -307,12 +307,11 @@
       </div>
 
       <!-- Layout Mode Selector -->
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 flex-wrap">
         <span class="text-xs text-slate-400 font-medium">A4 বিন্যাস:</span>
         <button
           type="button"
-          class="px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all flex items-center gap-1.5
-          {cardsPerPage === 4 ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/20' : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'}"
+          class="px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all flex items-center gap-1.5 {cardsPerPage === 4 ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/20' : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'}"
           on:click={() => (cardsPerPage = 4)}
         >
           <LayoutGrid class="w-3.5 h-3.5" />
@@ -321,8 +320,7 @@
 
         <button
           type="button"
-          class="px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all flex items-center gap-1.5
-          {cardsPerPage === 6 ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/20' : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'}"
+          class="px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all flex items-center gap-1.5 {cardsPerPage === 6 ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/20' : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'}"
           on:click={() => (cardsPerPage = 6)}
         >
           <LayoutGrid class="w-3.5 h-3.5" />
@@ -332,7 +330,7 @@
     </div>
 
     {#if selectedStudentsList.length === 0}
-      <div class="p-12 text-center rounded-3xl bg-slate-900/60 border border-slate-800 text-slate-400 text-xs">
+      <div class="p-8 sm:p-12 text-center rounded-2xl sm:rounded-3xl bg-slate-900/60 border border-slate-800 text-slate-400 text-xs">
         <Users class="w-10 h-10 text-slate-600 mx-auto mb-3" />
         <h4 class="text-base font-bold text-white">কোনো শিক্ষার্থী নির্বাচিত হয়নি</h4>
         <p class="mt-1">আইডি কার্ড প্রিভিউ ও প্রিন্ট করতে উপরের চেকবক্স থেকে শিক্ষার্থী নির্বাচন করুন।</p>
@@ -341,7 +339,7 @@
       <!-- Printable Multi-Page A4 Sheets Container -->
       <div class="printable-area space-y-8">
         {#each a4Pages as page (page.pageNumber)}
-          <div class="a4-print-sheet rounded-3xl bg-slate-900/60 border border-slate-700/60 p-6 shadow-2xl relative">
+          <div class="a4-print-sheet rounded-2xl sm:rounded-3xl bg-slate-900/60 border border-slate-700/60 p-3 sm:p-6 shadow-2xl relative overflow-x-auto">
             <!-- Screen Page Indicator Header (Hidden in Print) -->
             <div class="no-print flex items-center justify-between pb-3 mb-5 border-b border-slate-800 text-xs">
               <div class="flex items-center gap-2.5">

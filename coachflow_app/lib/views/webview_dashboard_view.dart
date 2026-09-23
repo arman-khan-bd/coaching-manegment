@@ -5,7 +5,7 @@ import '../services/sms_polling_service.dart';
 
 class WebViewDashboardView extends StatefulWidget {
   final String initialUrl;
-  const WebViewDashboardView({Key? key, this.initialUrl = 'https://coaching-bd.netlify.app/dashboard'}) : super(key: key);
+  const WebViewDashboardView({Key? key, this.initialUrl = 'https://ihut.shop/dashboard'}) : super(key: key);
 
   @override
   State<WebViewDashboardView> createState() => _WebViewDashboardViewState();

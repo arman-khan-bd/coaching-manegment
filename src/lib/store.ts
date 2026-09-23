@@ -946,7 +946,7 @@ export const platformSettings = writable<PlatformSettings>({
   tagline: 'Premier Multi-Tenant Coaching & Academy Management Cloud OS',
   supportEmail: 'support@coachflow.app',
   supportPhone: '+880 1900-112233',
-  websiteUrl: 'https://coaching-bd.netlify.app',
+  websiteUrl: 'https://ihut.shop',
   trialDays: 14,
   defaultSmsRate: 0.35,
   maintenanceMode: false,
@@ -967,7 +967,7 @@ export const platformSettings = writable<PlatformSettings>({
   metaDescription: 'Complete multi-tenant Coaching and Tuition Management SaaS Platform in Bangladesh with batch scheduling, student & teacher portals, dual-engine SMS gateway, and fee automation.',
   metaKeywords: 'coaching management bangladesh, coaching software, academy erp, sms gateway, student attendance, tuition fees billing',
   ogImageUrl: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=1200&auto=format&fit=crop&q=80',
-  canonicalUrl: 'https://coaching-bd.netlify.app',
+  canonicalUrl: 'https://ihut.shop',
   googleSiteVerification: 'google-site-verification=coachflow_live_89127cba',
   robotsIndexing: true,
 

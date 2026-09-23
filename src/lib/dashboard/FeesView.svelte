@@ -235,10 +235,10 @@
       <p class="text-xs text-slate-400 mt-1">Track payments, issue printable vouchers, and auto-dispatch receipt SMS.</p>
     </div>
 
-    <div class="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 self-stretch sm:self-auto">
       <button
         type="button"
-        class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-all flex items-center gap-2 shadow-md shadow-indigo-600/30"
+        class="w-full sm:w-auto justify-center px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-all flex items-center gap-2 shadow-md shadow-indigo-600/30"
         on:click={openAddInvoice}
       >
         <Plus class="w-4 h-4" />
@@ -247,7 +247,7 @@
 
       <button
         type="button"
-        class="px-4 py-2.5 rounded-xl bg-rose-600/15 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 font-semibold text-xs transition-all flex items-center gap-2 shadow-sm"
+        class="w-full sm:w-auto justify-center px-4 py-2.5 rounded-xl bg-rose-600/15 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 font-semibold text-xs transition-all flex items-center gap-2 shadow-sm"
         title="Broadcast fee due reminder to all overdue students"
         on:click={handleBroadcastDueReminders}
       >
@@ -258,61 +258,61 @@
   </div>
 
   <!-- KPI Row -->
-  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-    <div class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800">
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+    <div class="p-4 sm:p-5 rounded-2xl bg-slate-900/80 border border-slate-800">
       <span class="text-xs font-semibold text-slate-400 uppercase tracking-wide">মোট ধার্যকৃত ফি (Total Billed)</span>
-      <div class="text-2xl font-bold text-white mt-1 font-['Outfit']">৳{totalBilled.toLocaleString()}</div>
+      <div class="text-xl sm:text-2xl font-bold text-white mt-1 font-['Outfit']">৳{totalBilled.toLocaleString()}</div>
       <p class="text-[11px] text-slate-400 mt-1">সকল চলমান অ্যাকাডেমিক ব্যাচের মোট ফি</p>
     </div>
 
-    <div class="p-5 rounded-2xl bg-slate-900/80 border border-emerald-500/30 bg-emerald-950/10">
+    <div class="p-4 sm:p-5 rounded-2xl bg-slate-900/80 border border-emerald-500/30 bg-emerald-950/10">
       <span class="text-xs font-semibold text-emerald-400 uppercase tracking-wide">আদায়কৃত রাজস্ব (Collected)</span>
-      <div class="text-2xl font-bold text-emerald-400 mt-1 font-['Outfit']">৳{totalCollected.toLocaleString()}</div>
+      <div class="text-xl sm:text-2xl font-bold text-emerald-400 mt-1 font-['Outfit']">৳{totalCollected.toLocaleString()}</div>
       <p class="text-[11px] text-slate-400 mt-1">বিকাশ/নগদ ও ক্যাশে গৃহীত</p>
     </div>
 
-    <div class="p-5 rounded-2xl bg-slate-900/80 border border-rose-500/30 bg-rose-950/10">
+    <div class="p-4 sm:p-5 rounded-2xl bg-slate-900/80 border border-rose-500/30 bg-rose-950/10">
       <span class="text-xs font-semibold text-rose-400 uppercase tracking-wide">বকেয়া পাওনা (Pending Due)</span>
-      <div class="text-2xl font-bold text-rose-400 mt-1 font-['Outfit']">৳{totalDue.toLocaleString()}</div>
+      <div class="text-xl sm:text-2xl font-bold text-rose-400 mt-1 font-['Outfit']">৳{totalDue.toLocaleString()}</div>
       <p class="text-[11px] text-slate-400 mt-1">শিক্ষার্থীদের নিকট অনাদায়ী ফি</p>
     </div>
   </div>
 
   <!-- Filter Bar -->
-  <div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
-    <div class="flex items-center gap-1.5 text-xs">
-      <span class="text-slate-400 font-semibold px-2">ফিল্টার:</span>
+  <div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+    <div class="flex items-center gap-1.5 text-xs overflow-x-auto max-w-full pb-1 sm:pb-0">
+      <span class="text-slate-400 font-semibold px-1 shrink-0">ফিল্টার:</span>
       <button
         type="button"
-        class="px-3 py-1.5 rounded-xl font-medium transition-all {statusFilter === 'all' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}"
+        class="px-3 py-1.5 rounded-xl font-medium transition-all shrink-0 {statusFilter === 'all' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}"
         on:click={() => (statusFilter = 'all')}
       >
         সকল ইনভয়েস
       </button>
       <button
         type="button"
-        class="px-3 py-1.5 rounded-xl font-medium transition-all {statusFilter === 'paid' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}"
+        class="px-3 py-1.5 rounded-xl font-medium transition-all shrink-0 {statusFilter === 'paid' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}"
         on:click={() => (statusFilter = 'paid')}
       >
         পরিশোধিত (Paid)
       </button>
       <button
         type="button"
-        class="px-3 py-1.5 rounded-xl font-medium transition-all {statusFilter === 'partial' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}"
+        class="px-3 py-1.5 rounded-xl font-medium transition-all shrink-0 {statusFilter === 'partial' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}"
         on:click={() => (statusFilter = 'partial')}
       >
         আংশিক বকেয়া
       </button>
       <button
         type="button"
-        class="px-3 py-1.5 rounded-xl font-medium transition-all {statusFilter === 'unpaid' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}"
+        class="px-3 py-1.5 rounded-xl font-medium transition-all shrink-0 {statusFilter === 'unpaid' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}"
         on:click={() => (statusFilter = 'unpaid')}
       >
         সম্পূর্ণ বকেয়া
       </button>
     </div>
 
-    <span class="text-xs text-slate-400 font-medium">
+    <span class="text-xs text-slate-400 font-medium shrink-0 self-end sm:self-auto">
       {filteredInvoices.length} টি ইনভয়েস
     </span>
   </div>

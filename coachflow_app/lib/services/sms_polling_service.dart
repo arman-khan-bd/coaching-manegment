@@ -53,7 +53,7 @@ class SmsPollingService extends ChangeNotifier {
   }
 
   String _coachingCenterId = 'aac-dhaka-01';
-  String _apiBaseUrl = 'https://coaching-bd.netlify.app';
+  String _apiBaseUrl = 'https://ihut.shop';
   bool _pollingActive = true;
   int _pollCountdown = 30;
   String _lastPollTime = 'রিয়েলটাইম প্রস্তুত';
@@ -117,7 +117,7 @@ class SmsPollingService extends ChangeNotifier {
   Future<void> initialize() async {
     final prefs = await SharedPreferences.getInstance();
     _coachingCenterId = prefs.getString('coaching_center_id') ?? 'aac-dhaka-01';
-    _apiBaseUrl = prefs.getString('api_base_url') ?? 'https://coaching-bd.netlify.app';
+    _apiBaseUrl = prefs.getString('api_base_url') ?? 'https://ihut.shop';
     _dailySent = prefs.getInt('daily_sent') ?? 284;
     _pollingActive = prefs.getBool('polling_active') ?? true;
     _preferredSimSlot = prefs.getInt('preferred_sim_slot') ?? 1;
@@ -195,7 +195,7 @@ class SmsPollingService extends ChangeNotifier {
       List rawMessages = [];
       bool fetchedFromApi = false;
 
-      // 1. Try Main Domain / Netlify Endpoint First
+      // 1. Try Main Domain / Cloud API Endpoint First
       try {
         final response = await http.get(endpoint, headers: {
           'Accept': 'application/json',
@@ -213,7 +213,7 @@ class SmsPollingService extends ChangeNotifier {
         // Fallback to Supabase
       }
 
-      // 2. Direct Supabase REST Fallback if Netlify didn't return JSON
+      // 2. Direct Supabase REST Fallback if Cloud API didn't return JSON
       if (!fetchedFromApi) {
         try {
           final sbEndpoint = Uri.parse(
@@ -393,7 +393,7 @@ class SmsPollingService extends ChangeNotifier {
     }
   }
 
-  /// Helper to report delivery status back to Netlify and Supabase
+  /// Helper to report delivery status back to Cloud API and Supabase
   Future<void> _reportSmsStatusToRemote({
     required String id,
     required String status,
@@ -405,7 +405,7 @@ class SmsPollingService extends ChangeNotifier {
     final cleanBase = _apiBaseUrl.trim().replaceAll(RegExp(r'/+$'), '');
     final cleanId = Uri.encodeComponent(_coachingCenterId.trim());
 
-    // 1. Report status to Netlify / Web API
+    // 1. Report status to Cloud API / Web API
     if (cleanBase.isNotEmpty) {
       try {
         final statusEndpoint = Uri.parse('$cleanBase/api/sms/$cleanId/status');

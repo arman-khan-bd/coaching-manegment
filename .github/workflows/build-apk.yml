@@ -88,7 +88,7 @@ jobs:
           body: |
             ## 📱 CoachFlow Flutter Android Companion & SMS Gateway (${{ steps.prepare_asset.outputs.tag_name }})
             
-            Official Flutter Android release for **[CoachFlow SaaS](https://coaching-bd.netlify.app/)**.
+            Official Flutter Android release for **[CoachFlow SaaS](https://ihut.shop/)**.
             
             ---
             

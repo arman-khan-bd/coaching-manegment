@@ -30,7 +30,7 @@
     role="dialog"
     aria-modal="true"
     tabindex="-1"
-    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-150"
+    class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-150"
     on:click={handleBackdrop}
     on:keydown={handleKeydown}
   >
@@ -38,25 +38,25 @@
       class="relative w-full max-w-md bg-slate-900 border border-slate-700/70 rounded-2xl shadow-2xl overflow-hidden my-auto animate-in zoom-in-95 duration-150"
     >
       <!-- Header with alert icon -->
-      <div class="px-6 pt-6 pb-4 flex items-start gap-4">
+      <div class="px-4 pt-5 pb-3.5 sm:px-6 sm:pt-6 sm:pb-4 flex items-start gap-3 sm:gap-4">
         <div
-          class="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 {isDestructive
+          class="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center shrink-0 {isDestructive
             ? 'bg-rose-500/15 border border-rose-500/30 text-rose-400'
             : 'bg-amber-500/15 border border-amber-500/30 text-amber-400'}"
         >
           {#if isDestructive}
-            <Trash2 class="w-6 h-6" />
+            <Trash2 class="w-5 h-5 sm:w-6 sm:h-6" />
           {:else}
-            <AlertTriangle class="w-6 h-6" />
+            <AlertTriangle class="w-5 h-5 sm:w-6 sm:h-6" />
           {/if}
         </div>
 
         <div class="flex-1 min-w-0">
-          <h3 class="text-base font-bold text-white tracking-tight">{title}</h3>
+          <h3 class="text-sm sm:text-base font-bold text-white tracking-tight">{title}</h3>
           <p class="text-xs text-slate-400 mt-1 leading-relaxed">{message}</p>
 
           {#if itemName}
-            <div class="mt-3 px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300 font-medium break-all flex items-center gap-2">
+            <div class="mt-2.5 sm:mt-3 px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300 font-medium break-all flex items-center gap-2">
               <span class="w-1.5 h-1.5 rounded-full {isDestructive ? 'bg-rose-500' : 'bg-amber-500'} shrink-0"></span>
               <span class="truncate">{itemName}</span>
             </div>
@@ -66,7 +66,7 @@
         <button
           type="button"
           disabled={isLoading}
-          class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50"
+          class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50 shrink-0"
           on:click={onCancel}
           aria-label="Close"
         >
@@ -75,11 +75,11 @@
       </div>
 
       <!-- Footer Buttons -->
-      <div class="px-6 py-4 bg-slate-950/60 border-t border-slate-800 flex items-center justify-end gap-2.5">
+      <div class="px-4 py-3 sm:px-6 sm:py-4 bg-slate-950/60 border-t border-slate-800 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-2.5">
         <button
           type="button"
           disabled={isLoading}
-          class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 transition-colors disabled:opacity-50"
+          class="w-full sm:w-auto justify-center px-4 py-2.5 sm:py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 transition-colors disabled:opacity-50 text-center"
           on:click={onCancel}
         >
           {cancelText}
@@ -88,7 +88,7 @@
         <button
           type="button"
           disabled={isLoading}
-          class="px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 shadow-lg disabled:opacity-50 {isDestructive
+          class="w-full sm:w-auto justify-center px-4 py-2.5 sm:py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 text-center {isDestructive
             ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-900/30'
             : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-900/30'}"
           on:click={onConfirm}

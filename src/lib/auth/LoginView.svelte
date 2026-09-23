@@ -232,21 +232,21 @@
 </script>
 
 <div
-  class="min-h-screen py-12 px-4 sm:px-6 lg:px-8 bg-slate-950 flex flex-col justify-center items-center relative overflow-hidden"
+  class="min-h-screen py-6 sm:py-12 px-3 sm:px-6 lg:px-8 bg-slate-950 flex flex-col justify-center items-center relative overflow-hidden"
 >
   <!-- Glow orbs -->
   <div
-    class="absolute top-1/4 left-1/3 w-96 h-96 bg-indigo-600/15 rounded-full blur-[140px] pointer-events-none"
+    class="absolute top-1/4 left-1/3 w-72 sm:w-96 h-72 sm:h-96 bg-indigo-600/15 rounded-full blur-[100px] sm:blur-[140px] pointer-events-none"
   ></div>
   <div
-    class="absolute bottom-1/4 right-1/3 w-96 h-96 bg-emerald-600/10 rounded-full blur-[140px] pointer-events-none"
+    class="absolute bottom-1/4 right-1/3 w-72 sm:w-96 h-72 sm:h-96 bg-emerald-600/10 rounded-full blur-[100px] sm:blur-[140px] pointer-events-none"
   ></div>
 
   <div class="max-w-md w-full relative z-10">
     <!-- Back to landing -->
     <button
       type="button"
-      class="inline-flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-white mb-6 transition-colors"
+      class="inline-flex items-center gap-2 text-xs sm:text-sm font-medium text-slate-400 hover:text-white mb-4 sm:mb-6 transition-colors"
       on:click={() => navigate("/")}
     >
       <ArrowLeft class="w-4 h-4" />
@@ -254,24 +254,24 @@
     </button>
 
     <div
-      class="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl"
+      class="bg-slate-900 border border-slate-800 rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-2xl"
     >
       <!-- Supabase Live Connection Indicator -->
 
       <!-- Header -->
-      <div class="text-center mb-6">
+      <div class="text-center mb-5 sm:mb-6">
         <div
-          class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white mx-auto shadow-lg shadow-indigo-600/30 mb-3"
+          class="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white mx-auto shadow-lg shadow-indigo-600/30 mb-3"
         >
           {#if authMode === "forgot"}
-            <KeyRound class="w-6 h-6 text-amber-300" />
+            <KeyRound class="w-5 h-5 sm:w-6 sm:h-6 text-amber-300" />
           {:else if authMode === "update_password"}
-            <Lock class="w-6 h-6 text-emerald-300" />
+            <Lock class="w-5 h-5 sm:w-6 sm:h-6 text-emerald-300" />
           {:else}
-            <GraduationCap class="w-7 h-7" />
+            <GraduationCap class="w-6 h-6 sm:w-7 sm:h-7" />
           {/if}
         </div>
-        <h2 class="text-2xl font-bold text-white font-['Outfit']">
+        <h2 class="text-xl sm:text-2xl font-bold text-white font-['Outfit']">
           {#if authMode === "signin"}
             Sign In to CoachFlow
           {:else if authMode === "register"}
@@ -312,11 +312,11 @@
       {:else}
         <!-- Get Started / Registration Wizard Card -->
         <div
-          class="mb-6 p-3.5 rounded-2xl bg-gradient-to-r from-indigo-950/60 via-slate-900 to-indigo-950/40 border border-indigo-500/30 flex items-center justify-between gap-3 text-xs shadow-md"
+          class="mb-5 sm:mb-6 p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-indigo-950/60 via-slate-900 to-indigo-950/40 border border-indigo-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-md"
         >
           <div>
             <p class="font-bold text-white flex items-center gap-1.5">
-              <Sparkles class="w-3.5 h-3.5 text-amber-400" />
+              <Sparkles class="w-3.5 h-3.5 text-amber-400 shrink-0" />
               <span>New Coaching Institute?</span>
             </p>
             <p class="text-[11px] text-slate-400 mt-0.5">
@@ -325,7 +325,7 @@
           </div>
           <button
             type="button"
-            class="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-xs transition-all shrink-0 shadow-md shadow-indigo-600/30 flex items-center gap-1.5 hover:scale-[1.02]"
+            class="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-xs transition-all shrink-0 shadow-md shadow-indigo-600/30 flex items-center justify-center gap-1.5 hover:scale-[1.02]"
             on:click={() => navigate("/register?step=1")}
           >
             <span>Get Started</span>
@@ -628,7 +628,7 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-2.5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <div>
               <label
                 for="reg-email"
@@ -660,7 +660,7 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-2.5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <div>
               <label
                 for="reg-password"

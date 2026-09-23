@@ -565,7 +565,7 @@
   let settingsMetaDescription = $platformSettings.metaDescription;
   let settingsMetaKeywords = $platformSettings.metaKeywords;
   let settingsOgImageUrl = $platformSettings.ogImageUrl;
-  let settingsCanonicalUrl = $platformSettings.canonicalUrl || 'https://coaching-bd.netlify.app';
+  let settingsCanonicalUrl = $platformSettings.canonicalUrl || 'https://ihut.shop';
   let settingsGoogleVerification = $platformSettings.googleSiteVerification || '';
   let settingsRobots = $platformSettings.robotsIndexing ?? true;
 
