@@ -131,42 +131,52 @@
     messageContent += ` ${varName}`;
   }
 
+  let isSendingBroadcast = false;
+
   function handleSendBroadcast() {
+    if (isSendingBroadcast) return;
     if (!messageContent.trim()) {
       showToast('error', 'Empty Message', 'Please enter your SMS notification content.');
       return;
     }
 
-    if (recipientTarget === 'batch') {
-      const batchStudents = $students.filter((s) => s.batchIds.includes(selectedBatchId));
-      batchStudents.forEach((s) => {
-        const compiled = messageContent
-          .replace(/{guardian_name}/g, s.guardianName)
-          .replace(/{student_name}/g, s.name);
-        const phone = normalizePhoneNumber(s.guardianPhone) || s.guardianPhone;
-        sendSms(s.guardianName, phone, compiled, selectedGateway);
-      });
-      showToast('success', 'Batch Campaign Dispatched', `Queued SMS to ${batchStudents.length} guardians via ${selectedGateway.toUpperCase()}.`);
-    } else if (recipientTarget === 'overdue') {
-      const dueStudents = $students.filter((s) => s.feesDue > 0);
-      dueStudents.forEach((s) => {
-        const compiled = messageContent
-          .replace(/{guardian_name}/g, s.guardianName)
-          .replace(/{student_name}/g, s.name)
-          .replace(/{due_amount}/g, String(s.feesDue));
-        const phone = normalizePhoneNumber(s.guardianPhone) || s.guardianPhone;
-        sendSms(s.guardianName, phone, compiled, selectedGateway);
-      });
-      showToast('success', 'Due Reminders Sent', `Dispatched alerts to ${dueStudents.length} due student guardian(s).`);
-    } else {
-      const cleanPhone = normalizePhoneNumber(customPhone);
-      if (!cleanPhone) {
-        showToast('error', 'সঠিক নম্বর দিন', 'সঠিক মোবাইল নম্বর দিন (যেমন: 01701034883 বা +8801701034883)।');
-        return;
+    isSendingBroadcast = true;
+    try {
+      if (recipientTarget === 'batch') {
+        const batchStudents = $students.filter((s) => s.batchIds.includes(selectedBatchId));
+        batchStudents.forEach((s) => {
+          const compiled = messageContent
+            .replace(/{guardian_name}/g, s.guardianName)
+            .replace(/{student_name}/g, s.name);
+          const phone = normalizePhoneNumber(s.guardianPhone) || s.guardianPhone;
+          sendSms(s.guardianName, phone, compiled, selectedGateway);
+        });
+        showToast('success', 'Batch Campaign Dispatched', `Queued SMS to ${batchStudents.length} guardians via ${selectedGateway.toUpperCase()}.`);
+      } else if (recipientTarget === 'overdue') {
+        const dueStudents = $students.filter((s) => s.feesDue > 0);
+        dueStudents.forEach((s) => {
+          const compiled = messageContent
+            .replace(/{guardian_name}/g, s.guardianName)
+            .replace(/{student_name}/g, s.name)
+            .replace(/{due_amount}/g, String(s.feesDue));
+          const phone = normalizePhoneNumber(s.guardianPhone) || s.guardianPhone;
+          sendSms(s.guardianName, phone, compiled, selectedGateway);
+        });
+        showToast('success', 'Due Reminders Sent', `Dispatched alerts to ${dueStudents.length} due student guardian(s).`);
+      } else {
+        const cleanPhone = normalizePhoneNumber(customPhone);
+        if (!cleanPhone) {
+          showToast('error', 'সঠিক নম্বর দিন', 'সঠিক মোবাইল নম্বর দিন (যেমন: 01701034883 বা +8801701034883)।');
+          return;
+        }
+        customPhone = cleanPhone;
+        sendSms(customRecipientName, cleanPhone, messageContent, selectedGateway);
+        showToast('success', 'SMS পাঠানো হয়েছে', `${cleanPhone} নম্বরে SMS কিউতে যুক্ত হয়েছে।`);
       }
-      customPhone = cleanPhone;
-      sendSms(customRecipientName, cleanPhone, messageContent, selectedGateway);
-      showToast('success', 'SMS পাঠানো হয়েছে', `${cleanPhone} নম্বরে SMS কিউতে যুক্ত হয়েছে।`);
+    } finally {
+      setTimeout(() => {
+        isSendingBroadcast = false;
+      }, 1000);
     }
   }
 
@@ -974,11 +984,17 @@
       <div class="pt-4 flex justify-end">
         <button
           type="button"
-          class="px-6 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-lg shadow-indigo-600/30 transition-all flex items-center gap-2"
+          disabled={isSendingBroadcast || !messageContent.trim()}
+          class="px-6 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-lg shadow-indigo-600/30 transition-all flex items-center gap-2 disabled:opacity-50"
           on:click={handleSendBroadcast}
         >
-          <Send class="w-4 h-4" />
-          <span>Dispatch Notification Campaign</span>
+          {#if isSendingBroadcast}
+            <span class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+            <span>Dispatching Campaign...</span>
+          {:else}
+            <Send class="w-4 h-4" />
+            <span>Dispatch Notification Campaign</span>
+          {/if}
         </button>
       </div>
     </div>

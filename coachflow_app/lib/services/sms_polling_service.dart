@@ -60,8 +60,22 @@ class SmsPollingService extends ChangeNotifier {
   String _lastPollStatus = '⚡ Supabase Realtime সক্রিয় (তাত্ক্ষণিক পুশ)';
   bool _isPolling = false;
   int _dailySent = 284;
-  final int _dailyLimit = 1500;
   final Set<String> _processedSmsIds = {};
+  /// 15-second content & phone deduplication cache preventing duplicate SMS dispatch
+  final Map<String, DateTime> _recentSmsFingerprints = {};
+
+  bool _isDuplicateRecentSms(String to, String message) {
+    final now = DateTime.now();
+    _recentSmsFingerprints.removeWhere((_, time) => now.difference(time).inSeconds > 30);
+    final key = '${normalizePhoneNumber(to)}|${message.trim()}';
+    final lastSent = _recentSmsFingerprints[key];
+    if (lastSent != null && now.difference(lastSent).inSeconds < 15) {
+      debugPrint('[Deduplication] Blocked duplicate SMS to $to within 15 seconds.');
+      return true;
+    }
+    _recentSmsFingerprints[key] = now;
+    return false;
+  }
 
   final List<SmsLogItem> _logs = [
     SmsLogItem(
@@ -258,6 +272,18 @@ class SmsPollingService extends ChangeNotifier {
 
         final normalizedTo = normalizePhoneNumber(item.to);
         final activeSlot = item.simSlot ?? _preferredSimSlot;
+
+        // Skip if this exact SMS was already transmitted within 15 seconds
+        if (_isDuplicateRecentSms(normalizedTo, item.message)) {
+          debugPrint('[Poll Queue] Skipping duplicate SMS to $normalizedTo.');
+          await _reportSmsStatusToRemote(
+            id: item.id,
+            status: 'sent',
+            simSlot: activeSlot,
+          );
+          continue;
+        }
+
         _appendLog(normalizedTo, item.message, 'processing', simSlot: activeSlot);
 
         final sendResult = await SmsNativeService.sendSms(normalizedTo, item.message, simSlot: activeSlot);
@@ -272,39 +298,12 @@ class SmsPollingService extends ChangeNotifier {
           _updateLatestLogStatus('failed');
         }
 
-        // 1. Report status to Netlify / Web API
-        final statusEndpoint = Uri.parse('$cleanBase/api/sms/$cleanId/status');
-        http.post(
-          statusEndpoint,
-          headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
-          body: jsonEncode({
-            'id': item.id,
-            'status': targetStatus,
-            'simSlot': activeSlot,
-            'errorMessage': errorMsg,
-          }),
-        ).catchError((_) => http.Response('', 500));
-
-        // 2. Report status to Supabase REST directly
-        final nowIso = DateTime.now().toUtc().toIso8601String();
-        final sbUpdateUrl = Uri.parse(
-          '$_supabaseUrl/rest/v1/sms_queue?id=eq.${Uri.encodeComponent(item.id)}'
+        await _reportSmsStatusToRemote(
+          id: item.id,
+          status: targetStatus,
+          simSlot: activeSlot,
+          errorMsg: errorMsg,
         );
-        http.patch(
-          sbUpdateUrl,
-          headers: {
-            'apikey': _supabaseAnonKey,
-            'Authorization': 'Bearer $_supabaseAnonKey',
-            'Content-Type': 'application/json',
-            'Prefer': 'return=minimal',
-          },
-          body: jsonEncode({
-            'status': targetStatus,
-            'sim_slot': activeSlot,
-            'error_message': errorMsg,
-            'sent_at': isSent ? nowIso : null,
-          }),
-        ).catchError((_) => http.Response('', 500));
       }
 
       final prefs = await SharedPreferences.getInstance();
@@ -342,6 +341,19 @@ class SmsPollingService extends ChangeNotifier {
     final normalizedTo = normalizePhoneNumber(to);
     final activeSlot = simSlot ?? _preferredSimSlot;
 
+    // Suppress if identical recipient + message was dispatched in the last 15 seconds
+    if (_isDuplicateRecentSms(normalizedTo, message)) {
+      debugPrint('[Realtime SMS] Suppressing duplicate SMS transmission to $normalizedTo.');
+      if (id.isNotEmpty) {
+        await _reportSmsStatusToRemote(
+          id: id,
+          status: 'sent',
+          simSlot: activeSlot,
+        );
+      }
+      return;
+    }
+
     _appendLog(normalizedTo, message, 'processing', simSlot: activeSlot);
     _lastPollStatus = '⚡ Realtime SMS পাঠানো হচ্ছে: $normalizedTo (SIM $activeSlot)...';
     notifyListeners();
@@ -365,45 +377,13 @@ class SmsPollingService extends ChangeNotifier {
       _lastPollTime = timeStr;
       notifyListeners();
 
-      final cleanBase = _apiBaseUrl.trim().replaceAll(RegExp(r'/+$'), '');
-      final cleanId = Uri.encodeComponent(_coachingCenterId.trim());
-
-      // 1. Report status to Netlify / Web API
-      if (cleanBase.isNotEmpty && id.isNotEmpty) {
-        final statusEndpoint = Uri.parse('$cleanBase/api/sms/$cleanId/status');
-        http.post(
-          statusEndpoint,
-          headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
-          body: jsonEncode({
-            'id': id,
-            'status': targetStatus,
-            'simSlot': activeSlot,
-            'errorMessage': errorMsg,
-          }),
-        ).catchError((_) => http.Response('', 500));
-      }
-
-      // 2. Report status directly to Supabase REST
       if (id.isNotEmpty) {
-        final nowIso = DateTime.now().toUtc().toIso8601String();
-        final sbUpdateUrl = Uri.parse(
-          '$_supabaseUrl/rest/v1/sms_queue?id=eq.${Uri.encodeComponent(id)}'
+        await _reportSmsStatusToRemote(
+          id: id,
+          status: targetStatus,
+          simSlot: activeSlot,
+          errorMsg: errorMsg,
         );
-        http.patch(
-          sbUpdateUrl,
-          headers: {
-            'apikey': _supabaseAnonKey,
-            'Authorization': 'Bearer $_supabaseAnonKey',
-            'Content-Type': 'application/json',
-            'Prefer': 'return=minimal',
-          },
-          body: jsonEncode({
-            'status': targetStatus,
-            'sim_slot': activeSlot,
-            'error_message': errorMsg,
-            'sent_at': isSent ? nowIso : null,
-          }),
-        ).catchError((_) => http.Response('', 500));
       }
     } catch (e) {
       _lastPollTime = timeStr;
@@ -412,10 +392,69 @@ class SmsPollingService extends ChangeNotifier {
     }
   }
 
+  /// Helper to report delivery status back to Netlify and Supabase
+  Future<void> _reportSmsStatusToRemote({
+    required String id,
+    required String status,
+    required int simSlot,
+    String? errorMsg,
+  }) async {
+    if (id.isEmpty) return;
+    final isSent = status == 'sent';
+    final cleanBase = _apiBaseUrl.trim().replaceAll(RegExp(r'/+$'), '');
+    final cleanId = Uri.encodeComponent(_coachingCenterId.trim());
+
+    // 1. Report status to Netlify / Web API
+    if (cleanBase.isNotEmpty) {
+      try {
+        final statusEndpoint = Uri.parse('$cleanBase/api/sms/$cleanId/status');
+        await http.post(
+          statusEndpoint,
+          headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+          body: jsonEncode({
+            'id': id,
+            'status': status,
+            'simSlot': simSlot,
+            'errorMessage': errorMsg,
+          }),
+        ).timeout(const Duration(seconds: 4)).catchError((_) => http.Response('', 500));
+      } catch (_) {}
+    }
+
+    // 2. Report status directly to Supabase REST
+    try {
+      final nowIso = DateTime.now().toUtc().toIso8601String();
+      final sbUpdateUrl = Uri.parse(
+        '$_supabaseUrl/rest/v1/sms_queue?id=eq.${Uri.encodeComponent(id)}'
+      );
+      await http.patch(
+        sbUpdateUrl,
+        headers: {
+          'apikey': _supabaseAnonKey,
+          'Authorization': 'Bearer $_supabaseAnonKey',
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal',
+        },
+        body: jsonEncode({
+          'status': status,
+          'sim_slot': simSlot,
+          'error_message': errorMsg,
+          'sent_at': isSent ? nowIso : null,
+        }),
+      ).timeout(const Duration(seconds: 4)).catchError((_) => http.Response('', 500));
+    } catch (_) {}
+  }
+
   /// Send quick test SMS directly via selected SIM
   Future<Map<String, dynamic>> sendDirectTestSms(String to, String message, {int? simSlot}) async {
     final normalizedTo = normalizePhoneNumber(to);
     final activeSlot = simSlot ?? _preferredSimSlot;
+
+    if (_isDuplicateRecentSms(normalizedTo, message)) {
+      debugPrint('[Direct Test SMS] Suppressing duplicate test SMS to $normalizedTo.');
+      return {'success': true, 'carrier': 'Skipped (Duplicate)'};
+    }
+
     _appendLog(normalizedTo, message, 'processing', simSlot: activeSlot);
     final res = await SmsNativeService.sendSms(normalizedTo, message, simSlot: activeSlot);
     if (res['success'] == true) {

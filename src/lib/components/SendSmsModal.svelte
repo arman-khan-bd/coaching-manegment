@@ -73,6 +73,7 @@
   $: carrierName = getBdCarrierName(recipientPhone);
 
   function handleSend() {
+    if (isSending) return;
     if (!messageText.trim()) {
       showToast('error', 'মেসেজ খালি', 'অনুগ্রহ করে SMS-এর বিবরণ লিখুন।');
       return;

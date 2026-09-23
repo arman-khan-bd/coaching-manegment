@@ -423,26 +423,36 @@
   let smsDefaultMessage = '';
   let smsTemplates: { label: string; text: string }[] = [];
 
+  let isBroadcastingExamSms = false;
+
   function broadcastExamSms() {
+    if (isBroadcastingExamSms) return;
     if (!currentExam || currentMarks.length === 0) {
       showToast('warning', 'কোন ফলাফল নেই', 'এসএমএস পাঠানোর মতো কোনো ফলাফল পাওয়া যায়নি।');
       return;
     }
-    currentMarks.forEach((m) => {
-      const stu = $students.find((s) => s.id === m.studentId);
-      const phone = stu ? stu.guardianPhone : '+880 1711-456789';
-      sendSms(
-        m.studentName,
-        phone,
-        `সম্মানিত অভিভাবক, ${m.studentName} ${currentExam.title}-এ প্রাপ্ত নম্বর: ${m.marksObtained}/${currentExam.totalMarks} (গ্রেড: ${m.grade})। - ${$instituteSettings.name}`,
-        'android_sim1'
+    isBroadcastingExamSms = true;
+    try {
+      currentMarks.forEach((m) => {
+        const stu = $students.find((s) => s.id === m.studentId);
+        const phone = stu ? stu.guardianPhone : '+880 1711-456789';
+        sendSms(
+          m.studentName,
+          phone,
+          `সম্মানিত অভিভাবক, ${m.studentName} ${currentExam.title}-এ প্রাপ্ত নম্বর: ${m.marksObtained}/${currentExam.totalMarks} (গ্রেড: ${m.grade})। - ${$instituteSettings.name}`,
+          'android_sim1'
+        );
+      });
+      showToast(
+        'success',
+        'SMS Blast Queued',
+        `পরীক্ষার ফলাফল ${currentMarks.length} জন অভিভাবককে পাঠানো হয়েছে (Android SIM 1, ৳0.00 খরচ)।`
       );
-    });
-    showToast(
-      'success',
-      'SMS Blast Queued',
-      `পরীক্ষার ফলাফল ${currentMarks.length} জন অভিভাবককে পাঠানো হয়েছে (Android SIM 1, ৳0.00 খরচ)।`
-    );
+    } finally {
+      setTimeout(() => {
+        isBroadcastingExamSms = false;
+      }, 1500);
+    }
   }
 
   function handleOpenMarkSms(mark: ExamMark) {
@@ -547,11 +557,17 @@
 
         <button
           type="button"
-          class="px-3 py-2 rounded-xl text-xs font-semibold text-purple-200 hover:text-white bg-purple-950/50 hover:bg-purple-900/60 border border-purple-500/30 shadow-sm transition-all flex items-center gap-1.5"
+          disabled={isBroadcastingExamSms}
+          class="px-3 py-2 rounded-xl text-xs font-semibold text-purple-200 hover:text-white bg-purple-950/50 hover:bg-purple-900/60 border border-purple-500/30 shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-50"
           on:click={broadcastExamSms}
         >
-          <Send class="w-3.5 h-3.5 text-purple-400" />
-          <span>সকলকে রেজাল্ট SMS</span>
+          {#if isBroadcastingExamSms}
+            <span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+            <span>পাঠানো হচ্ছে...</span>
+          {:else}
+            <Send class="w-3.5 h-3.5 text-purple-400" />
+            <span>সকলকে রেজাল্ট SMS</span>
+          {/if}
         </button>
       {/if}
     </div>

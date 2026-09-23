@@ -121,8 +121,9 @@ class _WebViewDashboardViewState extends State<WebViewDashboardView> {
       } else if (type == 'SEND_SMS') {
         final to = data['to']?.toString() ?? '';
         final message = data['message']?.toString() ?? '';
+        final slot = data['simSlot'] is int ? data['simSlot'] as int : null;
         if (to.isNotEmpty && message.isNotEmpty) {
-          SmsPollingService().sendDirectTestSms(to, message);
+          SmsPollingService().sendDirectTestSms(to, message, simSlot: slot);
         }
       }
     } catch (_) {}

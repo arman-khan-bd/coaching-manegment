@@ -223,9 +223,21 @@ export async function enqueueSmsToQueue(
     });
   }
 
+const locallyDispatchedSmsIds = new Set<string>();
+
+function recordDispatchedSmsId(id: string) {
+  if (!id) return;
+  locallyDispatchedSmsIds.add(id);
+  if (locallyDispatchedSmsIds.size > 200) {
+    const first = locallyDispatchedSmsIds.values().next().value;
+    if (first) locallyDispatchedSmsIds.delete(first);
+  }
+}
+
   // 4. Instant 0-second Bridge to Flutter Android Companion App (if running inside app)
   if (typeof window !== 'undefined' && (window as any).FlutterGateway) {
     try {
+      recordDispatchedSmsId(item.id);
       (window as any).FlutterGateway.postMessage(
         JSON.stringify({
           type: 'REALTIME_SMS_DISPATCH',
@@ -296,8 +308,14 @@ export function subscribeToSmsQueueRealtime(
           onQueueUpdated(item, payload.eventType);
         }
 
-        // When a pending SMS arrives via Supabase Realtime, immediately dispatch to Flutter companion app!
+        // When a pending SMS arrives via Supabase Realtime, dispatch to Flutter companion app if not already sent locally
         if ((payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') && item.status === 'pending') {
+          if (locallyDispatchedSmsIds.has(item.id)) {
+            // Already dispatched to FlutterGateway locally by enqueueSmsToQueue; ignore echo
+            return;
+          }
+          recordDispatchedSmsId(item.id);
+
           if (typeof window !== 'undefined' && (window as any).FlutterGateway) {
             try {
               (window as any).FlutterGateway.postMessage(

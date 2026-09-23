@@ -2028,21 +2028,6 @@ export function sendSms(
     });
   }
 
-  // Direct bridge to Flutter / Android Companion App if running inside Android WebView
-  if (gateway === 'android_sim1' && typeof window !== 'undefined') {
-    const payload = JSON.stringify({
-      type: 'SEND_SMS',
-      to: normalizedPhone,
-      message,
-      recipientName,
-      simSlot: 1,
-    });
-    if ((window as any).FlutterGateway) {
-      (window as any).FlutterGateway.postMessage(payload);
-    } else if ((window as any).ReactNativeWebView) {
-      (window as any).ReactNativeWebView.postMessage(payload);
-    }
-  }
 
   if (gateway === 'cloud') {
     smsAccount.update((acc) => ({ ...acc, cloudBalance: Math.max(0, acc.cloudBalance - 1) }));
