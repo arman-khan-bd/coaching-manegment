@@ -190,4 +190,7 @@ function smsApiPlugin(): Plugin {
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [svelte(), smsApiPlugin()],
+  build: {
+    chunkSizeWarningLimit: 2000,
+  },
 });
