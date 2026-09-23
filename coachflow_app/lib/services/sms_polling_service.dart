@@ -60,6 +60,7 @@ class SmsPollingService extends ChangeNotifier {
   String _lastPollStatus = '⚡ Supabase Realtime সক্রিয় (তাত্ক্ষণিক পুশ)';
   bool _isPolling = false;
   int _dailySent = 284;
+  final int _dailyLimit = 1500;
   final Set<String> _processedSmsIds = {};
   /// 15-second content & phone deduplication cache preventing duplicate SMS dispatch
   final Map<String, DateTime> _recentSmsFingerprints = {};
