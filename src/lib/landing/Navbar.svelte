@@ -1,13 +1,6 @@
 <script lang="ts">
   import { navigate } from '../router';
-  import { GraduationCap, ArrowRight, Sparkles, UserPlus, Shield } from 'lucide-svelte';
-
-  function scrollTo(id: string) {
-    const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
-    }
-  }
+  import { GraduationCap, ArrowRight, UserPlus } from 'lucide-svelte';
 </script>
 
 <header class="sticky top-0 z-40 w-full border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl">
@@ -26,35 +19,14 @@
       </div>
     </button>
 
-    <!-- Nav links -->
-    <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
-      <button on:click={() => scrollTo('features')} class="hover:text-indigo-400 transition-colors">Features</button>
-      <button on:click={() => scrollTo('academics')} class="hover:text-indigo-400 transition-colors">Academic Engine</button>
-      <button on:click={() => scrollTo('sms-gateway')} class="hover:text-indigo-400 transition-colors flex items-center gap-1.5">
-        <span>Dual SMS Hub</span>
-        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-      </button>
-      <button on:click={() => scrollTo('pricing')} class="hover:text-indigo-400 transition-colors">Pricing</button>
-      <button on:click={() => scrollTo('faq')} class="hover:text-indigo-400 transition-colors">FAQs</button>
-    </nav>
-
     <!-- Actions -->
     <div class="flex items-center gap-3">
       <button
         type="button"
-        class="text-sm font-medium text-slate-300 hover:text-white px-3 py-2 rounded-xl hover:bg-slate-800 transition-colors"
+        class="text-sm font-medium text-slate-300 hover:text-white px-3.5 py-2 rounded-xl hover:bg-slate-800 transition-colors"
         on:click={() => navigate('/login')}
       >
         Sign In
-      </button>
-
-      <button
-        type="button"
-        class="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-all shadow-sm"
-        on:click={() => navigate('/admin')}
-      >
-        <Shield class="w-3.5 h-3.5 text-amber-400" />
-        <span>SaaS Admin</span>
       </button>
 
       <button

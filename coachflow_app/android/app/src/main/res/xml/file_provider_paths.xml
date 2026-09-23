@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Internal app cache dir — for camera-captured images -->
+    <cache-path name="camera_captures" path="camera_captures/" />
+    <!-- External files dir — for gallery picks on older Android -->
+    <external-files-path name="external_files" path="." />
+    <!-- External cache dir -->
+    <external-cache-path name="external_cache" path="." />
+</paths>

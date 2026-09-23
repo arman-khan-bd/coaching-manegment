@@ -1,6 +1,11 @@
 <script lang="ts">
-  import { sendSms, smsAccount, smsTemplates, showToast } from '../store';
-  import { normalizePhoneNumber, isValidPhoneNumber, getBdCarrierName } from '../smsQueueApi';
+  import { sendSms, smsAccount, smsTemplates, students, showToast } from '../store';
+  import {
+    normalizePhoneNumber,
+    isValidPhoneNumber,
+    getBdCarrierName,
+    parseMultiplePhoneNumbers,
+  } from '../smsQueueApi';
   import type { SmsTemplate } from '../types';
   import Modal from './Modal.svelte';
   import {
@@ -13,6 +18,9 @@
     Phone,
     Languages,
     Layers,
+    Users,
+    AlertCircle,
+    Trash2,
   } from 'lucide-svelte';
 
   export let open: boolean = false;
@@ -21,6 +29,7 @@
   export let recipientRole: 'guardian' | 'student' | 'teacher' | 'general' = 'guardian';
   export let defaultMessage: string = '';
   export let templates: { label: string; text: string; textEnglish?: string }[] = [];
+  export let allowMultiple: boolean = true;
   export let onClose: () => void = () => {};
 
   let messageText = '';
@@ -29,6 +38,8 @@
   let activeLangMode: 'bangla' | 'english' = 'bangla';
   let selectedTemplateObj: SmsTemplate | null = null;
   let showAllLibraryTemplates = false;
+  let isMultipleMode = false;
+  let multiplePhonesText = '';
 
   $: if (open && defaultMessage && (!messageText || messageText === defaultMessage)) {
     messageText = defaultMessage;
@@ -38,6 +49,34 @@
   $: isBangla = /[\u0980-\u09FF]/.test(messageText);
   $: partLimit = isBangla ? 70 : 160;
   $: actualParts = Math.ceil(charCount / partLimit) || 1;
+
+  $: parsedMultiplePhones = parseMultiplePhoneNumbers(multiplePhonesText);
+
+  function loadAllParentsToModal() {
+    const parentPhones = $students
+      .map((s) => s.guardianPhone)
+      .filter((p) => p && isValidPhoneNumber(p));
+    const unique = Array.from(new Set(parentPhones.map((p) => normalizePhoneNumber(p))));
+    if (unique.length === 0) {
+      showToast('info', 'অভিভাবকের নম্বর নেই', 'শিক্ষার্থীদের তালিকায় কোনো অভিভাবকের নম্বর পাওয়া যায়নি।');
+      return;
+    }
+    multiplePhonesText = unique.join('\n');
+    showToast('success', 'সকল অভিভাবক যুক্ত হয়েছে', `${unique.length} জন অভিভাবকের নম্বর যুক্ত হয়েছে।`);
+  }
+
+  function formatAndDedupeModalPhones() {
+    if (parsedMultiplePhones.valid.length === 0) {
+      showToast('info', 'কোনো নম্বর নেই', 'ফরম্যাট করার মতো কোনো বৈধ নম্বর পাওয়া যায়নি।');
+      return;
+    }
+    multiplePhonesText = parsedMultiplePhones.valid.join('\n');
+    showToast('info', 'ফরম্যাট সম্পন্ন', 'নম্বরসমূহ সুবিন্যস্ত করা হয়েছে এবং ডুপ্লিকেট বাদ দেওয়া হয়েছে।');
+  }
+
+  function clearModalPhones() {
+    multiplePhonesText = '';
+  }
 
   function applySimpleTemplate(tpl: { label: string; text: string; textEnglish?: string }) {
     if (activeLangMode === 'english' && tpl.textEnglish) {
@@ -78,6 +117,36 @@
       showToast('error', 'মেসেজ খালি', 'অনুগ্রহ করে SMS-এর বিবরণ লিখুন।');
       return;
     }
+
+    if (isMultipleMode) {
+      if (parsedMultiplePhones.valid.length === 0) {
+        showToast('error', 'কোনো বৈধ নম্বর নেই', 'অনুগ্রহ করে টেক্সট এরিয়ায় কমপক্ষে একটি বৈধ মোবাইল নম্বর লিখুন বা পেস্ট করুন।');
+        return;
+      }
+      isSending = true;
+      try {
+        const validList = parsedMultiplePhones.valid;
+        validList.forEach((phone) => {
+          sendSms('অভিভাবক', phone, messageText, selectedGateway);
+        });
+        const gwLabel = selectedGateway === 'android_sim1' ? 'Android SIM (৳০.০০)' : 'Cloud SMS (৳০.৩৫)';
+        showToast(
+          'success',
+          'একাধিক অভিভাবককে SMS পাঠানো হয়েছে',
+          `${validList.length} জন অভিভাবককে ${gwLabel}-এর মাধ্যমে সফলভাবে কিউতে যুক্ত করা হয়েছে।`
+        );
+        messageText = '';
+        multiplePhonesText = '';
+        selectedTemplateObj = null;
+        onClose();
+      } catch (err: any) {
+        showToast('error', 'ব্যর্থ হয়েছে', err.message || 'SMS পাঠাতে সমস্যা হয়েছে।');
+      } finally {
+        isSending = false;
+      }
+      return;
+    }
+
     const cleanPhone = normalizePhoneNumber(recipientPhone);
     if (!cleanPhone) {
       showToast('error', 'ফোন নম্বর সঠিক নয়', 'প্রাপকের বৈধ মোবাইল নম্বর দিন (যেমন: 01701034883 বা +8801701034883)।');
@@ -226,30 +295,139 @@
       {/if}
     </div>
 
-    <!-- Editable Recipient Details -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      <div>
-        <label for="modal-rec-name" class="block font-medium text-slate-300 mb-1">প্রাপকের নাম</label>
-        <input
-          id="modal-rec-name"
-          type="text"
-          bind:value={recipientName}
-          class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-          placeholder="যেমন: ফারহানের অভিভাবক"
-        />
-      </div>
+    <!-- Recipient Mode Switcher (Single vs Multiple Parents) -->
+    {#if allowMultiple}
+      <div class="flex items-center justify-between p-1 bg-slate-950 rounded-xl border border-slate-800">
+        <button
+          type="button"
+          class="flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5
+          {!isMultipleMode ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}"
+          on:click={() => (isMultipleMode = false)}
+        >
+          <Phone class="w-3.5 h-3.5" />
+          <span>একক নম্বর (Single Phone)</span>
+        </button>
 
-      <div>
-        <label for="modal-rec-phone" class="block font-medium text-slate-300 mb-1">মোবাইল নম্বর (+৮৮০ সহ)</label>
-        <input
-          id="modal-rec-phone"
-          type="text"
-          bind:value={recipientPhone}
-          class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-          placeholder="+880 1711-xxxxxx"
-        />
+        <button
+          type="button"
+          class="flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5
+          {isMultipleMode ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}"
+          on:click={() => (isMultipleMode = true)}
+        >
+          <Users class="w-3.5 h-3.5" />
+          <span>একাধিক অভিভাবক (Phone Text Area)</span>
+        </button>
       </div>
-    </div>
+    {/if}
+
+    {#if isMultipleMode}
+      <!-- Multiple Parents Phone Text Area Section -->
+      <div class="space-y-2.5 p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800">
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <label for="modal-multiple-phones" class="block font-semibold text-slate-200 text-xs flex items-center gap-1.5">
+              <Users class="w-3.5 h-3.5 text-indigo-400" />
+              <span>অভিভাবকদের ফোন নম্বর টেক্সট এরিয়া</span>
+            </label>
+            <p class="text-[10px] text-slate-400 mt-0.5">
+              প্রতি লাইনে একটি নম্বর অথবা কমা (,) দিয়ে একাধিক অভিভাবকের নম্বর লিখুন বা পেস্ট করুন
+            </p>
+          </div>
+
+          <div class="flex items-center gap-1.5">
+            <button
+              type="button"
+              class="px-2 py-1 rounded-lg bg-indigo-950/70 hover:bg-indigo-900 border border-indigo-500/30 text-indigo-300 hover:text-white text-[10px] font-semibold transition-all flex items-center gap-1"
+              on:click={loadAllParentsToModal}
+              title="সকল শিক্ষার্থীর অভিভাবকের নম্বর লোড করুন"
+            >
+              <Users class="w-3 h-3 text-indigo-400" />
+              <span>সকল অভিভাবক ({$students.length})</span>
+            </button>
+
+            <button
+              type="button"
+              class="px-2 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white text-[10px] transition-all flex items-center gap-1"
+              on:click={formatAndDedupeModalPhones}
+            >
+              <Sparkles class="w-3 h-3 text-amber-400" />
+              <span>ফরম্যাট</span>
+            </button>
+
+            {#if multiplePhonesText}
+              <button
+                type="button"
+                class="px-1.5 py-1 rounded-lg text-rose-400 hover:bg-rose-950/40 text-[10px]"
+                on:click={clearModalPhones}
+              >
+                <Trash2 class="w-3 h-3" />
+              </button>
+            {/if}
+          </div>
+        </div>
+
+        <textarea
+          id="modal-multiple-phones"
+          rows="4"
+          bind:value={multiplePhonesText}
+          placeholder="01711223344&#10;01811223344&#10;01911223344&#10;+8801701034883"
+          class="w-full p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white font-mono text-xs placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition-colors leading-relaxed"
+        ></textarea>
+
+        <!-- Live Metrics Counter -->
+        <div class="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-800/80 flex-wrap gap-2">
+          <div class="flex items-center gap-2">
+            <span>মোট: <strong class="text-white font-mono">{parsedMultiplePhones.totalParsed}</strong></span>
+            <span class="text-emerald-400 font-semibold flex items-center gap-1">
+              <CheckCircle2 class="w-3 h-3 text-emerald-400" />
+              <span>বৈধ অভিভাবক: <strong class="font-mono text-emerald-300">{parsedMultiplePhones.valid.length}</strong></span>
+            </span>
+            {#if parsedMultiplePhones.duplicatesCount > 0}
+              <span class="text-amber-400 text-[10px]">• ডুপ্লিকেট বাদ: {parsedMultiplePhones.duplicatesCount}</span>
+            {/if}
+            {#if parsedMultiplePhones.invalid.length > 0}
+              <span class="text-rose-400 text-[10px]">• অকার্যকর: {parsedMultiplePhones.invalid.length}</span>
+            {/if}
+          </div>
+
+          <!-- Carrier breakdown -->
+          {#if Object.keys(parsedMultiplePhones.carrierCounts).length > 0}
+            <div class="flex items-center gap-1 flex-wrap">
+              {#each Object.entries(parsedMultiplePhones.carrierCounts) as [carrier, count]}
+                <span class="px-1.5 py-0.2 rounded bg-slate-900 border border-slate-800 text-[9px] text-slate-300 font-mono">
+                  {carrier}: {count}
+                </span>
+              {/each}
+            </div>
+          {/if}
+        </div>
+      </div>
+    {:else}
+      <!-- Single Recipient Details -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label for="modal-rec-name" class="block font-medium text-slate-300 mb-1">প্রাপকের নাম</label>
+          <input
+            id="modal-rec-name"
+            type="text"
+            bind:value={recipientName}
+            class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            placeholder="যেমন: ফারহানের অভিভাবক"
+          />
+        </div>
+
+        <div>
+          <label for="modal-rec-phone" class="block font-medium text-slate-300 mb-1">মোবাইল নম্বর (+৮৮০ সহ)</label>
+          <input
+            id="modal-rec-phone"
+            type="text"
+            bind:value={recipientPhone}
+            class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            placeholder="+880 1711-xxxxxx"
+          />
+        </div>
+      </div>
+    {/if}
 
     <!-- Message Content Textarea -->
     <div>

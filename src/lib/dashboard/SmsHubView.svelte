@@ -24,6 +24,7 @@
     isValidPhoneNumber,
     getBdCarrierName,
     formatPhoneNumberDisplay,
+    parseMultiplePhoneNumbers,
   } from '../smsQueueApi';
   import Badge from '../components/Badge.svelte';
   import Modal from '../components/Modal.svelte';
@@ -46,6 +47,9 @@
     XCircle,
     Trash2,
     Ban,
+    Users,
+    Phone,
+    Sparkles,
   } from 'lucide-svelte';
 
   let pollIntervalTimer: any;
@@ -65,7 +69,8 @@
   let activeSmsTab: 'gateway' | 'packs' | 'compose' | 'templates' | 'logs' = 'gateway';
 
   // Compose SMS State
-  let recipientTarget: 'batch' | 'overdue' | 'custom' = 'batch';
+  let recipientTarget: 'multiple_parents' | 'batch' | 'overdue' | 'custom' = 'multiple_parents';
+  let multipleParentsPhonesText = '';
   let selectedBatchId = 'b-1';
   let customPhone = '+880 1711-';
   let customRecipientName = 'অভিভাবক';
@@ -102,6 +107,48 @@
   $: isValidCustomPhone = isValidPhoneNumber(customPhone);
   $: customCarrier = getBdCarrierName(customPhone);
 
+  $: parsedMultiplePhones = parseMultiplePhoneNumbers(multipleParentsPhonesText);
+
+  function loadAllGuardianPhones() {
+    const parentPhones = $students
+      .map((s) => s.guardianPhone)
+      .filter((p) => p && isValidPhoneNumber(p));
+    const uniquePhones = Array.from(new Set(parentPhones.map((p) => normalizePhoneNumber(p))));
+    if (uniquePhones.length === 0) {
+      showToast('info', 'অভিভাবকের নম্বর নেই', 'শিক্ষার্থীদের তালিকায় কোনো বৈধ অভিভাবকের নম্বর পাওয়া যায়নি।');
+      return;
+    }
+    multipleParentsPhonesText = uniquePhones.join('\n');
+    showToast('success', 'সকল অভিভাবক লোড হয়েছে', `${uniquePhones.length} জন অভিভাবকের মোবাইল নম্বর যুক্ত হয়েছে।`);
+  }
+
+  function loadBatchGuardianPhones() {
+    const batchStudents = $students.filter((s) => s.batchIds.includes(selectedBatchId));
+    const parentPhones = batchStudents
+      .map((s) => s.guardianPhone)
+      .filter((p) => p && isValidPhoneNumber(p));
+    const uniquePhones = Array.from(new Set(parentPhones.map((p) => normalizePhoneNumber(p))));
+    if (uniquePhones.length === 0) {
+      showToast('info', 'অভিভাবকের নম্বর নেই', 'এই ব্যাচের শিক্ষার্থীদের কোনো অভিভাবকের নম্বর পাওয়া যায়নি।');
+      return;
+    }
+    multipleParentsPhonesText = uniquePhones.join('\n');
+    showToast('success', 'ব্যাচ অভিভাবক লোড হয়েছে', `${uniquePhones.length} জন অভিভাবকের নম্বর যুক্ত হয়েছে।`);
+  }
+
+  function formatAndDedupeMultiplePhones() {
+    if (parsedMultiplePhones.valid.length === 0) {
+      showToast('info', 'কোনো নম্বর নেই', 'ফরম্যাট করার মতো কোনো বৈধ নম্বর পাওয়া যায়নি।');
+      return;
+    }
+    multipleParentsPhonesText = parsedMultiplePhones.valid.join('\n');
+    showToast('info', 'ফরম্যাট সম্পন্ন', 'নম্বরসমূহ সুবিন্যস্ত করা হয়েছে এবং ডুপ্লিকেট বাদ দেওয়া হয়েছে।');
+  }
+
+  function clearMultiplePhones() {
+    multipleParentsPhonesText = '';
+  }
+
   async function handleEnqueueTest() {
     const cleanPhone = normalizePhoneNumber(testQueuePhone);
     if (!cleanPhone) {
@@ -136,13 +183,31 @@
   function handleSendBroadcast() {
     if (isSendingBroadcast) return;
     if (!messageContent.trim()) {
-      showToast('error', 'Empty Message', 'Please enter your SMS notification content.');
+      showToast('error', 'মেসেজ খালি', 'অনুগ্রহ করে SMS নোটিফিকেশনের টেক্সট লিখুন।');
       return;
     }
 
     isSendingBroadcast = true;
     try {
-      if (recipientTarget === 'batch') {
+      if (recipientTarget === 'multiple_parents') {
+        if (parsedMultiplePhones.valid.length === 0) {
+          showToast('error', 'কোনো বৈধ নম্বর নেই', 'অনুগ্রহ করে টেক্সট এরিয়ায় কমপক্ষে একটি বৈধ অভিভাবকের মোবাইল নম্বর লিখুন বা পেস্ট করুন।');
+          isSendingBroadcast = false;
+          return;
+        }
+
+        const validNumbers = parsedMultiplePhones.valid;
+        validNumbers.forEach((phone) => {
+          sendSms('অভিভাবক', phone, messageContent, selectedGateway);
+        });
+
+        const gwLabel = selectedGateway === 'android_sim1' ? 'Android SIM' : 'Cloud SMS';
+        showToast(
+          'success',
+          'অভিভাবকদের SMS কিউতে যুক্ত হয়েছে',
+          `${validNumbers.length} জন অভিভাবককে ${gwLabel}-এর মাধ্যমে পাঠানোর জন্য কিউ করা হয়েছে।`
+        );
+      } else if (recipientTarget === 'batch') {
         const batchStudents = $students.filter((s) => s.batchIds.includes(selectedBatchId));
         batchStudents.forEach((s) => {
           const compiled = messageContent
@@ -167,6 +232,7 @@
         const cleanPhone = normalizePhoneNumber(customPhone);
         if (!cleanPhone) {
           showToast('error', 'সঠিক নম্বর দিন', 'সঠিক মোবাইল নম্বর দিন (যেমন: 01701034883 বা +8801701034883)।');
+          isSendingBroadcast = false;
           return;
         }
         customPhone = cleanPhone;
@@ -786,34 +852,193 @@
 
       <!-- Recipient Filter Selection -->
       <div>
-        <span class="block text-slate-300 font-semibold mb-1.5">Target Audience</span>
-        <div class="grid grid-cols-3 gap-2">
+        <span class="block text-slate-300 font-semibold mb-1.5">টার্গেট প্রাপক (Target Audience)</span>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <button
             type="button"
             class="p-2.5 rounded-xl border text-center font-medium transition-all
-            {recipientTarget === 'batch' ? 'bg-indigo-600/20 border-indigo-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-400'}"
+            {recipientTarget === 'multiple_parents' ? 'bg-indigo-600/20 border-indigo-500 text-white shadow-sm shadow-indigo-500/10' : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'}"
+            on:click={() => (recipientTarget = 'multiple_parents')}
+          >
+            <div class="flex items-center justify-center gap-1.5 font-bold">
+              <Users class="w-3.5 h-3.5 text-indigo-400" />
+              <span>একাধিক অভিভাবক</span>
+            </div>
+            <span class="text-[10px] block opacity-75">Phone Text Area</span>
+          </button>
+
+          <button
+            type="button"
+            class="p-2.5 rounded-xl border text-center font-medium transition-all
+            {recipientTarget === 'batch' ? 'bg-indigo-600/20 border-indigo-500 text-white shadow-sm shadow-indigo-500/10' : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'}"
             on:click={() => (recipientTarget = 'batch')}
           >
-            By Academic Batch
+            <div class="flex items-center justify-center gap-1.5 font-bold">
+              <span>অ্যাকাডেমিক ব্যাচ</span>
+            </div>
+            <span class="text-[10px] block opacity-75">By Academic Batch</span>
           </button>
+
           <button
             type="button"
             class="p-2.5 rounded-xl border text-center font-medium transition-all
-            {recipientTarget === 'overdue' ? 'bg-indigo-600/20 border-indigo-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-400'}"
+            {recipientTarget === 'overdue' ? 'bg-indigo-600/20 border-indigo-500 text-white shadow-sm shadow-indigo-500/10' : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'}"
             on:click={() => (recipientTarget = 'overdue')}
           >
-            Fee Overdue Students
+            <div class="flex items-center justify-center gap-1.5 font-bold">
+              <span>বকেয়া ফি শিক্ষার্থী</span>
+            </div>
+            <span class="text-[10px] block opacity-75">Fee Overdue</span>
           </button>
+
           <button
             type="button"
             class="p-2.5 rounded-xl border text-center font-medium transition-all
-            {recipientTarget === 'custom' ? 'bg-indigo-600/20 border-indigo-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-400'}"
+            {recipientTarget === 'custom' ? 'bg-indigo-600/20 border-indigo-500 text-white shadow-sm shadow-indigo-500/10' : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'}"
             on:click={() => (recipientTarget = 'custom')}
           >
-            Custom Single Phone
+            <div class="flex items-center justify-center gap-1.5 font-bold">
+              <span>একক নম্বর</span>
+            </div>
+            <span class="text-[10px] block opacity-75">Single Phone</span>
           </button>
         </div>
       </div>
+
+      {#if recipientTarget === 'multiple_parents'}
+        <div class="space-y-3 p-4 rounded-2xl bg-slate-950/70 border border-slate-800">
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <label for="compose-multiple-phones" class="block text-slate-200 font-bold flex items-center gap-1.5">
+                <Users class="w-4 h-4 text-indigo-400" />
+                <span>অভিভাবকদের মোবাইল নম্বর তালিকা (Phone Numbers Text Area)</span>
+              </label>
+              <p class="text-[11px] text-slate-400 mt-0.5">
+                প্রতি লাইনে একটি নম্বর লিখুন অথবা কমা (,), সেমিকোলন (;), বা স্পেস দিয়ে একাধিক অভিভাবকের নম্বর পেস্ট করুন।
+              </p>
+            </div>
+
+            <!-- Fast Action Buttons -->
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <button
+                type="button"
+                class="px-2.5 py-1 rounded-lg bg-indigo-950/70 hover:bg-indigo-900 border border-indigo-500/30 text-indigo-300 hover:text-white text-[11px] font-semibold transition-all flex items-center gap-1"
+                on:click={loadAllGuardianPhones}
+                title="সিস্টেমের সকল নিবন্ধিত শিক্ষার্থীর অভিভাবকের নম্বর যুক্ত করুন"
+              >
+                <Users class="w-3.5 h-3.5 text-indigo-400" />
+                <span>সকল অভিভাবক ({$students.length})</span>
+              </button>
+
+              <button
+                type="button"
+                class="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white text-[11px] transition-all flex items-center gap-1"
+                on:click={formatAndDedupeMultiplePhones}
+                title="নম্বরসমূহ সুবিন্যস্ত করুন এবং ডুপ্লিকেট নম্বর বাদ দিন"
+              >
+                <Sparkles class="w-3.5 h-3.5 text-amber-400" />
+                <span>ফরম্যাট ও ডুপ্লিকেট রিমুভ</span>
+              </button>
+
+              {#if multipleParentsPhonesText}
+                <button
+                  type="button"
+                  class="px-2 py-1 rounded-lg bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/30 text-rose-300 text-[11px] transition-all flex items-center gap-1"
+                  on:click={clearMultiplePhones}
+                  title="টেক্সট এরিয়া খালি করুন"
+                >
+                  <Trash2 class="w-3 h-3 text-rose-400" />
+                  <span>মুছে ফেলুন</span>
+                </button>
+              {/if}
+            </div>
+          </div>
+
+          <!-- The Textarea -->
+          <div class="relative">
+            <textarea
+              id="compose-multiple-phones"
+              rows="6"
+              bind:value={multipleParentsPhonesText}
+              placeholder="01711223344&#10;01811223344&#10;01911223344&#10;+8801701034883"
+              class="w-full p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 text-white font-mono text-xs placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition-colors leading-relaxed"
+            ></textarea>
+          </div>
+
+          <!-- Realtime Parse Counters & Breakdown -->
+          <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-800/80 text-xs">
+            <div class="flex items-center gap-3 flex-wrap">
+              <span class="text-slate-400">
+                মোট শনাক্ত: <strong class="text-white font-mono">{parsedMultiplePhones.totalParsed}</strong>
+              </span>
+              <span class="text-emerald-400 font-semibold flex items-center gap-1">
+                <CheckCircle2 class="w-3.5 h-3.5 text-emerald-400" />
+                <span>বৈধ অনন্য অভিভাবক: <strong class="font-mono text-emerald-300">{parsedMultiplePhones.valid.length}</strong></span>
+              </span>
+              {#if parsedMultiplePhones.duplicatesCount > 0}
+                <span class="text-amber-400 text-[11px]">
+                  • ডুপ্লিকেট বাদ: <strong class="font-mono">{parsedMultiplePhones.duplicatesCount}</strong>
+                </span>
+              {/if}
+              {#if parsedMultiplePhones.invalid.length > 0}
+                <span class="text-rose-400 text-[11px] flex items-center gap-1">
+                  <AlertCircle class="w-3 h-3 text-rose-400" />
+                  <span>অকার্যকর নম্বর: <strong class="font-mono">{parsedMultiplePhones.invalid.length}</strong></span>
+                </span>
+              {/if}
+            </div>
+
+            <!-- Operator breakdown chips -->
+            {#if Object.keys(parsedMultiplePhones.carrierCounts).length > 0}
+              <div class="flex items-center gap-1.5 flex-wrap">
+                {#each Object.entries(parsedMultiplePhones.carrierCounts) as [carrier, count]}
+                  <span class="px-2 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-[10px] text-slate-300 font-mono">
+                    <span class="text-indigo-400 font-semibold">{carrier}:</span> {count}
+                  </span>
+                {/each}
+              </div>
+            {/if}
+          </div>
+
+          <!-- Invalid Numbers Warning Box (If Any) -->
+          {#if parsedMultiplePhones.invalid.length > 0}
+            <div class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs space-y-1">
+              <div class="font-semibold flex items-center gap-1.5">
+                <AlertCircle class="w-4 h-4 text-rose-400 shrink-0" />
+                <span>নিম্নলিখিত {parsedMultiplePhones.invalid.length}টি নম্বরে ভুল রয়েছে (এগুলো বাদ দিয়ে SMS পাঠানো হবে):</span>
+              </div>
+              <div class="font-mono text-[11px] text-rose-200/90 pl-5 flex flex-wrap gap-2">
+                {#each parsedMultiplePhones.invalid.slice(0, 8) as inv}
+                  <span class="bg-rose-950/60 px-1.5 py-0.5 rounded border border-rose-800/40">{inv}</span>
+                {/each}
+                {#if parsedMultiplePhones.invalid.length > 8}
+                  <span class="text-slate-400">+{parsedMultiplePhones.invalid.length - 8}টি আরও...</span>
+                {/if}
+              </div>
+            </div>
+          {/if}
+
+          <!-- Phone Number Chips Preview (up to 20) -->
+          {#if parsedMultiplePhones.valid.length > 0}
+            <div class="space-y-1.5 pt-1">
+              <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">প্রাপক তালিকা প্রিভিউ:</span>
+              <div class="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
+                {#each parsedMultiplePhones.valid.slice(0, 20) as phone}
+                  <span class="px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-mono text-slate-200 flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    <span>{phone}</span>
+                  </span>
+                {/each}
+                {#if parsedMultiplePhones.valid.length > 20}
+                  <span class="px-2 py-0.5 rounded-lg bg-indigo-950/60 border border-indigo-800/40 text-[11px] font-semibold text-indigo-300">
+                    +{parsedMultiplePhones.valid.length - 20} জন আরও...
+                  </span>
+                {/if}
+              </div>
+            </div>
+          {/if}
+        </div>
+      {/if}
 
       {#if recipientTarget === 'batch'}
         <div>

@@ -548,9 +548,18 @@ export function deletePlatformSubscription(id: string) {
 }
 
 // ==========================================
-// SAAS PLATFORM USERS STORE
+// SAAS PLATFORM USERS & ADMIN AUTH STORE
 // ==========================================
-export const platformUsers = writable<PlatformUser[]>([
+export interface SaasAdminSession {
+  id: string;
+  name: string;
+  email: string;
+  role: 'super_admin';
+  token: string;
+  loginTime: string;
+}
+
+const defaultPlatformUsers: PlatformUser[] = [
   {
     id: 'usr-1',
     name: 'মোঃ আরমান খান (Super Admin)',
@@ -558,6 +567,7 @@ export const platformUsers = writable<PlatformUser[]>([
     phone: '+880 1700-000000',
     role: 'super_admin',
     status: 'active',
+    password: 'Password123!',
     lastLogin: 'এইমাত্র (সক্রিয়)',
     createdAt: '2025-01-01',
   },
@@ -568,6 +578,7 @@ export const platformUsers = writable<PlatformUser[]>([
     phone: '+880 1711-223344',
     role: 'platform_support',
     status: 'active',
+    password: 'Password123!',
     lastLogin: '১০ মিনিট আগে',
     createdAt: '2025-02-10',
   },
@@ -580,6 +591,7 @@ export const platformUsers = writable<PlatformUser[]>([
     instituteId: 'inst-1',
     instituteName: 'এপেক্স অ্যাকাডেমিক কেয়ার',
     status: 'active',
+    password: 'Password123!',
     lastLogin: 'আজ দুপুর ২:১৫',
     createdAt: '2025-02-15',
   },
@@ -592,6 +604,7 @@ export const platformUsers = writable<PlatformUser[]>([
     instituteId: 'inst-2',
     instituteName: 'ঢাকা সায়েন্স একাডেমি',
     status: 'active',
+    password: 'Password123!',
     lastLogin: 'গতকাল রাত ৯:৪০',
     createdAt: '2025-01-10',
   },
@@ -604,10 +617,98 @@ export const platformUsers = writable<PlatformUser[]>([
     instituteId: 'inst-3',
     instituteName: 'প্রাইম মেডিকেল কোচিং',
     status: 'active',
+    password: 'Password123!',
     lastLogin: '৩ দিন আগে',
     createdAt: '2026-06-18',
   },
-]);
+];
+
+function getSavedPlatformUsers(): PlatformUser[] {
+  if (typeof window === 'undefined') return defaultPlatformUsers;
+  try {
+    const raw = localStorage.getItem('coachflow_platform_users');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (_) {}
+  return defaultPlatformUsers;
+}
+
+export const platformUsers = writable<PlatformUser[]>(getSavedPlatformUsers());
+
+if (typeof window !== 'undefined') {
+  platformUsers.subscribe((users) => {
+    try {
+      localStorage.setItem('coachflow_platform_users', JSON.stringify(users));
+    } catch (_) {}
+  });
+}
+
+function getSavedSaasAdminSession(): SaasAdminSession | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem('coachflow_saas_admin_auth');
+    if (raw) {
+      return JSON.parse(raw);
+    }
+  } catch (_) {}
+  return null;
+}
+
+export const saasAdminAuth = writable<SaasAdminSession | null>(getSavedSaasAdminSession());
+
+export function loginSaasAdmin(user: { id: string; name: string; email: string }) {
+  const session: SaasAdminSession = {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: 'super_admin',
+    token: `saas-token-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
+    loginTime: new Date().toISOString(),
+  };
+  saasAdminAuth.set(session);
+  currentRole.set('super_admin');
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('coachflow_saas_admin_auth', JSON.stringify(session));
+  }
+}
+
+export function logoutSaasAdmin() {
+  saasAdminAuth.set(null);
+  currentRole.set('institute_admin');
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('coachflow_saas_admin_auth');
+  }
+  showToast('info', 'Logged Out', 'SaaS Super Admin session terminated.');
+}
+
+export function createSaasAdminAccount(name: string, email: string, password: string): { success: boolean; error?: string } {
+  let existingUser: PlatformUser | undefined;
+  platformUsers.subscribe((list) => {
+    existingUser = list.find((u) => u.email.toLowerCase() === email.toLowerCase());
+  })();
+
+  if (existingUser) {
+    return { success: false, error: 'An admin account with this email already exists.' };
+  }
+
+  const newAdmin: PlatformUser = {
+    id: `saas-admin-${Date.now()}`,
+    name,
+    email,
+    phone: '+880 1700-000000',
+    role: 'super_admin',
+    status: 'active',
+    password,
+    lastLogin: 'এইমাত্র (সক্রিয়)',
+    createdAt: new Date().toISOString().split('T')[0],
+  };
+
+  platformUsers.update((all) => [newAdmin, ...all]);
+  loginSaasAdmin(newAdmin);
+  return { success: true };
+}
 
 export function addPlatformUser(userData: Omit<PlatformUser, 'id' | 'createdAt' | 'lastLogin'>) {
   const newUser: PlatformUser = {

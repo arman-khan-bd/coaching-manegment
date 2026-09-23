@@ -30,7 +30,8 @@
   import BulkIdCardsView from './lib/dashboard/BulkIdCardsView.svelte';
   import SmsTemplateManagerView from './lib/dashboard/SmsTemplateManagerView.svelte';
   import SyllabusRoutineView from './lib/dashboard/SyllabusRoutineView.svelte';
-  import SaasAdminDashboard from './lib/saas/SaasAdminDashboard.svelte';
+  import SaasAdminGatekeeper from './lib/saas/SaasAdminGatekeeper.svelte';
+  import SaasAdminCreateView from './lib/saas/SaasAdminCreateView.svelte';
 
   import { onMount, onDestroy } from 'svelte';
   import { initSupabaseAuth } from './lib/supabase';
@@ -120,9 +121,13 @@
   {:else if $currentView === 'checkout'}
     <CheckoutModal />
 
-  <!-- 5. SAAS SUPER ADMIN DASHBOARD -->
+  <!-- 5. SAAS SUPER ADMIN DASHBOARD (PROTECTED) -->
   {:else if $currentView === 'saas_admin'}
-    <SaasAdminDashboard activeTab={$activeTab} />
+    <SaasAdminGatekeeper activeTab={$activeTab} />
+
+  <!-- 5b. SAAS ADMIN CREATE PAGE -->
+  {:else if $currentView === 'saas_admin_create'}
+    <SaasAdminCreateView />
 
   <!-- 6. COACHING MANAGEMENT DASHBOARD -->
   {:else if $currentView === 'dashboard'}

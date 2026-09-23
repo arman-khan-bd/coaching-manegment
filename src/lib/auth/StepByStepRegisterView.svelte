@@ -52,6 +52,9 @@
 
   // Step 3: Plan & Gateway
   let activePlan: SubscriptionPlan = $selectedPlan || $subscriptionPlans[1] || $subscriptionPlans[0];
+  $: if ($selectedPlan) {
+    activePlan = $selectedPlan;
+  }
   let billingCycle: 'monthly' | 'yearly' = 'monthly';
   let selectedGatewayMode: 'android' | 'cloud' = 'android';
   let paymentChannel: 'bkash' | 'nagad' | 'rocket' | 'bank' = 'bkash';

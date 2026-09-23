@@ -30,6 +30,8 @@
     verifyPlatformTransaction,
     instituteSettings,
     showToast,
+    saasAdminAuth,
+    logoutSaasAdmin,
     type SubscriptionPlan,
     type CoachingInstitute,
     type PlatformSubscription,
@@ -47,6 +49,7 @@
     CreditCard,
     Layers,
     Users,
+    UserPlus,
     Settings,
     Receipt,
     TrendingUp,
@@ -758,8 +761,9 @@
         type="button"
         class="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-rose-400 hover:bg-rose-950/30 transition-colors"
         on:click={() => {
-          navigate('/login');
-          showToast('info', 'প্রস্থান', 'সুপার অ্যাডমিন সেশন শেষ হয়েছে।');
+          logoutSaasAdmin();
+          showToast('info', 'প্রস্থান', 'সুপার অ্যাডমিন সেশন সমাপ্ত হয়েছে।');
+          navigate('/admin');
         }}
       >
         <LogOut class="w-3.5 h-3.5" />
@@ -790,6 +794,32 @@
           <span class="font-mono font-bold text-emerald-400">৳{mrr.toLocaleString()}</span>
         </div>
 
+        <!-- Add New Admin Shortcut -->
+        <button
+          type="button"
+          class="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-all shadow-sm"
+          on:click={() => navigate('/admin/create')}
+          title="নতুন সুপার এডমিন অ্যাকাউন্ট তৈরি করুন"
+        >
+          <UserPlus class="w-3.5 h-3.5 text-amber-400" />
+          <span>+ নতুন এডমিন</span>
+        </button>
+
+        <!-- Current Admin Identity Badge -->
+        {#if $saasAdminAuth}
+          <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800">
+            <div class="w-6 h-6 rounded-lg bg-gradient-to-tr from-amber-500 to-indigo-600 flex items-center justify-center text-[10px] font-bold text-white uppercase">
+              {$saasAdminAuth.name ? $saasAdminAuth.name.charAt(0) : 'A'}
+            </div>
+            <div class="hidden lg:block text-left">
+              <p class="text-xs font-semibold text-white leading-tight truncate max-w-[130px]">
+                {$saasAdminAuth.name}
+              </p>
+              <p class="text-[10px] text-amber-400 font-mono leading-none">Super Admin</p>
+            </div>
+          </div>
+        {/if}
+
         <button
           type="button"
           class="p-2 rounded-xl text-slate-400 hover:text-white bg-slate-950 hover:bg-slate-800 border border-slate-800 transition-colors"
@@ -797,6 +827,20 @@
           title="নোটিফিকেশন"
         >
           <Bell class="w-4 h-4" />
+        </button>
+
+        <!-- Quick Logout in Header -->
+        <button
+          type="button"
+          class="p-2 rounded-xl text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 bg-slate-950 border border-slate-800 transition-colors"
+          on:click={() => {
+            logoutSaasAdmin();
+            showToast('info', 'প্রস্থান', 'সুপার অ্যাডমিন সেশন সমাপ্ত হয়েছে।');
+            navigate('/admin');
+          }}
+          title="সুপার এডমিন লগআউট"
+        >
+          <LogOut class="w-4 h-4" />
         </button>
       </div>
     </header>

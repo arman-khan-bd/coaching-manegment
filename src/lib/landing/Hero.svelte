@@ -4,7 +4,11 @@
   import { Sparkles, ArrowRight, ShieldCheck, Smartphone, CheckCircle, Users, BookOpen, Layers, Zap } from 'lucide-svelte';
 
   function launchStarterTrial() {
-    selectedPlan.set(subscriptionPlans[1]); // Pro
+    const plans = $subscriptionPlans;
+    const proPlan = plans.find((p) => p.id === 'pro' || p.name.toLowerCase().includes('pro')) || plans[1] || plans[0];
+    if (proPlan) {
+      selectedPlan.set(proPlan);
+    }
     navigate('/register?step=3');
   }
 </script>

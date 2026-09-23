@@ -369,6 +369,7 @@ export interface PlatformUser {
   instituteId?: string;
   instituteName?: string;
   status: 'active' | 'suspended' | 'invited';
+  password?: string;
   lastLogin: string;
   createdAt: string;
 }

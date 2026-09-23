@@ -5,12 +5,24 @@ import '../models/sms_item.dart';
 class SmsNativeService {
   static const MethodChannel _channel = MethodChannel('com.coachflow.app/sms_gateway');
 
-  /// Request SMS and Phone State runtime permissions
+  /// Request SMS, Phone State, Camera and Media permissions
   static Future<bool> requestPermissions() async {
     try {
       final smsStatus = await Permission.sms.request();
       final phoneStatus = await Permission.phone.request();
       await Permission.notification.request();
+
+      // Camera permission — for WebView image upload (capture mode)
+      await Permission.camera.request();
+
+      // Media / storage permissions — for gallery image picker in WebView
+      if (await Permission.photos.isDenied) {
+        await Permission.photos.request();
+      }
+      // Android 12 and below: request READ_EXTERNAL_STORAGE instead
+      if (await Permission.storage.isDenied) {
+        await Permission.storage.request();
+      }
 
       return smsStatus.isGranted && phoneStatus.isGranted;
     } catch (e) {

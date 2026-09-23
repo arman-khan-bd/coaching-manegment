@@ -160,6 +160,61 @@ export function formatPhoneNumberDisplay(phone: string): string {
   return norm || phone;
 }
 
+export interface ParsedPhonesResult {
+  valid: string[];
+  invalid: string[];
+  duplicatesCount: number;
+  totalParsed: number;
+  carrierCounts: Record<string, number>;
+}
+
+/**
+ * Parses and validates multiple phone numbers from a raw string/textarea.
+ * Supports delimiters: newlines, commas, semicolons, tabs, and spaces.
+ */
+export function parseMultiplePhoneNumbers(rawText: string): ParsedPhonesResult {
+  if (!rawText || !rawText.trim()) {
+    return { valid: [], invalid: [], duplicatesCount: 0, totalParsed: 0, carrierCounts: {} };
+  }
+
+  // Split on newlines, commas, semicolons, pipe, and tabs
+  const tokens = rawText
+    .split(/[\r\n,;|\t]+/)
+    .map((t) => t.trim())
+    .filter(Boolean);
+
+  const seen = new Set<string>();
+  const valid: string[] = [];
+  const invalid: string[] = [];
+  let duplicatesCount = 0;
+  const carrierCounts: Record<string, number> = {};
+
+  for (const token of tokens) {
+    const cleaned = token.replace(/[\s\-_()]/g, '');
+    if (isValidPhoneNumber(token) || isValidPhoneNumber(cleaned)) {
+      const norm = normalizePhoneNumber(token) || normalizePhoneNumber(cleaned);
+      if (seen.has(norm)) {
+        duplicatesCount++;
+      } else {
+        seen.add(norm);
+        valid.push(norm);
+        const carrier = getBdCarrierName(norm) || 'Other';
+        carrierCounts[carrier] = (carrierCounts[carrier] || 0) + 1;
+      }
+    } else {
+      invalid.push(token);
+    }
+  }
+
+  return {
+    valid,
+    invalid,
+    duplicatesCount,
+    totalParsed: tokens.length,
+    carrierCounts,
+  };
+}
+
 /**
  * Enqueue a new SMS request for a specific coaching center
  */

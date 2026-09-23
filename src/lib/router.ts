@@ -3,7 +3,7 @@ import { currentView, activeTab } from './store';
 
 export interface RouteState {
   path: string;
-  view: 'landing' | 'login' | 'register' | 'checkout' | 'dashboard' | 'saas_admin';
+  view: 'landing' | 'login' | 'register' | 'checkout' | 'dashboard' | 'saas_admin' | 'saas_admin_create';
   tab: string;
   step: number;
 }
@@ -69,7 +69,21 @@ function parseLocation(): { path: string; search: string; step: number } {
  * Resolve application view and active tab from current URL path
  */
 export function resolveRoute(path: string, step: number = 1): RouteState {
-  const cleanPath = path.replace(/\/+$/, '') || '/';
+  let rawPath = path || '/';
+  let parsedStep = step;
+
+  // Extract query parameters if present in the path string (e.g. /register?step=3)
+  if (rawPath.includes('?')) {
+    const [p, search] = rawPath.split('?');
+    rawPath = p;
+    const params = new URLSearchParams(search);
+    const stepParam = parseInt(params.get('step') || '', 10);
+    if (!isNaN(stepParam) && stepParam >= 1) {
+      parsedStep = Math.min(stepParam, 4);
+    }
+  }
+
+  const cleanPath = (rawPath.toLowerCase().replace(/\/+$/, '') || '/');
 
   // 1. Home / Landing
   if (cleanPath === '/' || cleanPath === '/home') {
@@ -83,7 +97,7 @@ export function resolveRoute(path: string, step: number = 1): RouteState {
 
   // 3. Step-by-Step Register
   if (cleanPath === '/register' || cleanPath === '/signup') {
-    return { path: '/register', view: 'register', tab: 'overview', step };
+    return { path: '/register', view: 'register', tab: 'overview', step: parsedStep };
   }
 
   // 4. Checkout
@@ -91,17 +105,15 @@ export function resolveRoute(path: string, step: number = 1): RouteState {
     return { path: '/checkout', view: 'checkout', tab: 'overview', step: 1 };
   }
 
-  // 5. Admin Dashboard (e.g. /dashboard or /dashboard/students)
-  if (cleanPath.startsWith('/dashboard')) {
-    const parts = cleanPath.split('/').filter(Boolean); // ['dashboard', 'students']
-    const slug = parts[1] || 'overview';
-    const tab = slugToTab[slug] || 'overview';
-    return {
-      path: `/dashboard/${tabToSlug[tab] || 'overview'}`,
-      view: 'dashboard',
-      tab,
-      step: 1,
-    };
+  // 5. SaaS Platform Super Admin Create / Setup Page (e.g. /admin/create, /admin/register, /saas-admin/create)
+  if (
+    cleanPath === '/admin/create' ||
+    cleanPath === '/admin/register' ||
+    cleanPath === '/admin/setup' ||
+    cleanPath === '/saas-admin/create' ||
+    cleanPath === '/saas-admin/register'
+  ) {
+    return { path: '/admin/create', view: 'saas_admin_create', tab: 'create', step: 1 };
   }
 
   // 6. SaaS Platform Super Admin (e.g. /admin or /saas-admin)
@@ -111,6 +123,19 @@ export function resolveRoute(path: string, step: number = 1): RouteState {
     return {
       path: `/admin/${tab}`,
       view: 'saas_admin',
+      tab,
+      step: 1,
+    };
+  }
+
+  // 7. Admin Dashboard (e.g. /dashboard or /dashboard/students)
+  if (cleanPath.startsWith('/dashboard')) {
+    const parts = cleanPath.split('/').filter(Boolean); // ['dashboard', 'students']
+    const slug = parts[1] || 'overview';
+    const tab = slugToTab[slug] || 'overview';
+    return {
+      path: `/dashboard/${tabToSlug[tab] || 'overview'}`,
+      view: 'dashboard',
       tab,
       step: 1,
     };
@@ -146,19 +171,28 @@ export function navigate(targetPath: string, options: { replace?: boolean; step?
   if (typeof window === 'undefined') return;
 
   let finalPath = targetPath;
-  const step = options.step !== undefined ? options.step : 1;
+  let step = options.step !== undefined ? options.step : 1;
 
-  if (targetPath === '/register' && step > 1) {
+  if (targetPath.includes('?')) {
+    const [p, search] = targetPath.split('?');
+    const params = new URLSearchParams(search);
+    const stepParam = parseInt(params.get('step') || '', 10);
+    if (!isNaN(stepParam) && stepParam >= 1) {
+      step = stepParam;
+    }
+  }
+
+  if (targetPath.startsWith('/register') && step > 1 && !finalPath.includes('?')) {
     finalPath = `/register?step=${step}`;
   }
 
   const route = resolveRoute(targetPath, step);
 
   isSyncing = true;
-  currentUrl.set(targetPath);
+  currentUrl.set(finalPath);
   currentView.set(route.view);
   activeTab.set(route.tab);
-  registerStep.set(step);
+  registerStep.set(route.step);
 
   if (options.replace) {
     window.history.replaceState({ path: finalPath }, '', finalPath);
@@ -246,6 +280,10 @@ export function initRouter() {
       const targetUrl = `/admin/${tab}`;
       if (window.location.pathname !== targetUrl) {
         navigate(targetUrl, { replace: false });
+      }
+    } else if (view === 'saas_admin_create') {
+      if (window.location.pathname !== '/admin/create') {
+        navigate('/admin/create', { replace: false });
       }
     }
   });
