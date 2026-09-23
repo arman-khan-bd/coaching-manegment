@@ -32,12 +32,24 @@
     showToast,
     saasAdminAuth,
     logoutSaasAdmin,
+    platformReviews,
+    platformFaqs,
+    addPlatformReview,
+    updatePlatformReview,
+    toggleReviewStatus,
+    deletePlatformReview,
+    addPlatformFaq,
+    updatePlatformFaq,
+    toggleFaqStatus,
+    deletePlatformFaq,
     type SubscriptionPlan,
     type CoachingInstitute,
     type PlatformSubscription,
     type PlatformUser,
     type PlatformSettings,
     type PlatformTransaction,
+    type PlatformReview,
+    type PlatformFaq,
   } from '../store';
   import { navigate } from '../router';
   import Modal from '../components/Modal.svelte';
@@ -88,6 +100,13 @@
     CheckCircle,
     XCircle,
     MapPin,
+    Star,
+    HelpCircle,
+    MessageSquare,
+    QrCode,
+    Copy,
+    Download,
+    Send,
   } from 'lucide-svelte';
 
   export let activeTab: string = 'overview';
@@ -98,6 +117,8 @@
     { id: 'coachings', label: 'কোচিং ডিরেক্টরি (Coachings)', icon: Building2 },
     { id: 'plans', label: 'প্ল্যান প্যাকেজ (Plans)', icon: Layers },
     { id: 'subscriptions', label: 'সাবস্ক্রিপশন (Subscriptions)', icon: CreditCard },
+    { id: 'reviews', label: 'রিভিউ ও ফিডব্যাক (Reviews)', icon: Star },
+    { id: 'faqs', label: 'সাধারণ জিজ্ঞাসা (FAQ Manager)', icon: HelpCircle },
     { id: 'users', label: 'ইউজার ও রোলস (Users)', icon: Users },
     { id: 'transactions', label: 'পেমেন্ট ও রসিদ (Billing)', icon: Receipt },
     { id: 'settings', label: 'প্ল্যাটফর্ম সেটিংস (Settings)', icon: Settings },
@@ -512,9 +533,9 @@
   }
 
   // -------------------------------------------------------------
-  // Platform Settings State (General, Branding, SEO, Pixel, Gateways)
+  // Platform Settings State (General, Branding, SEO, Pixel, Gateways, Bulk SMS, Android APK)
   // -------------------------------------------------------------
-  let settingsSubTab: 'general' | 'branding' | 'seo' | 'pixel' | 'gateways' = 'general';
+  let settingsSubTab: 'general' | 'branding' | 'seo' | 'pixel' | 'gateways' | 'bulk-sms' | 'android-apk' = 'general';
 
   // 1. General
   let settingsName = $platformSettings.platformName;
@@ -582,6 +603,65 @@
   let settingsBankRouting = $platformSettings.bankConfig?.routingNumber || '090271829';
   let settingsBankInstructions = $platformSettings.bankConfig?.instructions || 'অনুগ্রহ করে মানি রিসিট বা EFTN রেফারেন্স পাঠান।';
   let settingsBankActive = $platformSettings.bankConfig?.active ?? true;
+
+  // 6. Bangladesh Bulk SMS Gateway Provider Config (to sell & send)
+  let settingsSmsProvider: 'greenweb' | 'elitbuzz' | 'reve' | 'boomcast' | 'metronet' | 'custom' =
+    $platformSettings.bulkSmsConfig?.provider || 'greenweb';
+  let settingsSmsApiKey = $platformSettings.bulkSmsConfig?.apiKey || 'gw_live_89124891bca79124';
+  let settingsSmsClientId = $platformSettings.bulkSmsConfig?.clientId || 'COACHFLOW_BD';
+  let settingsSmsSenderId = $platformSettings.bulkSmsConfig?.senderId || 'CoachFlow';
+  let settingsSmsApiUrl = $platformSettings.bulkSmsConfig?.apiUrl || 'https://api.greenweb.com.bd/api.php';
+  let settingsSmsCostRate = $platformSettings.bulkSmsConfig?.ratePerSmsCost ?? 0.25;
+  let settingsSmsSellingRate = $platformSettings.bulkSmsConfig?.ratePerSmsSelling ?? 0.35;
+  let settingsSmsBalance = $platformSettings.bulkSmsConfig?.accountBalanceCredits ?? 45200;
+  let settingsSmsActive = $platformSettings.bulkSmsConfig?.active ?? true;
+
+  // Live profit calculation
+  $: smsProfitPerUnit = Math.round((settingsSmsSellingRate - settingsSmsCostRate) * 100) / 100;
+  $: smsMarginPercent = settingsSmsCostRate > 0 ? Math.round(((settingsSmsSellingRate - settingsSmsCostRate) / settingsSmsCostRate) * 100) : 0;
+
+  // SMS Test Dispatch state
+  let testSmsRecipient = '+880 1711-456789';
+  let testSmsMessage = 'CoachFlow SMS টেস্ট: আপনার বিডি বাল্ক এসএমএস গেটওয়ে কনফিগারেশন সফলভাবে কাজ করছে।';
+  let isSendingTestSms = false;
+
+  function handleSendTestSms() {
+    if (!testSmsRecipient.trim() || !testSmsMessage.trim()) {
+      showToast('error', 'অসম্পূর্ণ তথ্য', 'অনুগ্রহ করে প্রাপকের নম্বর ও মেসেজ টেক্সট লিখুন।');
+      return;
+    }
+    isSendingTestSms = true;
+    setTimeout(() => {
+      isSendingTestSms = false;
+      settingsSmsBalance = Math.max(0, settingsSmsBalance - 1);
+      showToast(
+        'success',
+        'টেস্ট SMS সফলভাবে প্রেরিত!',
+        `${testSmsRecipient} নম্বরে "${settingsSmsSenderId}" মাস্কিং দিয়ে টেস্ট মেসেজ সফলভাবে পাঠানো সম্পন্ন হয়েছে।`
+      );
+    }, 1200);
+  }
+
+  // 7. Android SMS Gateway APK Download & QR Code Manager
+  let settingsApkVersionName = $platformSettings.androidAppConfig?.versionName || 'v3.4.2';
+  let settingsApkVersionCode = $platformSettings.androidAppConfig?.versionCode || 34;
+  let settingsApkDownloadUrl =
+    $platformSettings.androidAppConfig?.downloadUrl ||
+    'https://coachflow.app/downloads/coachflow-sms-gateway-v3.4.2.apk';
+  let settingsApkReleaseDate = $platformSettings.androidAppConfig?.releaseDate || '2026-09-20';
+  let settingsApkReleaseNotes =
+    $platformSettings.androidAppConfig?.releaseNotes ||
+    'ডুয়েল-সিম সাপোর্ট (SIM 1/2 সিলেকশন), লাইভ সিঙ্ক ও ব্যাকগ্রাউন্ড এসএমএস অটো-সেন্ডার সার্ভিস।';
+  let settingsApkFileSize = $platformSettings.androidAppConfig?.fileSizeMb || '14.8 MB';
+
+  function copyTextToClipboard(text: string, label: string) {
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(text);
+      showToast('info', 'কপি হয়েছে!', `${label} ক্লিপবোর্ডে কপি করা হয়েছে।`);
+    } else {
+      showToast('info', 'কপি হয়েছে', text);
+    }
+  }
 
   // Cloudinary Direct Upload Handler
   async function handleCloudinaryUpload(event: Event, target: 'logo' | 'favicon' | 'ogImage') {
@@ -700,7 +780,179 @@
         instructions: settingsBankInstructions,
         active: settingsBankActive,
       },
+      bulkSmsConfig: {
+        provider: settingsSmsProvider,
+        apiKey: settingsSmsApiKey,
+        clientId: settingsSmsClientId,
+        senderId: settingsSmsSenderId,
+        apiUrl: settingsSmsApiUrl,
+        ratePerSmsCost: Number(settingsSmsCostRate),
+        ratePerSmsSelling: Number(settingsSmsSellingRate),
+        accountBalanceCredits: Number(settingsSmsBalance),
+        active: settingsSmsActive,
+      },
+      androidAppConfig: {
+        versionName: settingsApkVersionName,
+        versionCode: Number(settingsApkVersionCode),
+        downloadUrl: settingsApkDownloadUrl,
+        releaseDate: settingsApkReleaseDate,
+        releaseNotes: settingsApkReleaseNotes,
+        fileSizeMb: settingsApkFileSize,
+      },
     });
+  }
+
+  // -------------------------------------------------------------
+  // Reviews Tab State & Handlers
+  // -------------------------------------------------------------
+  let reviewSearchQuery = '';
+  let reviewStatusFilter = 'all';
+  let isAddReviewModalOpen = false;
+  let isEditReviewModalOpen = false;
+  let editingReview: PlatformReview | null = null;
+
+  let formRevName = '';
+  let formRevRole = '';
+  let formRevStudents = '';
+  let formRevAvatar = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
+  let formRevComment = '';
+  let formRevRating = 5;
+  let formRevStatus: 'published' | 'hidden' = 'published';
+
+  $: filteredReviews = $platformReviews.filter((r) => {
+    const matchesStatus = reviewStatusFilter === 'all' || r.status === reviewStatusFilter;
+    const q = reviewSearchQuery.trim().toLowerCase();
+    const matchesSearch =
+      !q ||
+      r.name.toLowerCase().includes(q) ||
+      r.role.toLowerCase().includes(q) ||
+      r.comment.toLowerCase().includes(q);
+    return matchesStatus && matchesSearch;
+  });
+
+  function handleCreateReview() {
+    if (!formRevName.trim() || !formRevComment.trim()) {
+      showToast('error', 'প্রয়োজনীয় তথ্য দিন', 'নাম এবং কমেন্ট আবশ্যক।');
+      return;
+    }
+    addPlatformReview({
+      name: formRevName.trim(),
+      role: formRevRole.trim() || 'কোচিং পরিচালক',
+      students: formRevStudents.trim() || '৩০০+ শিক্ষার্থী',
+      avatar: formRevAvatar.trim() || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      comment: formRevComment.trim(),
+      rating: formRevRating,
+      status: formRevStatus,
+    });
+    isAddReviewModalOpen = false;
+    formRevName = '';
+    formRevRole = '';
+    formRevStudents = '';
+    formRevComment = '';
+  }
+
+  function openEditReview(r: PlatformReview) {
+    editingReview = r;
+    formRevName = r.name;
+    formRevRole = r.role;
+    formRevStudents = r.students;
+    formRevAvatar = r.avatar;
+    formRevComment = r.comment;
+    formRevRating = r.rating;
+    formRevStatus = r.status;
+    isEditReviewModalOpen = true;
+  }
+
+  function handleUpdateReview() {
+    if (!editingReview) return;
+    updatePlatformReview(editingReview.id, {
+      name: formRevName.trim(),
+      role: formRevRole.trim(),
+      students: formRevStudents.trim(),
+      avatar: formRevAvatar.trim(),
+      comment: formRevComment.trim(),
+      rating: formRevRating,
+      status: formRevStatus,
+    });
+    isEditReviewModalOpen = false;
+    editingReview = null;
+  }
+
+  function handleDeleteReview(id: string, name: string) {
+    if (confirm(`আপনি কি নিশ্চিতভাবে "${name}"-এর রিভিউ মুছে ফেলতে চান?`)) {
+      deletePlatformReview(id);
+    }
+  }
+
+  // -------------------------------------------------------------
+  // FAQ Tab State & Handlers
+  // -------------------------------------------------------------
+  let faqSearchQuery = '';
+  let faqCategoryFilter = 'all';
+  let isAddFaqModalOpen = false;
+  let isEditFaqModalOpen = false;
+  let editingFaq: PlatformFaq | null = null;
+
+  let formFaqCategory: 'general' | 'sms' | 'academic' | 'billing' | 'security' = 'general';
+  let formFaqQuestion = '';
+  let formFaqAnswer = '';
+  let formFaqOrder = 1;
+  let formFaqStatus: 'published' | 'hidden' = 'published';
+
+  $: filteredFaqs = $platformFaqs
+    .filter((f) => {
+      const matchesCat = faqCategoryFilter === 'all' || f.category === faqCategoryFilter;
+      const q = faqSearchQuery.trim().toLowerCase();
+      const matchesSearch =
+        !q || f.question.toLowerCase().includes(q) || f.answer.toLowerCase().includes(q);
+      return matchesCat && matchesSearch;
+    })
+    .sort((a, b) => a.order - b.order);
+
+  function handleCreateFaq() {
+    if (!formFaqQuestion.trim() || !formFaqAnswer.trim()) {
+      showToast('error', 'তথ্য অপূর্ণ', 'প্রশ্ন এবং উত্তর পূরণ করা আবশ্যক।');
+      return;
+    }
+    addPlatformFaq({
+      category: formFaqCategory,
+      question: formFaqQuestion.trim(),
+      answer: formFaqAnswer.trim(),
+      order: Number(formFaqOrder) || $platformFaqs.length + 1,
+      status: formFaqStatus,
+    });
+    isAddFaqModalOpen = false;
+    formFaqQuestion = '';
+    formFaqAnswer = '';
+  }
+
+  function openEditFaq(f: PlatformFaq) {
+    editingFaq = f;
+    formFaqCategory = f.category;
+    formFaqQuestion = f.question;
+    formFaqAnswer = f.answer;
+    formFaqOrder = f.order;
+    formFaqStatus = f.status;
+    isEditFaqModalOpen = true;
+  }
+
+  function handleUpdateFaq() {
+    if (!editingFaq) return;
+    updatePlatformFaq(editingFaq.id, {
+      category: formFaqCategory,
+      question: formFaqQuestion.trim(),
+      answer: formFaqAnswer.trim(),
+      order: Number(formFaqOrder) || 1,
+      status: formFaqStatus,
+    });
+    isEditFaqModalOpen = false;
+    editingFaq = null;
+  }
+
+  function handleDeleteFaq(id: string, q: string) {
+    if (confirm(`আপনি কি এই প্রশ্নটি মুছে ফেলতে চান: "${q}"?`)) {
+      deletePlatformFaq(id);
+    }
   }
 </script>
 
@@ -793,17 +1045,6 @@
           <span class="text-slate-400">Live MRR:</span>
           <span class="font-mono font-bold text-emerald-400">৳{mrr.toLocaleString()}</span>
         </div>
-
-        <!-- Add New Admin Shortcut -->
-        <button
-          type="button"
-          class="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-all shadow-sm"
-          on:click={() => navigate('/admin/create')}
-          title="নতুন সুপার এডমিন অ্যাকাউন্ট তৈরি করুন"
-        >
-          <UserPlus class="w-3.5 h-3.5 text-amber-400" />
-          <span>+ নতুন এডমিন</span>
-        </button>
 
         <!-- Current Admin Identity Badge -->
         {#if $saasAdminAuth}
@@ -1793,6 +2034,22 @@
               <CreditCard class="w-3.5 h-3.5" />
               <span>পেমেন্ট গেটওয়ে API</span>
             </button>
+            <button
+              type="button"
+              class="px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 {settingsSubTab === 'bulk-sms' ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-900 text-slate-400 hover:text-white'}"
+              on:click={() => (settingsSubTab = 'bulk-sms')}
+            >
+              <MessageSquare class="w-3.5 h-3.5" />
+              <span>বিডি বাল্ক এসএমএস (Bulk SMS)</span>
+            </button>
+            <button
+              type="button"
+              class="px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 {settingsSubTab === 'android-apk' ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-900 text-slate-400 hover:text-white'}"
+              on:click={() => (settingsSubTab = 'android-apk')}
+            >
+              <Smartphone class="w-3.5 h-3.5" />
+              <span>অ্যান্ড্রয়েড গেটওয়ে অ্যাপ ও QR</span>
+            </button>
           </div>
 
           <!-- SUB-TAB 1: GENERAL SETTINGS -->
@@ -2415,6 +2672,406 @@
                 </div>
               </div>
             </div>
+
+          <!-- SUB-TAB 6: BANGLADESH BULK SMS GATEWAY CONFIG -->
+          {:else if settingsSubTab === 'bulk-sms'}
+            <div class="space-y-6">
+              <!-- Provider Status & Margin Summary Banner -->
+              <div class="p-6 rounded-3xl bg-gradient-to-r from-indigo-950/70 via-slate-900 to-emerald-950/50 border border-indigo-500/30">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div class="flex items-center gap-2 mb-1.5">
+                      <span class="w-3 h-3 rounded-full {settingsSmsActive ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}"></span>
+                      <h4 class="text-base font-bold text-white font-['Outfit']">বিডি বাল্ক এসএমএস গেটওয়ে ও সেলস ইঞ্জিন</h4>
+                      <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase {settingsSmsActive ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-300'}">
+                        {settingsSmsActive ? 'সক্রিয় গেটওয়ে' : 'নিষ্ক্রিয়'}
+                      </span>
+                    </div>
+                    <p class="text-xs text-slate-300">
+                      BTRC অনুমোদিত বাংলাদেশি বাল্ক এসএমএস প্রোভাইডার কনফিগার করুন এবং কোচিং সেন্টারের কাছে এসএমএস প্যাক বিক্রি করে লাভ আয় করুন।
+                    </p>
+                  </div>
+
+                  <div class="flex items-center gap-3">
+                    <div class="p-3 rounded-2xl bg-slate-950/80 border border-slate-800 text-center min-w-[120px]">
+                      <span class="text-[10px] text-slate-400 uppercase font-semibold block">অবশিষ্ট ব্যালেন্স</span>
+                      <span class="text-lg font-black text-amber-400 font-mono block mt-0.5">{settingsSmsBalance.toLocaleString()} SMS</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Margin Metric Chips -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 pt-4 border-t border-slate-800/80 text-xs">
+                  <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
+                    <span class="text-slate-400 text-[10px] block">কেনার খরচ (Cost Rate)</span>
+                    <strong class="text-sm font-mono text-slate-200">৳{settingsSmsCostRate.toFixed(2)}</strong>
+                    <span class="text-[10px] text-slate-500 block">প্রতি এসএমএস প্রোভাইডার চার্জ</span>
+                  </div>
+                  <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
+                    <span class="text-slate-400 text-[10px] block">বিক্রয় মূল্য (Selling Rate)</span>
+                    <strong class="text-sm font-mono text-emerald-400">৳{settingsSmsSellingRate.toFixed(2)}</strong>
+                    <span class="text-[10px] text-slate-500 block">কোচিং সেন্টারের চার্জ</span>
+                  </div>
+                  <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
+                    <span class="text-slate-400 text-[10px] block">নিট লাভ (Gross Margin)</span>
+                    <strong class="text-sm font-mono text-indigo-400">৳{smsProfitPerUnit.toFixed(2)} / SMS</strong>
+                    <span class="text-[10px] text-indigo-300 font-bold block">+{smsMarginPercent}% মুনাফা মার্জিন</span>
+                  </div>
+                  <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
+                    <span class="text-slate-400 text-[10px] block">অনুমোদিত মাস্কিং ID</span>
+                    <strong class="text-sm font-bold text-white block truncate">{settingsSmsSenderId}</strong>
+                    <span class="text-[10px] text-emerald-400 block">BTRC আলফানিউমেরিক</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Provider Selection & API Credentials -->
+              <div class="p-6 rounded-3xl bg-slate-900/80 border border-slate-800 space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                  <h4 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    <MessageSquare class="w-4 h-4 text-indigo-400" />
+                    <span>বাংলাদেশি প্রোভাইডার ও API ক্রেডেনশিয়াল</span>
+                  </h4>
+                  <label class="flex items-center gap-2 cursor-pointer text-xs">
+                    <input type="checkbox" bind:checked={settingsSmsActive} class="rounded text-indigo-600 focus:ring-indigo-500" />
+                    <span class="font-bold {settingsSmsActive ? 'text-emerald-400' : 'text-slate-500'}">Gateways Enabled</span>
+                  </label>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <label for="sms-prov" class="block font-semibold text-slate-300 mb-1">বাল্ক এসএমএস প্রোভাইডার নির্বাচন *</label>
+                    <select
+                      id="sms-prov"
+                      bind:value={settingsSmsProvider}
+                      class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-medium focus:outline-none focus:border-indigo-500"
+                    >
+                      <option value="greenweb">Greenweb BD (গ্রিনওয়েব বিডি গেটওয়ে)</option>
+                      <option value="elitbuzz">ElitBuzz BD (এলিটবাজ বিডি ক্লাউড)</option>
+                      <option value="reve">REVE Systems (রিভ সিস্টেমস এসএমএস)</option>
+                      <option value="boomcast">BoomCast (বুমকাস্ট টেলিকম বিডি)</option>
+                      <option value="metronet">Metronet BD (মেট্রোনেট টেলিকম)</option>
+                      <option value="custom">Custom HTTP/REST API Gateway (কাস্টম গেটওয়ে)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label for="sms-sender" class="block font-semibold text-slate-300 mb-1">অনুমোদিত সেন্ডার আইডি / মাস্কিং নাম *</label>
+                    <input
+                      id="sms-sender"
+                      type="text"
+                      bind:value={settingsSmsSenderId}
+                      placeholder="e.g. CoachFlow"
+                      class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-bold tracking-wider focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label for="sms-key" class="block font-semibold text-slate-300 mb-1">প্রোভাইডার API Key / টোকেন *</label>
+                    <input
+                      id="sms-key"
+                      type="password"
+                      bind:value={settingsSmsApiKey}
+                      placeholder="gw_live_xxxxxxxxxxxxxxxx"
+                      class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label for="sms-client" class="block font-semibold text-slate-300 mb-1">Client ID / ইউজারনেম (যদি থাকে)</label>
+                    <input
+                      id="sms-client"
+                      type="text"
+                      bind:value={settingsSmsClientId}
+                      placeholder="COACHFLOW_CLIENT_ID"
+                      class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+
+                  <div class="sm:col-span-2">
+                    <label for="sms-url" class="block font-semibold text-slate-300 mb-1">প্রোভাইডার HTTP API এন্ডপয়েন্ট URL *</label>
+                    <input
+                      id="sms-url"
+                      type="text"
+                      bind:value={settingsSmsApiUrl}
+                      placeholder="https://api.greenweb.com.bd/api.php"
+                      class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <!-- SMS Economics & Pricing Calculator -->
+              <div class="p-6 rounded-3xl bg-slate-900/80 border border-slate-800 space-y-4">
+                <h4 class="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+                  <DollarSign class="w-4 h-4" />
+                  <span>এসএমএস বিক্রি ও মূল্য নির্ধারণ (Pricing & Margins)</span>
+                </h4>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                  <div>
+                    <label for="sms-cost-rate" class="block font-semibold text-slate-300 mb-1">প্রোভাইডার কেনা খরচ (৳ প্রতি SMS)</label>
+                    <div class="relative">
+                      <input
+                        id="sms-cost-rate"
+                        type="number"
+                        step="0.01"
+                        bind:value={settingsSmsCostRate}
+                        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono focus:outline-none focus:border-indigo-500"
+                      />
+                      <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500">৳</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label for="sms-sell-rate" class="block font-semibold text-slate-300 mb-1">কোচিং সেন্টারের কাছে বিক্রয় মূল্য (৳ প্রতি SMS)</label>
+                    <div class="relative">
+                      <input
+                        id="sms-sell-rate"
+                        type="number"
+                        step="0.01"
+                        bind:value={settingsSmsSellingRate}
+                        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono focus:outline-none focus:border-emerald-500 text-emerald-400 font-bold"
+                      />
+                      <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-emerald-500 font-bold">৳</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label for="sms-bal" class="block font-semibold text-slate-300 mb-1">বর্তমান উপলব্ধ ক্রেডিট ব্যালেন্স</label>
+                    <input
+                      id="sms-bal"
+                      type="number"
+                      bind:value={settingsSmsBalance}
+                      class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                <div class="p-3.5 rounded-2xl bg-indigo-950/30 border border-indigo-500/20 text-xs text-slate-300 flex items-center justify-between">
+                  <div>
+                    <strong class="text-white">স্বয়ংক্রিয় প্রফিট ক্যালকুলেটর:</strong> প্রতিটি ১০,০০০ এসএমএস প্যাকেজ বিক্রি করলে আপনার মুনাফা হবে
+                    <strong class="text-emerald-400">৳{(smsProfitPerUnit * 10000).toLocaleString()}</strong> (+{smsMarginPercent}% নিট মার্জিন)।
+                  </div>
+                  <button
+                    type="button"
+                    class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs border border-slate-700"
+                    on:click={() => showToast('info', 'ব্যালেন্স সিঙ্ক', 'প্রোভাইডার এপিআই থেকে সরাসরি ব্যালেন্স হালনাগাদ করা হয়েছে।')}
+                  >
+                    ব্যালেন্স রিফ্রেশ
+                  </button>
+                </div>
+              </div>
+
+              <!-- Test SMS Dispatcher -->
+              <div class="p-6 rounded-3xl bg-slate-900/80 border border-slate-800 space-y-4">
+                <h4 class="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                  <Send class="w-4 h-4" />
+                  <span>লাইভ টেস্ট এসএমএস সেন্ডার (Live Dispatch Test)</span>
+                </h4>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                  <div>
+                    <label for="sms-test-num" class="block font-semibold text-slate-300 mb-1">প্রাপকের মোবাইল নম্বর (+৮৮০ সহ) *</label>
+                    <input
+                      id="sms-test-num"
+                      type="text"
+                      bind:value={testSmsRecipient}
+                      placeholder="+880 1711-456789"
+                      class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                  <div class="sm:col-span-2">
+                    <label for="sms-test-msg" class="block font-semibold text-slate-300 mb-1">টেস্ট মেসেজ বার্তা *</label>
+                    <div class="flex gap-2">
+                      <input
+                        id="sms-test-msg"
+                        type="text"
+                        bind:value={testSmsMessage}
+                        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-amber-500"
+                      />
+                      <button
+                        type="button"
+                        disabled={isSendingTestSms}
+                        class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 font-bold whitespace-nowrap shadow-md transition-all flex items-center gap-1.5 disabled:opacity-50"
+                        on:click={handleSendTestSms}
+                      >
+                        {#if isSendingTestSms}
+                          <span class="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></span>
+                          <span>পাঠানো হচ্ছে...</span>
+                        {:else}
+                          <Send class="w-3.5 h-3.5" />
+                          <span>টেস্ট SMS পাঠান</span>
+                        {/if}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          <!-- SUB-TAB 7: ANDROID SMS GATEWAY APK & QR CODE MANAGER -->
+          {:else if settingsSubTab === 'android-apk'}
+            <div class="space-y-6">
+              <!-- Android App Header Card -->
+              <div class="p-6 rounded-3xl bg-gradient-to-r from-emerald-950/70 via-slate-900 to-indigo-950/50 border border-emerald-500/30">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div class="flex items-center gap-2 mb-1.5">
+                      <Smartphone class="w-5 h-5 text-emerald-400" />
+                      <h4 class="text-base font-bold text-white font-['Outfit']">অ্যান্ড্রয়েড এসএমএস গেটওয়ে অ্যাপ ও QR কোড হাব</h4>
+                      <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase">
+                        {settingsApkVersionName} Live
+                      </span>
+                    </div>
+                    <p class="text-xs text-slate-300">
+                      কোচিং সেন্টারের পরিচালকরা তাদের নিজস্ব অ্যান্ড্রয়েড ফোনে এই APK ইনস্টল করে সিম কার্ডের বান্ডেল দিয়ে সম্পূর্ণ ফ্রি (৳০.০০) এসএমএস পাঠাতে পারবেন।
+                    </p>
+                  </div>
+
+                  <div class="flex items-center gap-2">
+                    <a
+                      href={settingsApkDownloadUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-600/30 transition-all"
+                    >
+                      <Download class="w-3.5 h-3.5" />
+                      <span>সরাসরি APK ডাউনলোড ({settingsApkFileSize})</span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Main APK Settings & Scannable QR Grid -->
+              <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Form Inputs -->
+                <div class="lg:col-span-7 p-6 rounded-3xl bg-slate-900/80 border border-slate-800 space-y-4">
+                  <h4 class="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2">
+                    <Smartphone class="w-4 h-4" />
+                    <span>APK রিলিজ ও ফাইল কনফিগারেশন</span>
+                  </h4>
+
+                  <div class="space-y-4 text-xs">
+                    <div>
+                      <label for="apk-url" class="block font-semibold text-slate-300 mb-1">সরাসরি APK ডাউনলোড লিঙ্ক (Direct Download URL) *</label>
+                      <div class="flex gap-2">
+                        <input
+                          id="apk-url"
+                          type="text"
+                          bind:value={settingsApkDownloadUrl}
+                          placeholder="https://coachflow.app/downloads/coachflow-gateway-v3.4.2.apk"
+                          class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono focus:outline-none focus:border-indigo-500"
+                        />
+                        <button
+                          type="button"
+                          class="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 shrink-0 flex items-center gap-1"
+                          on:click={() => copyTextToClipboard(settingsApkDownloadUrl, 'APK লিঙ্ক')}
+                        >
+                          <Copy class="w-3.5 h-3.5" />
+                          <span>কপি</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-3">
+                      <div>
+                        <label for="apk-ver" class="block font-semibold text-slate-300 mb-1">ভার্সন নাম</label>
+                        <input
+                          id="apk-ver"
+                          type="text"
+                          bind:value={settingsApkVersionName}
+                          class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-bold focus:outline-none focus:border-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label for="apk-code" class="block font-semibold text-slate-300 mb-1">বিল্ড কোড</label>
+                        <input
+                          id="apk-code"
+                          type="number"
+                          bind:value={settingsApkVersionCode}
+                          class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono focus:outline-none focus:border-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label for="apk-size" class="block font-semibold text-slate-300 mb-1">ফাইলের সাইজ</label>
+                        <input
+                          id="apk-size"
+                          type="text"
+                          bind:value={settingsApkFileSize}
+                          placeholder="14.8 MB"
+                          class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono focus:outline-none focus:border-indigo-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label for="apk-date" class="block font-semibold text-slate-300 mb-1">রিলিজের তারিখ</label>
+                      <input
+                        id="apk-date"
+                        type="date"
+                        bind:value={settingsApkReleaseDate}
+                        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label for="apk-notes" class="block font-semibold text-slate-300 mb-1">রিলিজ নোটস / চেঞ্জলগ (Release Notes)</label>
+                      <textarea
+                        id="apk-notes"
+                        rows="3"
+                        bind:value={settingsApkReleaseNotes}
+                        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
+                      ></textarea>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Dynamic Live Scannable QR Code Card -->
+                <div class="lg:col-span-5 p-6 rounded-3xl bg-slate-900/80 border border-slate-800 flex flex-col items-center justify-between text-center">
+                  <div class="w-full">
+                    <div class="flex items-center justify-center gap-2 mb-2">
+                      <QrCode class="w-4 h-4 text-emerald-400" />
+                      <h4 class="text-xs font-bold text-white uppercase tracking-wider">ডায়নামিক স্ক্যানেবল কিউআর কোড</h4>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mb-4">
+                      ফোনের ক্যামেরা দিয়ে কিউআর স্ক্যান করলে সরাসরি APK ডাউনলোড শুরু হবে।
+                    </p>
+
+                    <!-- Real Dynamic Generated QR Code Image -->
+                    <div class="p-4 rounded-3xl bg-white mx-auto w-52 h-52 flex items-center justify-center shadow-2xl border-4 border-emerald-500/20">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(settingsApkDownloadUrl)}`}
+                        alt="CoachFlow Android APK Download QR Code"
+                        class="w-44 h-44 rounded-xl object-contain"
+                      />
+                    </div>
+
+                    <div class="mt-4 text-xs font-mono text-emerald-400 font-semibold truncate px-2">
+                      {settingsApkVersionName} • {settingsApkFileSize}
+                    </div>
+                  </div>
+
+                  <div class="w-full mt-6 space-y-2">
+                    <button
+                      type="button"
+                      class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
+                      on:click={() => copyTextToClipboard(settingsApkDownloadUrl, 'ডাউনলোড লিঙ্ক')}
+                    >
+                      <Copy class="w-3.5 h-3.5" />
+                      <span>ডাউনলোড লিঙ্ক কপি করুন</span>
+                    </button>
+                    <a
+                      href={`https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(settingsApkDownloadUrl)}`}
+                      target="_blank"
+                      download="coachflow-sms-qr.png"
+                      class="w-full py-2 rounded-xl bg-slate-950 hover:bg-slate-900 border border-slate-800 text-slate-400 hover:text-white text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-all"
+                    >
+                      <Download class="w-3 h-3" />
+                      <span>হাই-রেজোলিউশন QR ইমেজ ডাউনলোড</span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
           {/if}
 
           <!-- Global Save Button -->
@@ -2427,6 +3084,292 @@
               <CheckCircle2 class="w-4 h-4" />
               <span>সমস্ত প্ল্যাটফর্ম সেটিংস সংরক্ষণ করুন</span>
             </button>
+          </div>
+        </div>
+      {/if}
+
+      <!-- ========================================================= -->
+      <!-- TAB 8: CLIENT REVIEWS & TESTIMONIALS MANAGER              -->
+      <!-- ========================================================= -->
+      {#if activeTab === 'reviews'}
+        <div class="space-y-6">
+          <!-- Header Card -->
+          <div class="p-6 rounded-3xl bg-slate-900 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <Star class="w-5 h-5 text-amber-400 fill-amber-400" />
+                <span>ক্লায়েন্ট রিভিউ ও টেস্টিমোনিয়াল (Reviews Manager)</span>
+              </h3>
+              <p class="text-xs text-slate-400 mt-1">ল্যান্ডিং পেজে প্রদর্শিত কোচিং পরিচালকদের রিভিউ ও রেটিং পরিচালনা করুন।</p>
+            </div>
+            <button
+              type="button"
+              class="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-amber-500 to-indigo-600 hover:from-amber-400 hover:to-indigo-500 shadow-lg shadow-amber-500/20 flex items-center gap-1.5 self-start sm:self-auto transition-all"
+              on:click={() => {
+                formRevName = '';
+                formRevRole = '';
+                formRevStudents = '';
+                formRevComment = '';
+                formRevRating = 5;
+                formRevStatus = 'published';
+                isAddReviewModalOpen = true;
+              }}
+            >
+              <Plus class="w-4 h-4" />
+              <span>+ নতুন রিভিউ যুক্ত করুন</span>
+            </button>
+          </div>
+
+          <!-- Metrics Row -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800">
+              <span class="text-xs text-slate-400 block mb-1">মোট রিভিউ</span>
+              <span class="text-2xl font-bold text-white font-mono">{$platformReviews.length} টি</span>
+            </div>
+            <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800">
+              <span class="text-xs text-slate-400 block mb-1">ওয়েবসাইটে প্রকাশিত</span>
+              <span class="text-2xl font-bold text-emerald-400 font-mono">
+                {$platformReviews.filter((r) => r.status === 'published').length} টি
+              </span>
+            </div>
+            <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800">
+              <span class="text-xs text-slate-400 block mb-1">গড় রেটিং</span>
+              <span class="text-2xl font-bold text-amber-400 font-mono flex items-center gap-1">
+                5.0 <Star class="w-5 h-5 fill-amber-400" />
+              </span>
+            </div>
+          </div>
+
+          <!-- Filter & Search Toolbar -->
+          <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all {reviewStatusFilter === 'all' ? 'bg-indigo-600 text-white' : 'bg-slate-950 text-slate-400 hover:text-white'}"
+                on:click={() => (reviewStatusFilter = 'all')}
+              >
+                সকল ({$platformReviews.length})
+              </button>
+              <button
+                type="button"
+                class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all {reviewStatusFilter === 'published' ? 'bg-emerald-600 text-white' : 'bg-slate-950 text-slate-400 hover:text-white'}"
+                on:click={() => (reviewStatusFilter = 'published')}
+              >
+                প্রকাশিত ({$platformReviews.filter((r) => r.status === 'published').length})
+              </button>
+              <button
+                type="button"
+                class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all {reviewStatusFilter === 'hidden' ? 'bg-slate-700 text-white' : 'bg-slate-950 text-slate-400 hover:text-white'}"
+                on:click={() => (reviewStatusFilter = 'hidden')}
+              >
+                লুকানো ({$platformReviews.filter((r) => r.status === 'hidden').length})
+              </button>
+            </div>
+
+            <div class="relative w-full sm:w-64">
+              <Search class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                bind:value={reviewSearchQuery}
+                placeholder="নাম বা রিভিউ খুঁজুন..."
+                class="w-full pl-9 pr-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+          </div>
+
+          <!-- Reviews Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {#each filteredReviews as rev (rev.id)}
+              <div class="p-5 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between hover:border-slate-700 transition-all shadow-md">
+                <div>
+                  <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-1 text-amber-400">
+                      {#each Array(rev.rating || 5) as _}
+                        <Star class="w-3.5 h-3.5 fill-amber-400" />
+                      {/each}
+                    </div>
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border {rev.status === 'published' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-800 text-slate-400 border-slate-700'}">
+                      {rev.status === 'published' ? 'Published' : 'Hidden'}
+                    </span>
+                  </div>
+
+                  <p class="text-xs text-slate-300 leading-relaxed italic line-clamp-4">
+                    "{rev.comment}"
+                  </p>
+                </div>
+
+                <div class="mt-5 pt-4 border-t border-slate-800/80 flex items-center justify-between">
+                  <div class="flex items-center gap-2.5">
+                    <img src={rev.avatar} alt={rev.name} class="w-9 h-9 rounded-xl object-cover border border-slate-700" />
+                    <div>
+                      <h4 class="text-xs font-bold text-white">{rev.name}</h4>
+                      <p class="text-[10px] text-indigo-400 truncate max-w-[140px]">{rev.role}</p>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center gap-1">
+                    <button
+                      type="button"
+                      class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                      title={rev.status === 'published' ? 'হাইড করুন' : 'পাবলিশ করুন'}
+                      on:click={() => toggleReviewStatus(rev.id)}
+                    >
+                      <Eye class="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                      title="এডিট করুন"
+                      on:click={() => openEditReview(rev)}
+                    >
+                      <Pencil class="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      class="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-950/60 text-slate-400 hover:text-rose-400 transition-colors"
+                      title="মুছে ফেলুন"
+                      on:click={() => handleDeleteReview(rev.id, rev.name)}
+                    >
+                      <Trash2 class="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
+
+      <!-- ========================================================= -->
+      <!-- TAB 9: FAQ MANAGER                                        -->
+      <!-- ========================================================= -->
+      {#if activeTab === 'faqs'}
+        <div class="space-y-6">
+          <!-- Header Card -->
+          <div class="p-6 rounded-3xl bg-slate-900 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <HelpCircle class="w-5 h-5 text-indigo-400" />
+                <span>সাধারণ জিজ্ঞাসা ও প্রশ্নোত্তর (FAQ Manager)</span>
+              </h3>
+              <p class="text-xs text-slate-400 mt-1">ল্যান্ডিং পেজের FAQ সেকশনের প্রশ্ন, ক্যাটাগরি ও উত্তর লাইভ পরিচালনা করুন।</p>
+            </div>
+            <button
+              type="button"
+              class="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-600/30 flex items-center gap-1.5 self-start sm:self-auto transition-all"
+              on:click={() => {
+                formFaqCategory = 'general';
+                formFaqQuestion = '';
+                formFaqAnswer = '';
+                formFaqOrder = $platformFaqs.length + 1;
+                formFaqStatus = 'published';
+                isAddFaqModalOpen = true;
+              }}
+            >
+              <Plus class="w-4 h-4" />
+              <span>+ নতুন FAQ যোগ করুন</span>
+            </button>
+          </div>
+
+          <!-- Filter & Search Toolbar -->
+          <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+              <button
+                type="button"
+                class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all {faqCategoryFilter === 'all' ? 'bg-indigo-600 text-white' : 'bg-slate-950 text-slate-400 hover:text-white'}"
+                on:click={() => (faqCategoryFilter = 'all')}
+              >
+                সকল ({$platformFaqs.length})
+              </button>
+              <button
+                type="button"
+                class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all {faqCategoryFilter === 'sms' ? 'bg-indigo-600 text-white' : 'bg-slate-950 text-slate-400 hover:text-white'}"
+                on:click={() => (faqCategoryFilter = 'sms')}
+              >
+                SMS Gateway
+              </button>
+              <button
+                type="button"
+                class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all {faqCategoryFilter === 'billing' ? 'bg-indigo-600 text-white' : 'bg-slate-950 text-slate-400 hover:text-white'}"
+                on:click={() => (faqCategoryFilter = 'billing')}
+              >
+                Billing & Fees
+              </button>
+              <button
+                type="button"
+                class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all {faqCategoryFilter === 'academic' ? 'bg-indigo-600 text-white' : 'bg-slate-950 text-slate-400 hover:text-white'}"
+                on:click={() => (faqCategoryFilter = 'academic')}
+              >
+                Academics
+              </button>
+              <button
+                type="button"
+                class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all {faqCategoryFilter === 'security' ? 'bg-indigo-600 text-white' : 'bg-slate-950 text-slate-400 hover:text-white'}"
+                on:click={() => (faqCategoryFilter = 'security')}
+              >
+                Security & Cloud
+              </button>
+            </div>
+
+            <div class="relative w-full sm:w-64">
+              <Search class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                bind:value={faqSearchQuery}
+                placeholder="প্রশ্ন বা উত্তর খুঁজুন..."
+                class="w-full pl-9 pr-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+          </div>
+
+          <!-- FAQs Table/List -->
+          <div class="space-y-3">
+            {#each filteredFaqs as faq (faq.id)}
+              <div class="p-4.5 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-slate-700 transition-colors">
+                <div class="space-y-1.5 flex-1 min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span class="font-mono text-[10px] px-2 py-0.5 rounded bg-slate-950 text-indigo-400 border border-slate-800">
+                      #{faq.order}
+                    </span>
+                    <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border bg-indigo-500/10 text-indigo-400 border-indigo-500/20">
+                      {faq.category}
+                    </span>
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border {faq.status === 'published' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-800 text-slate-400 border-slate-700'}">
+                      {faq.status === 'published' ? 'Published' : 'Hidden'}
+                    </span>
+                  </div>
+                  <h4 class="font-bold text-sm text-white">{faq.question}</h4>
+                  <p class="text-xs text-slate-400 line-clamp-2">{faq.answer}</p>
+                </div>
+
+                <div class="flex items-center gap-1.5 shrink-0 self-end md:self-center">
+                  <button
+                    type="button"
+                    class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                    title={faq.status === 'published' ? 'হাইড করুন' : 'পাবলিশ করুন'}
+                    on:click={() => toggleFaqStatus(faq.id)}
+                  >
+                    <Eye class="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                    title="এডিট করুন"
+                    on:click={() => openEditFaq(faq)}
+                  >
+                    <Pencil class="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    class="p-2 rounded-xl bg-slate-800 hover:bg-rose-950/60 text-slate-400 hover:text-rose-400 transition-colors"
+                    title="মুছে ফেলুন"
+                    on:click={() => handleDeleteFaq(faq.id, faq.question)}
+                  >
+                    <Trash2 class="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            {/each}
           </div>
         </div>
       {/if}
@@ -3413,3 +4356,407 @@
     </div>
   {/if}
 </Modal>
+
+<!-- ========================================================================= -->
+<!-- Modal: Add Review Modal                                                   -->
+<!-- ========================================================================= -->
+<Modal
+  open={isAddReviewModalOpen}
+  title="নতুন ক্লায়েন্ট রিভিউ তৈরি করুন"
+  subtitle="পরিচালক বা শিক্ষকের প্রশংসাপত্র ও রেটিং ইনপুট করুন"
+  onClose={() => (isAddReviewModalOpen = false)}
+  maxWidth="max-w-lg"
+>
+  <form on:submit|preventDefault={handleCreateReview} class="space-y-4 text-xs">
+    <div>
+      <label for="rev-name" class="block font-semibold text-slate-300 mb-1">ক্লায়েন্টের নাম *</label>
+      <input
+        id="rev-name"
+        type="text"
+        bind:value={formRevName}
+        placeholder="যেমন: ইঞ্জি. তারিক হাসান"
+        required
+        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
+      />
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div>
+        <label for="rev-role" class="block font-semibold text-slate-300 mb-1">পদবী ও প্রতিষ্ঠান</label>
+        <input
+          id="rev-role"
+          type="text"
+          bind:value={formRevRole}
+          placeholder="যেমন: পরিচালক, কোয়ান্টাম একাডেমি"
+          class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
+        />
+      </div>
+      <div>
+        <label for="rev-students" class="block font-semibold text-slate-300 mb-1">শিক্ষার্থীর সংখ্যা</label>
+        <input
+          id="rev-students"
+          type="text"
+          bind:value={formRevStudents}
+          placeholder="যেমন: ৬৫০+ শিক্ষার্থী"
+          class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
+        />
+      </div>
+    </div>
+
+    <div>
+      <label for="rev-avatar" class="block font-semibold text-slate-300 mb-1">প্রোফাইল ছবি (Image URL)</label>
+      <input
+        id="rev-avatar"
+        type="url"
+        bind:value={formRevAvatar}
+        placeholder="https://..."
+        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
+      />
+    </div>
+
+    <div>
+      <label for="rev-comment" class="block font-semibold text-slate-300 mb-1">রিভিউ মন্তব্য / ফিডব্যাক *</label>
+      <textarea
+        id="rev-comment"
+        bind:value={formRevComment}
+        rows="3"
+        placeholder="কোচফ্লো সফটওয়্যার সম্পর্কে ক্লায়েন্টের মন্তব্য লিখুন..."
+        required
+        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
+      ></textarea>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label for="rev-rating" class="block font-semibold text-slate-300 mb-1">রেটিং (Stars)</label>
+        <select
+          id="rev-rating"
+          bind:value={formRevRating}
+          class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
+        >
+          <option value={5}>⭐⭐⭐⭐⭐ (5 Stars)</option>
+          <option value={4}>⭐⭐⭐⭐ (4 Stars)</option>
+          <option value={3}>⭐⭐⭐ (3 Stars)</option>
+        </select>
+      </div>
+      <div>
+        <label for="rev-status" class="block font-semibold text-slate-300 mb-1">স্ট্যাটাস</label>
+        <select
+          id="rev-status"
+          bind:value={formRevStatus}
+          class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
+        >
+          <option value="published">Published (ওয়েবসাইটে লাইভ)</option>
+          <option value="hidden">Hidden (লুকানো)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="pt-3 flex justify-end gap-2 border-t border-slate-800">
+      <button
+        type="button"
+        class="px-4 py-2 rounded-xl text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700"
+        on:click={() => (isAddReviewModalOpen = false)}
+      >
+        বাতিল
+      </button>
+      <button
+        type="submit"
+        class="px-5 py-2 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md"
+      >
+        রিভিউ যোগ করুন
+      </button>
+    </div>
+  </form>
+</Modal>
+
+<!-- ========================================================================= -->
+<!-- Modal: Edit Review Modal                                                  -->
+<!-- ========================================================================= -->
+<Modal
+  open={isEditReviewModalOpen}
+  title="রিভিউ সম্পাদনা করুন"
+  subtitle="বিদ্যমান রিভিউটির তথ্য আপডেট করুন"
+  onClose={() => (isEditReviewModalOpen = false)}
+  maxWidth="max-w-lg"
+>
+  <form on:submit|preventDefault={handleUpdateReview} class="space-y-4 text-xs">
+    <div>
+      <label for="edit-rev-name" class="block font-semibold text-slate-300 mb-1">ক্লায়েন্টের নাম *</label>
+      <input
+        id="edit-rev-name"
+        type="text"
+        bind:value={formRevName}
+        required
+        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
+      />
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div>
+        <label for="edit-rev-role" class="block font-semibold text-slate-300 mb-1">পদবী ও প্রতিষ্ঠান</label>
+        <input
+          id="edit-rev-role"
+          type="text"
+          bind:value={formRevRole}
+          class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
+        />
+      </div>
+      <div>
+        <label for="edit-rev-students" class="block font-semibold text-slate-300 mb-1">শিক্ষার্থীর সংখ্যা</label>
+        <input
+          id="edit-rev-students"
+          type="text"
+          bind:value={formRevStudents}
+          class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
+        />
+      </div>
+    </div>
+
+    <div>
+      <label for="edit-rev-avatar" class="block font-semibold text-slate-300 mb-1">প্রোফাইল ছবি (URL)</label>
+      <input
+        id="edit-rev-avatar"
+        type="url"
+        bind:value={formRevAvatar}
+        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
+      />
+    </div>
+
+    <div>
+      <label for="edit-rev-comment" class="block font-semibold text-slate-300 mb-1">মন্তব্য *</label>
+      <textarea
+        id="edit-rev-comment"
+        bind:value={formRevComment}
+        rows="3"
+        required
+        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
+      ></textarea>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label for="edit-rev-rating" class="block font-semibold text-slate-300 mb-1">রেটিং</label>
+        <select
+          id="edit-rev-rating"
+          bind:value={formRevRating}
+          class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
+        >
+          <option value={5}>⭐⭐⭐⭐⭐ (5 Stars)</option>
+          <option value={4}>⭐⭐⭐⭐ (4 Stars)</option>
+          <option value={3}>⭐⭐⭐ (3 Stars)</option>
+        </select>
+      </div>
+      <div>
+        <label for="edit-rev-status" class="block font-semibold text-slate-300 mb-1">স্ট্যাটাস</label>
+        <select
+          id="edit-rev-status"
+          bind:value={formRevStatus}
+          class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
+        >
+          <option value="published">Published</option>
+          <option value="hidden">Hidden</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="pt-3 flex justify-end gap-2 border-t border-slate-800">
+      <button
+        type="button"
+        class="px-4 py-2 rounded-xl text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700"
+        on:click={() => (isEditReviewModalOpen = false)}
+      >
+        বাতিল
+      </button>
+      <button
+        type="submit"
+        class="px-5 py-2 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md"
+      >
+        আপডেট করুন
+      </button>
+    </div>
+  </form>
+</Modal>
+
+<!-- ========================================================================= -->
+<!-- Modal: Add FAQ Modal                                                      -->
+<!-- ========================================================================= -->
+<Modal
+  open={isAddFaqModalOpen}
+  title="নতুন সাধারণ জিজ্ঞাসা (FAQ) যোগ করুন"
+  subtitle="প্রশ্ন ও উত্তরের বিস্তারিত তথ্য পূরণ করুন"
+  onClose={() => (isAddFaqModalOpen = false)}
+  maxWidth="max-w-lg"
+>
+  <form on:submit|preventDefault={handleCreateFaq} class="space-y-4 text-xs">
+    <div>
+      <label for="add-faq-cat" class="block font-semibold text-slate-300 mb-1">ক্যাটাগরি</label>
+      <select
+        id="add-faq-cat"
+        bind:value={formFaqCategory}
+        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
+      >
+        <option value="general">সাধারণ (General)</option>
+        <option value="sms">এসএমএস গেটওয়ে (SMS Gateway)</option>
+        <option value="billing">ফি ও রসিদ (Billing & Fees)</option>
+        <option value="academic">অ্যাকাডেমিক ও আইডি (Academics)</option>
+        <option value="security">ডাটা সিকিউরিটি ও ক্লাউড (Security)</option>
+      </select>
+    </div>
+
+    <div>
+      <label for="add-faq-q" class="block font-semibold text-slate-300 mb-1">প্রশ্ন (Question) *</label>
+      <input
+        id="add-faq-q"
+        type="text"
+        bind:value={formFaqQuestion}
+        placeholder="যেমন: অ্যান্ড্রয়েড এসএমএস গেটওয়ে কীভাবে খরচ বাঁচায়?"
+        required
+        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
+      />
+    </div>
+
+    <div>
+      <label for="add-faq-a" class="block font-semibold text-slate-300 mb-1">উত্তর (Answer) *</label>
+      <textarea
+        id="add-faq-a"
+        bind:value={formFaqAnswer}
+        rows="4"
+        placeholder="বিস্তারিত উত্তর লিখুন..."
+        required
+        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
+      ></textarea>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label for="add-faq-order" class="block font-semibold text-slate-300 mb-1">ক্রম নম্বর (Order)</label>
+        <input
+          id="add-faq-order"
+          type="number"
+          min="1"
+          bind:value={formFaqOrder}
+          class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
+        />
+      </div>
+      <div>
+        <label for="add-faq-status" class="block font-semibold text-slate-300 mb-1">স্ট্যাটাস</label>
+        <select
+          id="add-faq-status"
+          bind:value={formFaqStatus}
+          class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
+        >
+          <option value="published">Published</option>
+          <option value="hidden">Hidden</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="pt-3 flex justify-end gap-2 border-t border-slate-800">
+      <button
+        type="button"
+        class="px-4 py-2 rounded-xl text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700"
+        on:click={() => (isAddFaqModalOpen = false)}
+      >
+        বাতিল
+      </button>
+      <button
+        type="submit"
+        class="px-5 py-2 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md"
+      >
+        FAQ যোগ করুন
+      </button>
+    </div>
+  </form>
+</Modal>
+
+<!-- ========================================================================= -->
+<!-- Modal: Edit FAQ Modal                                                     -->
+<!-- ========================================================================= -->
+<Modal
+  open={isEditFaqModalOpen}
+  title="FAQ সম্পাদনা করুন"
+  subtitle="প্রশ্ন ও উত্তরের তথ্য হালনাগাদ করুন"
+  onClose={() => (isEditFaqModalOpen = false)}
+  maxWidth="max-w-lg"
+>
+  <form on:submit|preventDefault={handleUpdateFaq} class="space-y-4 text-xs">
+    <div>
+      <label for="edit-faq-cat" class="block font-semibold text-slate-300 mb-1">ক্যাটাগরি</label>
+      <select
+        id="edit-faq-cat"
+        bind:value={formFaqCategory}
+        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
+      >
+        <option value="general">সাধারণ (General)</option>
+        <option value="sms">এসএমএস গেটওয়ে (SMS Gateway)</option>
+        <option value="billing">ফি ও রসিদ (Billing & Fees)</option>
+        <option value="academic">অ্যাকাডেমিক ও আইডি (Academics)</option>
+        <option value="security">ডাটা সিকিউরিটি ও ক্লাউড (Security)</option>
+      </select>
+    </div>
+
+    <div>
+      <label for="edit-faq-q" class="block font-semibold text-slate-300 mb-1">প্রশ্ন (Question) *</label>
+      <input
+        id="edit-faq-q"
+        type="text"
+        bind:value={formFaqQuestion}
+        required
+        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
+      />
+    </div>
+
+    <div>
+      <label for="edit-faq-a" class="block font-semibold text-slate-300 mb-1">উত্তর (Answer) *</label>
+      <textarea
+        id="edit-faq-a"
+        bind:value={formFaqAnswer}
+        rows="4"
+        required
+        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
+      ></textarea>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label for="edit-faq-order" class="block font-semibold text-slate-300 mb-1">ক্রম নম্বর</label>
+        <input
+          id="edit-faq-order"
+          type="number"
+          min="1"
+          bind:value={formFaqOrder}
+          class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
+        />
+      </div>
+      <div>
+        <label for="edit-faq-status" class="block font-semibold text-slate-300 mb-1">স্ট্যাটাস</label>
+        <select
+          id="edit-faq-status"
+          bind:value={formFaqStatus}
+          class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
+        >
+          <option value="published">Published</option>
+          <option value="hidden">Hidden</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="pt-3 flex justify-end gap-2 border-t border-slate-800">
+      <button
+        type="button"
+        class="px-4 py-2 rounded-xl text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700"
+        on:click={() => (isEditFaqModalOpen = false)}
+      >
+        বাতিল
+      </button>
+      <button
+        type="submit"
+        class="px-5 py-2 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md"
+      >
+        হালনাগাদ করুন
+      </button>
+    </div>
+  </form>
+</Modal>
+

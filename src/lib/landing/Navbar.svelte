@@ -31,19 +31,11 @@
 
       <button
         type="button"
-        class="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-indigo-300 bg-indigo-950/60 hover:bg-indigo-900/60 border border-indigo-500/30 transition-all"
+        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-md shadow-indigo-600/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
         on:click={() => navigate('/register')}
       >
-        <UserPlus class="w-3.5 h-3.5" />
+        <UserPlus class="w-4 h-4" />
         <span>Register Academy</span>
-      </button>
-
-      <button
-        type="button"
-        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-md shadow-indigo-600/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
-        on:click={() => navigate('/dashboard/overview')}
-      >
-        <span>Live Demo</span>
         <ArrowRight class="w-4 h-4" />
       </button>
     </div>

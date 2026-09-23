@@ -35,6 +35,21 @@ export interface Student {
   address: string;
   gender: 'male' | 'female' | 'other';
   dob: string;
+
+  // Additional optional details (requested by user)
+  studyingInstitute?: string; // বর্তমান স্কুল / কলেজ / বিশ্ববিদ্যালয় (Studying Institute)
+  motherName?: string; // মাতার নাম (Mother's Name)
+  motherPhone?: string; // মাতার মোবাইল নম্বর (Mother's Phone)
+  fatherName?: string; // পিতার নাম (Father's Name)
+  village?: string; // গ্রাম / স্থায়ী এলাকা (Village / Permanent Address)
+  messOrHostelName?: string; // মেস / হোস্টেল / ম্যাচ নাম (Mess / Hostel / Match Name)
+  friendStudentIds?: string[]; // কোচিংয়ে অধ্যয়নরত বন্ধু / সহপাঠীদের আইডি (Friends in coaching)
+  smsRecipientTarget?: 'father' | 'mother' | 'both' | 'student'; // SMS প্রেরণের মূল প্রাপক (SMS Recipient)
+  additionalGuardianName?: string; // বিকল্প / স্থানীয় অভিভাবকের নাম (Local Guardian)
+  additionalGuardianPhone?: string; // বিকল্প অভিভাবকের মোবাইল (Local Guardian Phone)
+  additionalGuardianRelation?: string; // সম্পর্ক (যেমন: চাচা, মামা, খালা, ভাই) (Relation)
+  previousGpa?: string; // পূর্ববর্তী ক্লাসের জিপিএ / পরীক্ষার ফলাফল (Previous GPA)
+  notes?: string; // বিশেষ নোট / মন্তব্য (Special Notes)
 }
 
 export interface Teacher {
@@ -52,6 +67,10 @@ export interface Teacher {
   joiningDate: string;
   status: 'active' | 'on_leave';
   education: string;
+  signatureUrl?: string; // Teacher's uploaded signature image
+  hasLoginAccount?: boolean; // Whether login credentials were created
+  isHeadTeacher?: boolean; // Main teacher / Head of faculty designation
+  permissions?: string[]; // Granular teacher role permissions (e.g. routine_view, attendance_mark, etc.)
 }
 
 export interface Course {
@@ -229,8 +248,11 @@ export interface InstituteSettings {
   directorName?: string;
   directorDesignation?: string;
   directorSignature?: string;
-  academicCoordinator?: string;
+  directorSignatureUrl?: string; // Main teacher / Director signature image URL
+  headTeacherSignatureUrl?: string; // Head Teacher signature image URL
   officialSealText?: string;
+  officialSealUrl?: string; // Official Stamp/Seal circular image URL
+  academicCoordinator?: string;
 
   // 4. Financial & Payment Accounts
   bkashMerchant?: string;
@@ -456,6 +478,29 @@ export interface PlatformSettings {
     instructions: string;
     active: boolean;
   };
+
+  // 6. Bangladesh Bulk SMS Gateway Provider Config (to sell & send)
+  bulkSmsConfig?: {
+    provider: 'greenweb' | 'elitbuzz' | 'reve' | 'boomcast' | 'metronet' | 'custom';
+    apiKey: string;
+    clientId?: string;
+    senderId: string; // Approved Masking e.g. "CoachFlow"
+    apiUrl: string;
+    ratePerSmsCost: number; // e.g. ৳0.25 (Provider purchase cost)
+    ratePerSmsSelling: number; // e.g. ৳0.35 (Selling price to coaching centers)
+    accountBalanceCredits: number; // Live balance
+    active: boolean;
+  };
+
+  // 7. Android SMS Gateway App Download & QR Code Manager
+  androidAppConfig?: {
+    versionName: string;
+    versionCode: number;
+    downloadUrl: string;
+    releaseDate: string;
+    releaseNotes: string;
+    fileSizeMb: string;
+  };
 }
 
 export interface PlatformTransaction {
@@ -474,5 +519,26 @@ export interface PlatformTransaction {
   subtotal?: number;
   vatAmount?: number;
   notes?: string;
+}
+
+export interface PlatformReview {
+  id: string;
+  name: string;
+  role: string;
+  students: string;
+  avatar: string;
+  comment: string;
+  rating: number;
+  status: 'published' | 'hidden';
+  createdAt: string;
+}
+
+export interface PlatformFaq {
+  id: string;
+  category: 'general' | 'sms' | 'academic' | 'billing' | 'security';
+  question: string;
+  answer: string;
+  order: number;
+  status: 'published' | 'hidden';
 }
 

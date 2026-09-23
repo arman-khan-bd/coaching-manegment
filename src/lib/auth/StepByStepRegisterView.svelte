@@ -36,21 +36,20 @@
   } from 'lucide-svelte';
 
   // Step 1: Admin & Credentials
-  let adminFullName = 'ইঞ্জি. মোঃ সাইফুল ইসলাম';
-  let adminEmail = 'director@apexacademicbd.com';
-  let adminPhone = '+880 1711-456789';
-  let adminPassword = 'Password123!';
-  let confirmPassword = 'Password123!';
+  let adminFullName = '';
+  let adminEmail = '';
+  let adminPhone = '';
+  let adminPassword = '';
+  let confirmPassword = '';
   let showPassword = false;
 
   // Step 2: Coaching Center Profile
-  let coachingName = 'এপেক্স অ্যাকাডেমিক কেয়ার (ফার্মগেট শাখা)';
-  let coachingTagline = 'HSC বিজ্ঞান, বুয়েট ইঞ্জিনিয়ারিং ও মেডিকেল ভর্তি পরীক্ষার সেরা প্ল্যাটফর্ম';
-  let coachingAddress = 'গ্রিন সুপার মার্কেট, ৩য় তলা, ফার্মগেট, ঢাকা-১২১৫';
+  let coachingName = '';
+  let coachingTagline = '';
+  let coachingAddress = '';
   let division = 'ঢাকা';
-  let subdomain = 'apex-care';
-  let targetCapacity = '500';
-  let selectedCurriculums = ['HSC Science', 'BUET/CKRUET Admission', 'Medical Preparation'];
+  let targetCapacity = '300';
+  let selectedCurriculums: string[] = [];
 
   // Step 3: Plan & Gateway
   let activePlan: SubscriptionPlan = $selectedPlan || $subscriptionPlans[1] || $subscriptionPlans[0];
@@ -69,12 +68,49 @@
   $: planPrice = billingCycle === 'monthly' ? activePlan.priceMonthly : Math.round(activePlan.priceYearly / 12);
 
   const divisionsList = ['ঢাকা', 'চট্টগ্রাম', 'রাজশাহী', 'খুলনা', 'সিলেট', 'রংপুর', 'বরিশাল', 'ময়মনসিংহ'];
-  const curriculumsList = [
-    'HSC Science (এইচএসসি বিজ্ঞান)',
-    'BUET/CKRUET Admission (ইঞ্জিনিয়ারিং ভর্তি)',
-    'Medical Preparation (মেডিকেল ভর্তি)',
-    'Varsity ' + 'A/B Unit (বিশ্ববিদ্যালয় ভর্তি)',
-    'SSC Science (এসএসসি বিজ্ঞান)',
+
+  // Comprehensive Bangladesh Offline Coaching Academic Courses & Curricula
+  const curriculumCategories = [
+    {
+      category: 'এইচএসসি ও কলেজ (HSC)',
+      items: [
+        'HSC Science (এইচএসসি বিজ্ঞান বিভাগ)',
+        'HSC Business Studies (এইচএসসি ব্যবসায় শিক্ষা)',
+        'HSC Humanities (এইচএসসি মানবিক বিভাগ)',
+        'HSC ICT Special Batch (আইসিটি স্পেশাল কেয়ার)',
+        'HSC Model Test & Revision (টেস্ট পেপার সলভ ও ফাইনাল মডেল টেস্ট)',
+      ],
+    },
+    {
+      category: 'বিশ্ববিদ্যালয় ও মেডিকেল ভর্তি (Admission)',
+      items: [
+        'BUET & Engineering Admission (বুয়েট ও ইঞ্জিনিয়ারিং ভর্তি প্রস্তুতি)',
+        'Medical & Dental Admission (মেডিকেল ও ডেন্টাল ভর্তি প্রোগ্রাম)',
+        'DU KA Unit Admission (ঢাবি "ক" ইউনিট বিজ্ঞান ভর্তি প্রস্তুতি)',
+        'DU KHA Unit Admission (ঢাবি "খ" ইউনিট কলা/মানবিক ভর্তি প্রস্তুতি)',
+        'DU GA Unit Admission (ঢাবি "গ" ইউনিট ব্যবসায় শিক্ষা ভর্তি প্রস্তুতি)',
+        'GST Cluster Admission (জিএসটি গুচ্ছ সমন্বিত ভর্তি পরীক্ষা)',
+        'IBA & BUP Admission (আইবিএ ও বিইউপি স্পেশাল প্রোগ্রাম)',
+        'Agriculture Cluster (কৃষি বিশ্ববিদ্যালয় গুচ্ছ ভর্তি ব্যাচ)',
+      ],
+    },
+    {
+      category: 'এসএসসি ও মাধ্যমিক (SSC & Secondary)',
+      items: [
+        'SSC Science (এসএসসি বিজ্ঞান বিভাগ ৯-১০ম)',
+        'SSC Business Studies (এসএসসি ব্যবসায় শিক্ষা ৯-১০ম)',
+        'SSC Humanities (এসএসসি মানবিক বিভাগ ৯-১০ম)',
+        'SSC Model Test (এসএসসি ফাইনাল রিভিশন ও মডেল টেস্ট)',
+      ],
+    },
+    {
+      category: 'জুনিয়র ও ফাউন্ডেশন (Junior & Foundation)',
+      items: [
+        'Class 8 Board Standard (৮ম শ্রেণি বোর্ড স্ট্যান্ডার্ড ও বৃত্তি)',
+        'Class 6-7 New Curriculum (৬ষ্ঠ ও ৭ম শ্রেণি নতুন শিক্ষাক্রম ভিত্তি)',
+        'Cadet College Admission (ক্যাডেট কলেজ ভর্তি কেয়ার)',
+      ],
+    },
   ];
 
   function toggleCurriculum(item: string) {
@@ -348,7 +384,7 @@
                   id="reg-name"
                   type="text"
                   bind:value={adminFullName}
-                  placeholder="যেমন: ইঞ্জি. মোঃ সাইফুল ইসলাম"
+                  placeholder="আপনার পূর্ণ নাম লিখুন"
                   class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
                 />
               </div>
@@ -362,7 +398,7 @@
                   id="reg-phone"
                   type="text"
                   bind:value={adminPhone}
-                  placeholder="+880 1711-456789"
+                  placeholder="০১XXXXXXXXX"
                   class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono placeholder-slate-500 focus:outline-none focus:border-indigo-500"
                 />
               </div>
@@ -376,7 +412,7 @@
                   id="reg-email"
                   type="email"
                   bind:value={adminEmail}
-                  placeholder="director@apexacademicbd.com"
+                  placeholder="name@example.com"
                   class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
                 />
               </div>
@@ -390,7 +426,7 @@
                   id="reg-pass"
                   type={showPassword ? 'text' : 'password'}
                   bind:value={adminPassword}
-                  placeholder="কমপক্ষে ৬ অক্ষরের পাসওয়ার্ড"
+                  placeholder="কমপক্ষে ৬ অক্ষরের গোপন পাসওয়ার্ড লিখুন"
                   class="w-full pl-10 pr-10 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
                 />
                 <button
@@ -445,7 +481,7 @@
                   id="reg-coach-name"
                   type="text"
                   bind:value={coachingName}
-                  placeholder="যেমন: এপেক্স অ্যাকাডেমিক কেয়ার (ফার্মগেট শাখা)"
+                  placeholder="কোচিং সেন্টারের নাম লিখুন (যেমন: পাই একাডেমি - ফার্মগেট শাখা)"
                   class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 text-sm font-semibold"
                 />
               </div>
@@ -484,39 +520,53 @@
                 id="reg-address"
                 type="text"
                 bind:value={coachingAddress}
-                placeholder="যেমন: গ্রিন সুপার মার্কেট, ৩য় তলা, ফার্মগেট, তেজগাঁও, ঢাকা-১২১৫"
+                placeholder="রোড, বাড়ি নম্বর, এলাকা, থানা ও জেলা উল্লেখ করুন"
                 class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
               />
             </div>
 
             <div>
-              <label for="reg-tagline" class="block font-medium text-slate-300 mb-1.5">মটো / স্লোগান (Tagline)</label>
+              <label for="reg-tagline" class="block font-medium text-slate-300 mb-1.5">মটো / স্লোগান (Tagline - ঐচ্ছিক)</label>
               <input
                 id="reg-tagline"
                 type="text"
                 bind:value={coachingTagline}
-                placeholder="যেমন: HSC বিজ্ঞান, বুয়েট ইঞ্জিনিয়ারিং ও মেডিকেল ভর্তি পরীক্ষার সেরা প্ল্যাটফর্ম"
+                placeholder="যেমন: এইচএসসি ও বিশ্ববিদ্যালয় ভর্তি পরীক্ষার বিশ্বস্ত সঙ্গী"
                 class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
               />
             </div>
 
             <div>
-              <span class="block font-medium text-slate-300 mb-2">অ্যাকাডেমিক কোর্স ও পাঠ্যক্রম:</span>
-              <div class="flex flex-wrap gap-2">
-                {#each curriculumsList as cur}
-                  <button
-                    type="button"
-                    class="px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all flex items-center gap-1.5
-                    {selectedCurriculums.includes(cur) ? 'bg-indigo-600 text-white border-indigo-500 shadow-sm' : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'}"
-                    on:click={() => toggleCurriculum(cur)}
-                  >
-                    {#if selectedCurriculums.includes(cur)}
-                      <Check class="w-3.5 h-3.5" />
-                    {:else}
-                      <span>+</span>
-                    {/if}
-                    <span>{cur}</span>
-                  </button>
+              <div class="flex items-center justify-between mb-2">
+                <span class="block font-semibold text-slate-300">অ্যাকাডেমিক কোর্স ও পাঠ্যক্রম নির্বাচন করুন:</span>
+                <span class="text-[11px] text-indigo-400 font-semibold">{selectedCurriculums.length}টি কোর্স নির্বাচিত</span>
+              </div>
+
+              <div class="space-y-3.5 bg-slate-950/70 p-3.5 rounded-2xl border border-slate-800/80 max-h-72 overflow-y-auto">
+                {#each curriculumCategories as catGroup}
+                  <div>
+                    <div class="text-[10px] font-bold uppercase tracking-wider text-indigo-400 mb-1.5 flex items-center gap-1.5">
+                      <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                      <span>{catGroup.category}</span>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5">
+                      {#each catGroup.items as cur}
+                        <button
+                          type="button"
+                          class="px-2.5 py-1.5 rounded-xl border text-[11px] font-medium transition-all flex items-center gap-1.5 text-left
+                          {selectedCurriculums.includes(cur) ? 'bg-indigo-600 text-white border-indigo-500 shadow-sm' : 'bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-700 hover:text-white'}"
+                          on:click={() => toggleCurriculum(cur)}
+                        >
+                          {#if selectedCurriculums.includes(cur)}
+                            <Check class="w-3 h-3 text-white shrink-0" />
+                          {:else}
+                            <span class="text-slate-500 shrink-0 font-bold">+</span>
+                          {/if}
+                          <span>{cur}</span>
+                        </button>
+                      {/each}
+                    </div>
+                  </div>
                 {/each}
               </div>
             </div>

@@ -66,9 +66,26 @@
           </div>
         </div>
 
-        <div class="text-right">
-          <span class="font-serif italic text-xs text-indigo-300 block">Robert Vance</span>
-          <span class="text-[8px] uppercase tracking-wider text-slate-400 border-t border-indigo-500/40 pt-0.5">DIRECTOR SIGN</span>
+        <div class="text-right flex items-center gap-1.5">
+          {#if $instituteSettings.officialSealUrl}
+            <img
+              src={$instituteSettings.officialSealUrl}
+              alt="Official Seal"
+              class="w-7 h-7 object-contain rounded-full rotate-[-6deg] drop-shadow"
+            />
+          {/if}
+          <div class="flex flex-col items-end">
+            {#if $instituteSettings.directorSignatureUrl || $instituteSettings.headTeacherSignatureUrl}
+              <img
+                src={$instituteSettings.directorSignatureUrl || $instituteSettings.headTeacherSignatureUrl}
+                alt="Signature"
+                class="h-5 max-w-[75px] object-contain -mb-0.5 filter invert brightness-200"
+              />
+            {:else}
+              <span class="font-serif italic text-xs text-indigo-300 block">{$instituteSettings.directorSignature || $instituteSettings.directorName || 'Principal'}</span>
+            {/if}
+            <span class="text-[8px] uppercase tracking-wider text-slate-400 border-t border-indigo-500/40 pt-0.5">DIRECTOR SIGN</span>
+          </div>
         </div>
       </div>
     </div>
@@ -125,9 +142,26 @@
           </div>
         </div>
 
-        <div class="text-right">
-          <span class="font-serif italic text-xs text-amber-300 block">R. Vance</span>
-          <span class="text-[8px] uppercase tracking-wider text-slate-400 border-t border-amber-500/40 pt-0.5">ACADEMY SEAL</span>
+        <div class="text-right flex items-center gap-2">
+          {#if $instituteSettings.officialSealUrl}
+            <img
+              src={$instituteSettings.officialSealUrl}
+              alt="Official Seal"
+              class="w-8 h-8 object-contain rounded-full border border-amber-500/40 shadow rotate-[-6deg]"
+            />
+          {/if}
+          <div class="flex flex-col items-end">
+            {#if $instituteSettings.directorSignatureUrl || $instituteSettings.headTeacherSignatureUrl}
+              <img
+                src={$instituteSettings.directorSignatureUrl || $instituteSettings.headTeacherSignatureUrl}
+                alt="Signature"
+                class="h-5 max-w-[75px] object-contain -mb-0.5 filter invert brightness-200"
+              />
+            {:else}
+              <span class="font-serif italic text-xs text-amber-300 block">{$instituteSettings.directorSignature || $instituteSettings.directorName || 'Principal'}</span>
+            {/if}
+            <span class="text-[8px] uppercase tracking-wider text-slate-400 border-t border-amber-500/40 pt-0.5">SEAL & SIGN</span>
+          </div>
         </div>
       </div>
     </div>
@@ -185,9 +219,26 @@
             </div>
             <div class="font-mono text-[9px] text-slate-500 tracking-widest">{student.rollNo}</div>
           </div>
-          <div class="text-right text-[9px] text-slate-500">
-            <span class="font-bold text-emerald-700 uppercase">ACTIVE</span><br />
-            <span>Term 26/27</span>
+          <div class="text-right flex items-center gap-1.5 text-[9px] text-slate-500">
+            {#if $instituteSettings.officialSealUrl}
+              <img
+                src={$instituteSettings.officialSealUrl}
+                alt="Seal"
+                class="w-7 h-7 object-contain rounded-full rotate-[-6deg]"
+              />
+            {/if}
+            <div>
+              {#if $instituteSettings.directorSignatureUrl || $instituteSettings.headTeacherSignatureUrl}
+                <img
+                  src={$instituteSettings.directorSignatureUrl || $instituteSettings.headTeacherSignatureUrl}
+                  alt="Signature"
+                  class="h-4 max-w-[65px] object-contain ml-auto"
+                />
+              {:else}
+                <span class="font-bold text-emerald-700 uppercase">ACTIVE</span><br />
+              {/if}
+              <span class="text-[8px] border-t border-slate-300 pt-0.5 block">DIRECTOR SIGN</span>
+            </div>
           </div>
         </div>
       </div>
@@ -252,11 +303,28 @@
           </div>
         </div>
 
-        <div class="text-right">
-          <div class="w-9 h-6 rounded bg-amber-500/20 border border-amber-500/40 mb-1 ml-auto flex items-center justify-center">
-            <div class="w-5 h-3 border-t border-b border-amber-400/60"></div>
+        <div class="text-right flex items-center gap-2">
+          {#if $instituteSettings.officialSealUrl}
+            <img
+              src={$instituteSettings.officialSealUrl}
+              alt="Seal"
+              class="w-7 h-7 object-contain rounded-full rotate-[-6deg] drop-shadow"
+            />
+          {/if}
+          <div class="flex flex-col items-end">
+            {#if $instituteSettings.directorSignatureUrl || $instituteSettings.headTeacherSignatureUrl}
+              <img
+                src={$instituteSettings.directorSignatureUrl || $instituteSettings.headTeacherSignatureUrl}
+                alt="Signature"
+                class="h-5 max-w-[75px] object-contain filter invert brightness-200"
+              />
+            {:else}
+              <div class="w-9 h-6 rounded bg-amber-500/20 border border-amber-500/40 mb-1 ml-auto flex items-center justify-center">
+                <div class="w-5 h-3 border-t border-b border-amber-400/60"></div>
+              </div>
+            {/if}
+            <span class="text-[8px] uppercase tracking-wider text-zinc-500 border-t border-zinc-700 pt-0.5 block">VERIFIED PASS</span>
           </div>
-          <span class="text-[8px] uppercase tracking-wider text-zinc-500 block">SMART PASS</span>
         </div>
       </div>
     </div>

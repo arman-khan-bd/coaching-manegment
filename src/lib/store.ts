@@ -24,6 +24,8 @@ import type {
   PlatformSettings,
   PlatformTransaction,
   SmsQueueItem,
+  PlatformReview,
+  PlatformFaq,
 } from './types';
 import {
   syncStudentToDb,
@@ -236,6 +238,7 @@ export function refreshCurrentTenantDataFromDb() {
 export const currentView = writable<'landing' | 'login' | 'register' | 'checkout' | 'dashboard'>('landing');
 export const activeTab = writable<string>('overview');
 export const currentRole = writable<UserRole>('institute_admin');
+export const currentTeacherPermissions = writable<string[]>([]);
 export const selectedPlan = writable<SubscriptionPlan | null>(null);
 
 // ==========================================
@@ -1008,6 +1011,29 @@ export const platformSettings = writable<PlatformSettings>({
     instructions: 'অনুগ্রহ করে ব্যাংকে ডিপোজিট বা ফান্ড ট্রান্সফার করার পর ট্রানজেকশন স্লিপের ছবি ও রেফারেন্স নম্বর আমাদের হটলাইনে পাঠান।',
     active: true,
   },
+
+  // 6. Bangladesh Bulk SMS Gateway Provider Config (to sell & send)
+  bulkSmsConfig: {
+    provider: 'greenweb',
+    apiKey: 'gw_live_89124891bca79124',
+    clientId: 'COACHFLOW_BD',
+    senderId: 'CoachFlow',
+    apiUrl: 'https://api.greenweb.com.bd/api.php',
+    ratePerSmsCost: 0.25,
+    ratePerSmsSelling: 0.35,
+    accountBalanceCredits: 45200,
+    active: true,
+  },
+
+  // 7. Android SMS Gateway App Download & QR Code Manager
+  androidAppConfig: {
+    versionName: 'v3.4.2',
+    versionCode: 34,
+    downloadUrl: 'https://coachflow.app/downloads/coachflow-sms-gateway-v3.4.2.apk',
+    releaseDate: '2026-09-20',
+    releaseNotes: 'ডুয়েল-সিম সাপোর্ট (SIM 1/2 সিলেকশন), লাইভ সিঙ্ক ও ব্যাকগ্রাউন্ড এসএমএস অটো-সেন্ডার সার্ভিস।',
+    fileSizeMb: '14.8 MB',
+  },
 });
 
 export function updatePlatformSettings(updates: Partial<PlatformSettings>) {
@@ -1177,8 +1203,11 @@ export const defaultInstituteSettings: InstituteSettings = {
   directorName: 'ইঞ্জি. মোঃ সাইফুল ইসলাম',
   directorDesignation: 'নির্বাহী পরিচালক ও প্রতিষ্ঠাতা',
   directorSignature: 'Md. Saiful Islam',
+  directorSignatureUrl: '',
+  headTeacherSignatureUrl: '',
   academicCoordinator: 'ড. তানভীর আহমেদ (অ্যাকাডেমিক কো-অর্ডিনেটর)',
   officialSealText: 'APEX ACADEMIC CARE • SEAL OF EXCELLENCE • DHAKA-1215',
+  officialSealUrl: '',
 
   // 4. Financial & Payment Accounts
   bkashMerchant: '01711-456789',
@@ -1484,7 +1513,7 @@ export function deleteStudent(id: string) {
 }
 
 // Add Batch
-export function addBatch(batchData: Omit<Batch, 'id' | 'enrolledCount'>) {
+export function addBatch(batchData: Omit<Batch, 'id' | 'enrolledCount'>): Batch {
   const newBatch: Batch = {
     ...batchData,
     coachingId: batchData.coachingId || getActiveCoachingId(),
@@ -1494,6 +1523,7 @@ export function addBatch(batchData: Omit<Batch, 'id' | 'enrolledCount'>) {
   batches.update((all) => [newBatch, ...all]);
   syncBatchToDb(newBatch);
   showToast('success', 'নতুন ব্যাচ চালু হয়েছে', 'অ্যাকাডেমিক ব্যাচ সফলভাবে খোলা হয়েছে।');
+  return newBatch;
 }
 
 // Update Batch
@@ -1522,15 +1552,20 @@ export function deleteBatch(id: string) {
 }
 
 // Add Teacher
-export function addTeacher(teacherData: Omit<Teacher, 'id'>) {
+export function addTeacher(teacherData: Omit<Teacher, 'id'>): Teacher {
   const newTeacher: Teacher = {
     ...teacherData,
     coachingId: teacherData.coachingId || getActiveCoachingId(),
     id: `t-${Date.now()}`,
+    hasLoginAccount: teacherData.hasLoginAccount || false,
+    signatureUrl: teacherData.signatureUrl || '',
+    isHeadTeacher: teacherData.isHeadTeacher || false,
+    permissions: teacherData.permissions || [],
   };
   teachers.update((all) => [newTeacher, ...all]);
   syncTeacherToDb(newTeacher);
   showToast('success', 'শিক্ষক যুক্ত হয়েছেন', 'নতুন শিক্ষকের প্রোফাইল ও বেতন স্কেল সংরক্ষিত হয়েছে।');
+  return newTeacher;
 }
 
 // Update Teacher
@@ -2230,5 +2265,207 @@ export function deleteRoutineSlot(id: string) {
   routineSlots.update((all) => all.filter((slot) => slot.id !== id));
   deleteRoutineFromDb(id);
   showToast('info', 'ক্লাস স্লট অপসারিত', 'রুটিন থেকে ক্লাসটি সরানো হয়েছে।');
+}
+
+// ==========================================
+// SAAS PLATFORM REVIEWS / TESTIMONIALS STORE
+// ==========================================
+export const initialPlatformReviews: PlatformReview[] = [
+  {
+    id: 'rev-1',
+    name: 'ইঞ্জি. তারিক হাসান (বুয়েট CSE)',
+    role: 'পরিচালক, কোয়ান্টাম ফিজিক্স একাডেমি (ফার্মগেট)',
+    students: '৬৫০+ শিক্ষার্থী',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    comment: 'অ্যান্ড্রয়েড এসএমএস গেটওয়ে ইন্টিগ্রেশনের কারণে আমাদের প্রতি মাসে ১৫,০০০ টাকারও বেশি এসএমএস খরচ বাঁচছে! সকালের ব্যাচ শুরু হলেই অনুপস্থিত ছাত্রদের অভিভাবকেরা সাথে সাথে বাংলা এসএমএস পান।',
+    rating: 5,
+    status: 'published',
+    createdAt: '2026-08-15',
+  },
+  {
+    id: 'rev-2',
+    name: 'ডাঃ ফারহানা ইসলাম',
+    role: 'প্রতিষ্ঠাতা, মেডিএইড এক্সক্লুসিভ (ধানমন্ডি)',
+    students: '৪২০+ শিক্ষার্থী',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+    comment: 'ইউনিট ও ব্যাচভিত্তিক আসন ব্যবস্থাপনা এবং ১-ক্লিকে ৪ ধরনের প্রফেশনাল স্টুডেন্ট আইডি কার্ড প্রিন্টিং আমাদের ভর্তি প্রক্রিয়াকে সম্পূর্ণ ডিজিটাল করে দিয়েছে।',
+    rating: 5,
+    status: 'published',
+    createdAt: '2026-08-28',
+  },
+  {
+    id: 'rev-3',
+    name: 'প্রভাষক আনিসুর রহমান',
+    role: 'প্রধান শিক্ষক, প্রাইম ম্যাথ কেয়ার (উত্তরা ও মিরপুর শাখা)',
+    students: '১,২০০+ শিক্ষার্থী',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+    comment: 'বিকাশ, নগদ ও ক্যাশ পেমেন্ট রিকনসিলিয়েশন এবং তাৎক্ষণিক মানি রিসিট ভাউচার প্রিন্টিং ফি আদায় সহজ করেছে। বাংলাদেশের যেকোনো কোচিংয়ের জন্য এটি সেরা সফটওয়্যার।',
+    rating: 5,
+    status: 'published',
+    createdAt: '2026-09-02',
+  },
+];
+
+function getSavedPlatformReviews(): PlatformReview[] {
+  if (typeof window === 'undefined') return initialPlatformReviews;
+  try {
+    const raw = localStorage.getItem('coachflow_platform_reviews');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (_) {}
+  return initialPlatformReviews;
+}
+
+export const platformReviews = writable<PlatformReview[]>(getSavedPlatformReviews());
+
+if (typeof window !== 'undefined') {
+  platformReviews.subscribe((list) => {
+    try {
+      localStorage.setItem('coachflow_platform_reviews', JSON.stringify(list));
+    } catch (_) {}
+  });
+}
+
+export function addPlatformReview(data: Omit<PlatformReview, 'id' | 'createdAt'>) {
+  const newRev: PlatformReview = {
+    ...data,
+    id: `rev-${Date.now()}`,
+    createdAt: new Date().toISOString().split('T')[0],
+  };
+  platformReviews.update((all) => [newRev, ...all]);
+  showToast('success', 'রিভিউ প্রকাশিত', `"${newRev.name}"-এর রিভিউ সফলভাবে যোগ হয়েছে।`);
+}
+
+export function updatePlatformReview(id: string, updates: Partial<PlatformReview>) {
+  platformReviews.update((all) => all.map((r) => (r.id === id ? { ...r, ...updates } : r)));
+  showToast('info', 'রিভিউ হালনাগাদ', 'ক্লায়েন্ট রিভিউ সফলভাবে আপডেট করা হয়েছে।');
+}
+
+export function toggleReviewStatus(id: string) {
+  platformReviews.update((all) =>
+    all.map((r) => {
+      if (r.id === id) {
+        const next = r.status === 'published' ? 'hidden' : 'published';
+        showToast(next === 'published' ? 'success' : 'info', 'স্ট্যাটাস পরিবর্তন', `রিভিউ স্ট্যাটাস ${next === 'published' ? 'Published' : 'Hidden'} করা হয়েছে।`);
+        return { ...r, status: next };
+      }
+      return r;
+    })
+  );
+}
+
+export function deletePlatformReview(id: string) {
+  platformReviews.update((all) => all.filter((r) => r.id !== id));
+  showToast('warning', 'রিভিউ অপসারিত', 'রিভিউটি সফলভাবে মুছে ফেলা হয়েছে।');
+}
+
+// ==========================================
+// SAAS PLATFORM FAQS STORE
+// ==========================================
+export const initialPlatformFaqs: PlatformFaq[] = [
+  {
+    id: 'faq-1',
+    category: 'sms',
+    question: 'অ্যান্ড্রয়েড এসএমএস গেটওয়ে কীভাবে খরচ বাঁচায়?',
+    answer: 'অন্যান্য এসএমএস প্রোভাইডারেরা প্রতি মেসেজে ৩৫ থেকে ৫০ পয়সা নেয়। কোচফ্লোর অ্যান্ড্রয়েড গেটওয়ের মাধ্যমে আপনার নিজস্ব ফোন (গ্রামীণফোন/রবি/বাংলালিংক আনলিমিটেড এসএমএস প্যাক) দিয়ে সরাসরি ৳০.০০ অতিরিক্ত চার্জে অভিভাবকের কাছে মেসেজ চলে যায়!',
+    order: 1,
+    status: 'published',
+  },
+  {
+    id: 'faq-2',
+    category: 'sms',
+    question: 'Can I also use Cloud SMS if I do not have a spare Android phone?',
+    answer: 'Yes! CoachFlow is a Dual-Engine system. You can switch between your Android Gateway or buy instant Cloud SMS packs anytime with 1 click in your SMS settings.',
+    order: 2,
+    status: 'published',
+  },
+  {
+    id: 'faq-3',
+    category: 'billing',
+    question: 'Can I print Student ID Cards and Fee Receipts?',
+    answer: 'Absolutely. Every student profile includes a printable high-resolution ID card with institute logo and barcode/QR. All fee invoices also generate instant printable payment vouchers.',
+    order: 3,
+    status: 'published',
+  },
+  {
+    id: 'faq-4',
+    category: 'academic',
+    question: 'Is multi-branch management supported?',
+    answer: 'Yes, our Pro and Enterprise plans allow coaching centers to manage multiple physical centers, assign teachers across branches, and view centralized financials.',
+    order: 4,
+    status: 'published',
+  },
+  {
+    id: 'faq-5',
+    category: 'security',
+    question: 'আমাদের শিক্ষার্থীদের ডাটা কতটা সুরক্ষিত ও প্রাইভেট?',
+    answer: 'প্রত্যেক কোচিং সেন্টারের জন্য সম্পূর্ণ পৃথক ডেডিকেটেড কোচিং আইডি (Tenant ID) দ্বারা ডাটা ফিল্টার করা হয়। অন্য কোনো প্রতিষ্ঠান আপনার শিক্ষার্থীদের ফোন নম্বর বা ফি ডাটা দেখতে পারবে না।',
+    order: 5,
+    status: 'published',
+  },
+  {
+    id: 'faq-6',
+    category: 'general',
+    question: 'সফটওয়্যার ব্যবহারের জন্য কি উচ্চমানের কম্পিউটার বা সার্ভার দরকার?',
+    answer: 'না, কোনো সার্ভার ইনস্টলেশন লাগে না! যেকোনো মোবাইল, ট্যাবলেট, ল্যাপটপ বা ডেস্কটপ ব্রাউজার থেকে সরাসরি লগইন করে লাইভ ব্যবহার করা যায়। এমনকি অফলাইন সাপোর্ট ও ক্লাউড সিঙ্ক ফিচার রয়েছে।',
+    order: 6,
+    status: 'published',
+  },
+];
+
+function getSavedPlatformFaqs(): PlatformFaq[] {
+  if (typeof window === 'undefined') return initialPlatformFaqs;
+  try {
+    const raw = localStorage.getItem('coachflow_platform_faqs');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (_) {}
+  return initialPlatformFaqs;
+}
+
+export const platformFaqs = writable<PlatformFaq[]>(getSavedPlatformFaqs());
+
+if (typeof window !== 'undefined') {
+  platformFaqs.subscribe((list) => {
+    try {
+      localStorage.setItem('coachflow_platform_faqs', JSON.stringify(list));
+    } catch (_) {}
+  });
+}
+
+export function addPlatformFaq(data: Omit<PlatformFaq, 'id'>) {
+  const newFaq: PlatformFaq = {
+    ...data,
+    id: `faq-${Date.now()}`,
+  };
+  platformFaqs.update((all) => [...all, newFaq]);
+  showToast('success', 'FAQ তৈরি হয়েছে', `নতুন প্রশ্নটি ওয়েবসাইটে সফলভাবে যোগ হয়েছে।`);
+}
+
+export function updatePlatformFaq(id: string, updates: Partial<PlatformFaq>) {
+  platformFaqs.update((all) => all.map((f) => (f.id === id ? { ...f, ...updates } : f)));
+  showToast('info', 'FAQ হালনাগাদ', 'প্রশ্ন ও উত্তরের তথ্য আপডেট করা হয়েছে।');
+}
+
+export function toggleFaqStatus(id: string) {
+  platformFaqs.update((all) =>
+    all.map((f) => {
+      if (f.id === id) {
+        const next = f.status === 'published' ? 'hidden' : 'published';
+        showToast(next === 'published' ? 'success' : 'info', 'স্ট্যাটাস পরিবর্তন', `FAQ স্ট্যাটাস ${next === 'published' ? 'Published' : 'Hidden'} করা হয়েছে।`);
+        return { ...f, status: next };
+      }
+      return f;
+    })
+  );
+}
+
+export function deletePlatformFaq(id: string) {
+  platformFaqs.update((all) => all.filter((f) => f.id !== id));
+  showToast('warning', 'FAQ অপসারিত', 'প্রশ্নটি সফলভাবে মুছে ফেলা হয়েছে।');
 }
 

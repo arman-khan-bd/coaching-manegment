@@ -17,6 +17,7 @@
     cancelSms,
     cancelAllPendingSms,
     refreshSmsQueue,
+    platformSettings,
   } from '../store';
   import {
     enqueueSmsToQueue,
@@ -82,6 +83,12 @@
 
   $: gateway = $smsAccount.androidGateway;
   $: cloudBalance = $smsAccount.cloudBalance;
+  $: apkConfig = $platformSettings.androidAppConfig || {
+    versionName: 'v3.4.2',
+    downloadUrl: 'https://coachflow.app/downloads/coachflow-sms-gateway-v3.4.2.apk',
+    fileSizeMb: '14.8 MB',
+    releaseDate: '2026-09-20',
+  };
 
   // Character & SMS Part calculation
   $: charCount = messageContent.length;
@@ -465,28 +472,43 @@
       <!-- Pairing QR Code & Mobile Instructions -->
       <div class="lg:col-span-5 rounded-3xl bg-slate-900/80 border border-slate-800 p-6 flex flex-col justify-between">
         <div>
-          <div class="flex items-center gap-2 mb-3">
-            <QrCode class="w-5 h-5 text-indigo-400" />
-            <h3 class="text-base font-bold text-white font-['Outfit']">Pair New Android Phone</h3>
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <QrCode class="w-5 h-5 text-indigo-400" />
+              <h3 class="text-base font-bold text-white font-['Outfit']">Pair New Android Phone</h3>
+            </div>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              {apkConfig.versionName}
+            </span>
           </div>
           <p class="text-xs text-slate-400 leading-relaxed">
-            Install the <strong>CoachFlow Gateway APK</strong> from your dashboard and scan this pairing QR code to begin routing SMS at zero gateway cost.
+            Install the <strong>CoachFlow Gateway APK</strong> from your dashboard and scan this QR code to route SMS through local SIM cards at zero gateway cost.
           </p>
 
-          <!-- QR Container -->
-          <div class="my-6 p-4 rounded-2xl bg-white w-48 h-48 mx-auto flex items-center justify-center shadow-2xl">
-            <QrCode class="w-40 h-40 text-slate-900" />
+          <!-- Dynamic Scannable QR Container -->
+          <div class="my-5 p-3 rounded-2xl bg-white w-48 h-48 mx-auto flex items-center justify-center shadow-2xl border-4 border-indigo-500/20">
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(apkConfig.downloadUrl)}`}
+              alt="Scan to Download Android SMS Gateway"
+              class="w-40 h-40 object-contain rounded-lg"
+            />
+          </div>
+
+          <div class="text-center mb-4">
+            <span class="text-[11px] font-mono text-emerald-400 font-semibold">
+              Scan with phone camera to download APK ({apkConfig.fileSizeMb})
+            </span>
           </div>
 
           <!-- Step by Step -->
           <div class="space-y-2 text-xs text-slate-300 bg-slate-950 p-3.5 rounded-2xl border border-slate-800">
             <div class="flex items-center gap-2">
               <span class="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">1</span>
-              <span>Insert any local SIM card with an SMS bundle.</span>
+              <span>Insert local SIM card with an SMS bundle (GP / Robi / BL).</span>
             </div>
             <div class="flex items-center gap-2">
               <span class="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">2</span>
-              <span>Open the CoachFlow Android App and scan QR.</span>
+              <span>Install CoachFlow APK & scan QR to pair your institute.</span>
             </div>
             <div class="flex items-center gap-2">
               <span class="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">3</span>
@@ -495,13 +517,24 @@
           </div>
         </div>
 
-        <button
-          type="button"
-          class="w-full mt-6 py-2.5 px-4 rounded-xl text-xs font-semibold text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors flex items-center justify-center gap-2"
-          on:click={() => showToast('info', 'Download Started', 'Downloading CoachFlow Android SMS Gateway v3.4.1 APK...')}
-        >
-          <span>Download Android Gateway APK (v3.4.1)</span>
-        </button>
+        <div class="mt-6 flex flex-col gap-2">
+          <a
+            href={apkConfig.downloadUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="w-full py-2.5 px-4 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/30 transition-colors flex items-center justify-center gap-2"
+          >
+            <span>Download Android Gateway APK ({apkConfig.versionName} • {apkConfig.fileSizeMb})</span>
+          </a>
+          <button
+            type="button"
+            class="w-full py-1.5 px-3 rounded-xl text-[11px] text-slate-400 hover:text-white bg-slate-950 border border-slate-800 hover:border-slate-700 transition-colors flex items-center justify-center gap-1.5"
+            on:click={() => copyToClipboard(apkConfig.downloadUrl, 'APK Download URL')}
+          >
+            <Copy class="w-3 h-3" />
+            <span>Copy APK Download Link</span>
+          </button>
+        </div>
       </div>
     </div>
 

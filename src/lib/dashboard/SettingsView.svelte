@@ -53,6 +53,9 @@
     icon: $instituteSettings.icon || '',
     hotline: $instituteSettings.hotline || '',
     whatsapp: $instituteSettings.whatsapp || '',
+    directorSignatureUrl: $instituteSettings.directorSignatureUrl || '',
+    headTeacherSignatureUrl: $instituteSettings.headTeacherSignatureUrl || '',
+    officialSealUrl: $instituteSettings.officialSealUrl || '',
     socialMedia: {
       facebook: 'https://facebook.com/apexacademiccare',
       youtube: 'https://youtube.com/@apexacademiccare',
@@ -841,100 +844,265 @@ create policy "Authenticated users can update coaching branding"
     <!-- TAB 3: SEALS, SIGNATURES & AUTHORIZATION -->
     <!-- ======================================================== -->
     {:else if activeTab === 'seals'}
-      <div class="space-y-5">
+      <div class="space-y-6">
         <div class="flex items-center justify-between pb-3 border-b border-slate-800">
           <div>
             <h3 class="text-sm font-bold text-white flex items-center gap-2">
               <Award class="w-4 h-4 text-amber-400" />
-              <span>অফিসিয়াল সিলমোহর, স্বাক্ষর ও প্রিন্ট অনুমোদন</span>
+              <span>অফিসিয়াল সিলমোহর, প্রধান শিক্ষকের স্বাক্ষর ও প্রিন্ট অনুমোদন</span>
             </h3>
-            <p class="text-[11px] text-slate-400 mt-0.5">রুটিন, সিলেবাস, অ্যাডমিট কার্ড ও মানি রিসিটে প্রদর্শিত পরিচালক স্বাক্ষর ও সিল।</p>
+            <p class="text-[11px] text-slate-400 mt-0.5">আইডি কার্ড, মানি রিসিট, প্রবেশপত্র (Admit Card) ও রেজাল্ট শিটে ব্যবহারের জন্য প্রধান শিক্ষকের স্বাক্ষর ও সিল আপলোড করুন।</p>
+          </div>
+          <div class="flex items-center gap-2">
+            {#if form.directorSignatureUrl && form.officialSealUrl}
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <CheckCircle2 class="w-3.5 h-3.5 text-emerald-400" />
+                সিল ও স্বাক্ষর সক্রিয়
+              </span>
+            {:else}
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                <AlertCircle class="w-3.5 h-3.5 text-amber-400" />
+                ছবি আপলোড বাকি রয়েছে
+              </span>
+            {/if}
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-          <div class="space-y-4">
-            <!-- Director Name -->
+        <!-- 2 Column Upload Cards -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- CARD 1: Main Teacher / Director Signature Upload -->
+          <div class="p-5 rounded-2xl bg-slate-950 border border-slate-800/80 space-y-4">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                  <Award class="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 class="font-bold text-white text-xs">১. প্রধান শিক্ষক / পরিচালকের স্বাক্ষর</h4>
+                  <span class="text-[10px] text-slate-400">স্বচ্ছ ব্যাকগ্রাউন্ড বা সাদা কাগজে স্ক্যান করা স্বাক্ষর</span>
+                </div>
+              </div>
+              {#if form.directorSignatureUrl}
+                <button
+                  type="button"
+                  class="text-[10px] text-rose-400 hover:text-rose-300 underline"
+                  on:click={() => (form.directorSignatureUrl = '')}
+                >
+                  স্বাক্ষর মুছুন
+                </button>
+              {/if}
+            </div>
+
+            <!-- Cloudinary Signature Upload -->
+            <CloudinaryUpload
+              bind:value={form.directorSignatureUrl}
+              label="স্বাক্ষরের ছবি আপলোড করুন"
+              folder="institute_signatures"
+              aspect="banner"
+              previewSize="lg"
+              placeholderText="স্বাক্ষর আপলোড করতে ক্লিক করুন বা ড্রপ করুন"
+              helpText="PNG (স্বচ্ছ ব্যাকগ্রাউন্ড সবচেয়ে ভালো), JPG বা WebP ফরম্যাট সমর্থিত"
+              badgeText="ডিজিটাল সিগনেচার"
+            />
+
+            <!-- Signer Metadata Fields -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <div>
+                <label for="form-dir-name" class="block font-medium text-slate-300 mb-1 text-[11px]">
+                  প্রধান শিক্ষক / পরিচালকের পূর্ণ নাম <span class="text-rose-400">*</span>
+                </label>
+                <input
+                  id="form-dir-name"
+                  type="text"
+                  bind:value={form.directorName}
+                  placeholder="যেমন: ইঞ্জি. মোঃ সাইফুল ইসলাম"
+                  class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-white text-xs focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label for="form-dir-desig" class="block font-medium text-slate-300 mb-1 text-[11px]">
+                  পদবি (Designation)
+                </label>
+                <input
+                  id="form-dir-desig"
+                  type="text"
+                  bind:value={form.directorDesignation}
+                  placeholder="যেমন: প্রধান শিক্ষক ও প্রতিষ্ঠাতা পরিচালক"
+                  class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-white text-xs focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+            </div>
+
             <div>
-              <label for="form-dir-name" class="block font-medium text-slate-300 mb-1">
-                অনুমোদিত পরিচালক / প্রধান শিক্ষকের নাম
+              <label for="form-dir-sig" class="block font-medium text-slate-300 mb-1 text-[11px]">
+                বিকল্প টেক্সট স্বাক্ষর (ছবি না থাকলে ব্যবহৃত হবে)
               </label>
-              <input
-                id="form-dir-name"
-                type="text"
-                bind:value={form.directorName}
-                placeholder="যেমন: ইঞ্জি. মোঃ সাইফুল ইসলাম"
-                class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-amber-500"
-              />
-            </div>
-
-            <!-- Designation -->
-            <div>
-              <label for="form-dir-desig" class="block font-medium text-slate-300 mb-1">পদবি (Designation)</label>
-              <input
-                id="form-dir-desig"
-                type="text"
-                bind:value={form.directorDesignation}
-                placeholder="যেমন: নির্বাহী পরিচালক ও প্রতিষ্ঠাতা"
-                class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-amber-500"
-              />
-            </div>
-
-            <!-- Signature Text / Font -->
-            <div>
-              <label for="form-dir-sig" class="block font-medium text-slate-300 mb-1">ডিজিটাল স্বাক্ষরের টেক্সট / Font Style</label>
               <input
                 id="form-dir-sig"
                 type="text"
                 bind:value={form.directorSignature}
                 placeholder="Md. Saiful Islam"
-                class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-serif italic text-sm focus:outline-none focus:border-amber-500"
-              />
-            </div>
-
-            <!-- Academic Coordinator -->
-            <div>
-              <label for="form-acad-coord" class="block font-medium text-slate-300 mb-1">অ্যাকাডেমিক কো-অর্ডিনেটরের নাম</label>
-              <input
-                id="form-acad-coord"
-                type="text"
-                bind:value={form.academicCoordinator}
-                placeholder="যেমন: ড. তানভীর আহমেদ (অ্যাকাডেমিক কো-অর্ডিনেটর)"
-                class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-amber-500"
-              />
-            </div>
-
-            <!-- Seal Stamp Text -->
-            <div>
-              <label for="form-seal-txt" class="block font-medium text-slate-300 mb-1">বৃত্তাকার সিলমোহরের টেক্সট (Circular Stamp Text)</label>
-              <input
-                id="form-seal-txt"
-                type="text"
-                bind:value={form.officialSealText}
-                placeholder="APEX ACADEMIC CARE • SEAL OF EXCELLENCE • DHAKA-1215"
-                class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono text-[11px] focus:outline-none focus:border-amber-500"
+                class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-white font-serif italic text-sm focus:outline-none focus:border-indigo-500"
               />
             </div>
           </div>
 
-          <!-- Live Preview of Seal & Signature -->
-          <div class="p-6 rounded-3xl bg-slate-950 border border-slate-800/80 flex flex-col items-center justify-center space-y-4 text-center">
-            <span class="text-[11px] text-amber-400 font-semibold uppercase tracking-wider">ডকুমেন্ট প্রিন্ট প্রিভিউ (সিল ও স্বাক্ষর)</span>
-
-            <!-- Official Stamp CSS Mockup -->
-            <div class="w-32 h-32 rounded-full border-4 border-dashed border-indigo-500/60 flex flex-col items-center justify-center p-2 text-indigo-400 shadow-inner rotate-[-6deg]">
-              <span class="text-[8px] font-black uppercase tracking-wider">{form.nameEnglish || 'COACHFLOW'}</span>
-              <div class="my-1 w-6 h-0.5 bg-indigo-500/50"></div>
-              <span class="text-[9px] font-bold text-emerald-400 uppercase">OFFICIAL SEAL</span>
-              <span class="text-[7px] text-slate-400 mt-1 font-mono">DHAKA, BD</span>
+          <!-- CARD 2: Official Institute Seal / Stamp Upload -->
+          <div class="p-5 rounded-2xl bg-slate-950 border border-slate-800/80 space-y-4">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                  <ShieldCheck class="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 class="font-bold text-white text-xs">২. প্রতিষ্ঠানের অফিসিয়াল সিলমোহর (Seal / Stamp)</h4>
+                  <span class="text-[10px] text-slate-400">বৃত্তাকার বা ডিম্বাকৃতির রাবার সিলমোহরের ছবি</span>
+                </div>
+              </div>
+              {#if form.officialSealUrl}
+                <button
+                  type="button"
+                  class="text-[10px] text-rose-400 hover:text-rose-300 underline"
+                  on:click={() => (form.officialSealUrl = '')}
+                >
+                  সিল মুছুন
+                </button>
+              {/if}
             </div>
 
-            <!-- Signature Line Mockup -->
-            <div class="pt-4 border-t border-slate-800 w-full text-center">
-              <p class="font-serif italic text-lg text-indigo-300 tracking-wide">{form.directorSignature || 'Authorized Signatory'}</p>
-              <div class="w-36 h-0.5 bg-slate-700 mx-auto my-1"></div>
-              <p class="font-bold text-white text-xs">{form.directorName || 'পরিচালক'}</p>
-              <p class="text-[10px] text-slate-400">{form.directorDesignation || 'নির্বাহী পরিচালক'}</p>
+            <!-- Cloudinary Seal Upload -->
+            <CloudinaryUpload
+              bind:value={form.officialSealUrl}
+              label="সিলমোহরের ছবি আপলোড করুন"
+              folder="institute_seals"
+              aspect="circle"
+              previewSize="lg"
+              placeholderText="অফিসিয়াল সিল আপলোড করতে ক্লিক করুন"
+              helpText="প্রতিষ্ঠানের গোলাকার সিলমোহরের ট্রান্সপারেন্ট PNG ছবি আপলোড করুন"
+              badgeText="রাবার স্ট্যাম্প সিল"
+            />
+
+            <!-- Seal Metadata -->
+            <div class="space-y-3 pt-2">
+              <div>
+                <label for="form-seal-txt" class="block font-medium text-slate-300 mb-1 text-[11px]">
+                  সিলমোহরের টেক্সট (Circular Stamp Text)
+                </label>
+                <input
+                  id="form-seal-txt"
+                  type="text"
+                  bind:value={form.officialSealText}
+                  placeholder="APEX ACADEMIC CARE • SEAL OF EXCELLENCE • DHAKA"
+                  class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-white font-mono text-xs focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div>
+                <label for="form-acad-coord" class="block font-medium text-slate-300 mb-1 text-[11px]">
+                  সহকারী স্বাক্ষী / অ্যাকাডেমিক কো-অর্ডিনেটরের নাম
+                </label>
+                <input
+                  id="form-acad-coord"
+                  type="text"
+                  bind:value={form.academicCoordinator}
+                  placeholder="যেমন: ড. তানভীর আহমেদ (অ্যাকাডেমিক কো-অর্ডিনেটর)"
+                  class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Dynamic Live Document Mockup (Official Stamped Pass / Receipt) -->
+        <div class="p-6 rounded-3xl bg-gradient-to-b from-slate-950 to-slate-900 border border-slate-800 space-y-4">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div class="flex items-center gap-2">
+              <Sparkles class="w-4 h-4 text-amber-400" />
+              <span class="text-xs font-bold text-white">অফিসিয়াল ডকুমেন্টে সিল ও স্বাক্ষরের লাইভ প্রিভিউ</span>
+            </div>
+            <span class="text-[10px] text-slate-400">এই সিল ও স্বাক্ষর আইডি কার্ড, রিসিট ও প্রবেশপত্রে প্রদর্শিত হবে</span>
+          </div>
+
+          <!-- Document Sheet Mockup -->
+          <div class="max-w-xl mx-auto p-6 rounded-2xl bg-white text-slate-900 shadow-2xl border border-slate-300 relative overflow-hidden select-none">
+            <!-- Background watermark -->
+            <div class="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
+              <span class="text-6xl font-black tracking-widest text-slate-900 uppercase transform -rotate-12">
+                {form.nameEnglish || 'COACHING PASS'}
+              </span>
+            </div>
+
+            <!-- Top Header -->
+            <div class="flex items-center justify-between border-b-2 border-slate-800 pb-3 mb-4">
+              <div class="flex items-center gap-3">
+                <img
+                  src={form.logo || 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=100&auto=format&fit=crop&q=80'}
+                  alt="Logo"
+                  class="w-12 h-12 rounded-xl object-cover border border-slate-300 bg-slate-50"
+                />
+                <div>
+                  <h3 class="font-extrabold text-sm text-slate-900 leading-tight">{form.name || 'কোচিং সেন্টারের নাম'}</h3>
+                  <p class="text-[10px] text-slate-600 font-medium">{form.branchName || 'প্রধান ক্যাম্পাস'} • ফোন: {form.phone}</p>
+                </div>
+              </div>
+              <span class="px-2.5 py-1 rounded bg-slate-900 text-white font-mono font-bold text-[10px] tracking-wider">
+                OFFICIAL PASS
+              </span>
+            </div>
+
+            <!-- Body Meta -->
+            <div class="grid grid-cols-2 gap-2 text-[11px] text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-200 mb-6">
+              <div>শিক্ষার্থী: <strong class="text-slate-900">মোঃ সাদমান শাফি</strong></div>
+              <div>রোল নম্বর: <strong class="text-slate-900 font-mono">AAC-2026-084</strong></div>
+              <div>কোর্স: <strong class="text-slate-900">HSC বিজ্ঞান ও বুয়েট প্রস্তুতি</strong></div>
+              <div>মেয়াদ: <strong class="text-emerald-700 font-semibold">২০২৬-২০২৭ সেশন</strong></div>
+            </div>
+
+            <!-- Footer: Seal & Signature Section -->
+            <div class="pt-2 flex items-end justify-between relative min-h-[90px]">
+              <!-- Official Stamp Seal Area -->
+              <div class="relative w-32 flex flex-col items-center justify-center">
+                {#if form.officialSealUrl}
+                  <div class="relative group">
+                    <img
+                      src={form.officialSealUrl}
+                      alt="Official Seal"
+                      class="w-24 h-24 object-contain rounded-full rotate-[-6deg] drop-shadow-md transition-transform group-hover:rotate-0"
+                    />
+                    <span class="text-[8px] font-bold text-emerald-700 uppercase tracking-widest block text-center mt-1">✓ সিলমোহর সংস্থাপিত</span>
+                  </div>
+                {:else}
+                  <div class="w-24 h-24 rounded-full border-2 border-dashed border-indigo-500/60 flex flex-col items-center justify-center p-1 text-center rotate-[-6deg] bg-indigo-50/50">
+                    <span class="text-[7px] font-black text-indigo-700 uppercase tracking-wider">{form.nameEnglish || 'COACHFLOW'}</span>
+                    <div class="my-0.5 w-6 h-0.5 bg-indigo-500/50"></div>
+                    <span class="text-[8px] font-bold text-indigo-600 uppercase">OFFICIAL SEAL</span>
+                    <span class="text-[6px] text-indigo-500 font-mono mt-0.5">VERIFIED</span>
+                  </div>
+                  <span class="text-[8px] text-slate-400 mt-1">সিল আপলোড করা হয়নি</span>
+                {/if}
+              </div>
+
+              <!-- Authorized Signature Area -->
+              <div class="text-center w-48 relative">
+                {#if form.directorSignatureUrl}
+                  <div class="h-12 flex items-end justify-center mb-1">
+                    <img
+                      src={form.directorSignatureUrl}
+                      alt="Director Signature"
+                      class="max-h-12 max-w-[150px] object-contain"
+                    />
+                  </div>
+                {:else}
+                  <div class="h-12 flex items-end justify-center mb-1">
+                    <p class="font-serif italic text-base text-indigo-900 tracking-wide">{form.directorSignature || 'Md. Saiful Islam'}</p>
+                  </div>
+                {/if}
+
+                <div class="w-40 h-0.5 bg-slate-900 mx-auto mb-1"></div>
+                <p class="font-bold text-slate-900 text-[11px] leading-tight">{form.directorName || 'প্রধান শিক্ষক / পরিচালক'}</p>
+                <p class="text-[9px] text-slate-600">{form.directorDesignation || 'নির্বাহী পরিচালক'}</p>
+              </div>
             </div>
           </div>
         </div>

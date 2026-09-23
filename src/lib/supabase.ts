@@ -44,16 +44,26 @@ export interface SupabaseUserProfile {
   role: UserRole;
   phone?: string;
   created_at?: string;
+  permissions?: string[];
 }
 
 export const currentAuthUser = writable<SupabaseUserProfile | null>(null);
 export const authLoading = writable<boolean>(false);
+export const isPasswordRecoveryMode = writable<boolean>(false);
 
 // Initialize Auth listener
 export async function initSupabaseAuth(
   onUserChange?: (user: SupabaseUserProfile | null) => void
 ) {
   try {
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash || '';
+      const search = window.location.search || '';
+      if (hash.includes('type=recovery') || search.includes('type=recovery')) {
+        isPasswordRecoveryMode.set(true);
+      }
+    }
+
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user) {
       const profile = buildProfileFromAuthUser(session.user);
@@ -64,7 +74,11 @@ export async function initSupabaseAuth(
     console.warn('Supabase getSession initial check error:', err);
   }
 
-  supabase.auth.onAuthStateChange(async (_event, session) => {
+  supabase.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'PASSWORD_RECOVERY') {
+      isPasswordRecoveryMode.set(true);
+    }
+
     if (session?.user) {
       const profile = buildProfileFromAuthUser(session.user);
       currentAuthUser.set(profile);
@@ -87,6 +101,7 @@ function buildProfileFromAuthUser(user: any): SupabaseUserProfile {
     role: (meta.role as UserRole) || 'institute_admin',
     phone: meta.phone || '',
     created_at: user.created_at,
+    permissions: Array.isArray(meta.permissions) ? meta.permissions : [],
   };
 }
 
@@ -150,6 +165,71 @@ export async function supabaseSignUp(
   }
 }
 
+/**
+ * Admin action to create a teacher account with email and password from Dashboard.
+ * Uses an isolated, non-persisting client so the Institute Admin's current session
+ * is NEVER overwritten or logged out.
+ */
+export async function supabaseAdminCreateTeacherAccount(params: {
+  email: string;
+  password: string;
+  fullName: string;
+  instituteName: string;
+  phone: string;
+  coachingCenterId: string;
+  permissions?: string[];
+}): Promise<{ success: boolean; user?: any; error?: string }> {
+  try {
+    const isolatedClient = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    });
+
+    const teacherPerms = Array.isArray(params.permissions) ? params.permissions : [];
+
+    const { data, error } = await isolatedClient.auth.signUp({
+      email: params.email,
+      password: params.password,
+      options: {
+        data: {
+          full_name: params.fullName,
+          institute_name: params.instituteName,
+          coaching_center_id: params.coachingCenterId,
+          role: 'teacher',
+          phone: params.phone,
+          permissions: teacherPerms,
+        },
+      },
+    });
+
+    if (error) throw error;
+
+    if (data.user) {
+      const profile: SupabaseUserProfile = {
+        id: data.user.id,
+        email: params.email,
+        full_name: params.fullName,
+        institute_name: params.instituteName,
+        coaching_center_id: params.coachingCenterId,
+        role: 'teacher',
+        phone: params.phone,
+        permissions: teacherPerms,
+        created_at: new Date().toISOString(),
+      };
+      saveUserToDb(profile).catch((e) => console.log('Notice: Teacher profile sync notice:', e));
+      return { success: true, user: data.user };
+    }
+
+    return { success: true, user: null };
+  } catch (err: any) {
+    console.error('Teacher Account Creation Error:', err);
+    return { success: false, error: err.message || 'শিক্ষক অ্যাকাউন্ট তৈরি করতে ব্যর্থ হয়েছে।' };
+  }
+}
+
 export async function supabaseSignIn(email: string, pass: string) {
   authLoading.set(true);
   try {
@@ -180,6 +260,45 @@ export async function supabaseSignOut() {
     currentAuthUser.set(null);
   } catch (err) {
     console.error('Sign Out Error:', err);
+  }
+}
+
+export async function supabaseResetPasswordForEmail(email: string, redirectTo?: string) {
+  authLoading.set(true);
+  try {
+    const redirectUrl =
+      redirectTo ||
+      (typeof window !== 'undefined'
+        ? `${window.location.origin}/login?type=recovery`
+        : undefined);
+
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: redirectUrl,
+    });
+    if (error) throw error;
+    return { success: true, data };
+  } catch (err: any) {
+    console.error('Supabase Reset Password Error:', err);
+    return { success: false, error: err.message || 'পাসওয়ার্ড রিসেট ইমেইল পাঠাতে সমস্যা হয়েছে।' };
+  } finally {
+    authLoading.set(false);
+  }
+}
+
+export async function supabaseUpdatePassword(newPassword: string) {
+  authLoading.set(true);
+  try {
+    const { data, error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+    if (error) throw error;
+    isPasswordRecoveryMode.set(false);
+    return { success: true, data };
+  } catch (err: any) {
+    console.error('Supabase Update Password Error:', err);
+    return { success: false, error: err.message || 'পাসওয়ার্ড আপডেট করতে সমস্যা হয়েছে।' };
+  } finally {
+    authLoading.set(false);
   }
 }
 
@@ -322,8 +441,11 @@ export async function syncInstituteSettingsToDb(settings: InstituteSettings) {
       director_name: settings.directorName,
       director_designation: settings.directorDesignation,
       director_signature: settings.directorSignature,
+      director_signature_url: settings.directorSignatureUrl,
+      head_teacher_signature_url: settings.headTeacherSignatureUrl,
       academic_coordinator: settings.academicCoordinator,
       official_seal_text: settings.officialSealText,
+      official_seal_url: settings.officialSealUrl,
       bkash_merchant: settings.bkashMerchant,
       nagad_merchant: settings.nagadMerchant,
       rocket_number: settings.rocketNumber,
@@ -397,8 +519,11 @@ export async function loadInstituteSettingsFromDb(): Promise<Partial<InstituteSe
       directorName: data.director_name,
       directorDesignation: data.director_designation,
       directorSignature: data.director_signature,
+      directorSignatureUrl: data.director_signature_url || data.settings_data?.directorSignatureUrl,
+      headTeacherSignatureUrl: data.head_teacher_signature_url || data.settings_data?.headTeacherSignatureUrl,
       academicCoordinator: data.academic_coordinator,
       officialSealText: data.official_seal_text,
+      officialSealUrl: data.official_seal_url || data.settings_data?.officialSealUrl,
       bkashMerchant: data.bkash_merchant,
       nagadMerchant: data.nagad_merchant,
       rocketNumber: data.rocket_number,
@@ -489,6 +614,10 @@ export async function fetchTeachersFromDb(coachingId: string): Promise<Teacher[]
       joiningDate: d.joining_date || '',
       status: d.status || 'active',
       education: d.education || '',
+      signatureUrl: d.signature_url || '',
+      hasLoginAccount: Boolean(d.has_login_account),
+      isHeadTeacher: Boolean(d.is_head_teacher),
+      permissions: Array.isArray(d.permissions) ? d.permissions : [],
     }));
   } catch (e) {
     console.warn('fetchTeachersFromDb catch:', e);
@@ -513,6 +642,10 @@ export async function syncTeacherToDb(teacher: Teacher) {
       joining_date: teacher.joiningDate,
       status: teacher.status,
       education: teacher.education,
+      signature_url: teacher.signatureUrl,
+      has_login_account: teacher.hasLoginAccount,
+      is_head_teacher: teacher.isHeadTeacher,
+      permissions: teacher.permissions || [],
       updated_at: new Date().toISOString(),
     });
     if (error) console.warn('Supabase syncTeacher error:', error.message);

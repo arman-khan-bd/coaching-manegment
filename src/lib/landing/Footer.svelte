@@ -58,8 +58,8 @@
       <p>© 2026 CoachFlow SaaS Technologies Inc. All rights reserved.</p>
       <div class="flex items-center gap-6">
         <button on:click={() => navigate('/login')} class="hover:text-white transition-colors">Admin Portal</button>
-        <button on:click={() => navigate('/dashboard/overview')} class="hover:text-white transition-colors">Interactive Demo</button>
-        <button on:click={() => navigate('/register?step=3')} class="hover:text-white transition-colors">Register / Upgrade Plan</button>
+        <button on:click={() => navigate('/register')} class="hover:text-white transition-colors">Get Started</button>
+        <button on:click={() => navigate('/register?step=3')} class="hover:text-white transition-colors">Pricing & Plans</button>
       </div>
     </div>
   </div>

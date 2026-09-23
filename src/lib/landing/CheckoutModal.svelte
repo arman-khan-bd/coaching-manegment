@@ -9,11 +9,10 @@
   let paymentMethod: 'card' | 'bkash' | 'nagad' | 'bank' = 'bkash';
 
   // Form fields
-  let instituteName = 'এপেক্স অ্যাকাডেমিক কেয়ার (ফার্মগেট)';
-  let subdomain = 'apex-care-bd';
-  let adminName = 'ইঞ্জি. মোঃ সাইফুল ইসলাম';
-  let adminEmail = 'director@apexacademicbd.com';
-  let phone = '+880 1711-456789';
+  let instituteName = '';
+  let adminName = '';
+  let adminEmail = '';
+  let phone = '';
   let includeSmsAddon = true;
 
   let isSubmitting = false;
@@ -162,7 +161,7 @@
                 id="inst-name"
                 type="text"
                 bind:value={instituteName}
-                placeholder="e.g. Apex Horizon Academy"
+                placeholder="কোচিং সেন্টারের নাম লিখুন"
                 class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm"
               />
             </div>
@@ -174,7 +173,7 @@
                   id="admin-name"
                   type="text"
                   bind:value={adminName}
-                  placeholder="e.g. Dr. Robert Vance"
+                  placeholder="আপনার পূর্ণ নাম লিখুন"
                   class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm"
                 />
               </div>
@@ -185,24 +184,21 @@
                   id="admin-email"
                   type="email"
                   bind:value={adminEmail}
-                  placeholder="director@apexhorizon.edu"
+                  placeholder="name@example.com"
                   class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm"
                 />
               </div>
             </div>
 
             <div>
-              <label for="subdomain" class="block font-medium text-slate-300 mb-1">Custom SaaS URL</label>
-              <div class="flex rounded-xl bg-slate-950 border border-slate-800 overflow-hidden focus-within:border-indigo-500">
-                <input
-                  id="subdomain"
-                  type="text"
-                  bind:value={subdomain}
-                  placeholder="apex-academy"
-                  class="w-full px-3.5 py-2.5 bg-transparent text-white placeholder-slate-500 focus:outline-none text-sm"
-                />
-                <span class="px-3.5 py-2.5 bg-slate-800/80 text-slate-400 font-mono text-xs flex items-center">.coachflow.app</span>
-              </div>
+              <label for="admin-phone" class="block font-medium text-slate-300 mb-1">Mobile Phone Number</label>
+              <input
+                id="admin-phone"
+                type="text"
+                bind:value={phone}
+                placeholder="০১XXXXXXXXX"
+                class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm"
+              />
             </div>
           </div>
 

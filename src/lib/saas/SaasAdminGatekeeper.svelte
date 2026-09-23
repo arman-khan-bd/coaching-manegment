@@ -96,15 +96,6 @@
         <ArrowLeft class="w-4 h-4" />
         <span>মূল সাইটে ফিরে যান</span>
       </button>
-
-      <button
-        type="button"
-        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-all shadow-sm"
-        on:click={() => navigate('/admin/create')}
-      >
-        <UserPlus class="w-3.5 h-3.5 text-amber-400" />
-        <span>নতুন এডমিন তৈরি করুন</span>
-      </button>
     </div>
 
     <div class="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
@@ -201,21 +192,6 @@
             </button>
           </div>
         </form>
-
-        <!-- Create Account Callout -->
-        <div class="mt-6 pt-5 border-t border-slate-800 text-center">
-          <p class="text-xs text-slate-400">
-            নতুন প্ল্যাটফর্ম সুপার এডমিন অ্যাকাউন্ট প্রয়োজন?
-          </p>
-          <button
-            type="button"
-            class="mt-2 text-xs font-semibold text-amber-400 hover:text-amber-300 inline-flex items-center gap-1 transition-colors"
-            on:click={() => navigate('/admin/create')}
-          >
-            <span>+ নতুন সুপার এডমিন অ্যাকাউন্ট তৈরি করুন</span>
-            <ArrowRight class="w-3.5 h-3.5" />
-          </button>
-        </div>
       </div>
     </div>
   </div>

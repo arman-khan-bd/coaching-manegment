@@ -98,6 +98,120 @@
     isAddCourseModalOpen = true;
   }
 
+  // Bangladesh Offline Coaching Course Templates
+  const bdCoursePresets = [
+    {
+      title: 'HSC Science (এইচএসসি বিজ্ঞান বিভাগ)',
+      code: 'HSC-SCI',
+      category: 'HSC Science',
+      description: 'পদার্থবিজ্ঞান, রসায়ন, উচ্চতর গণিত ও জীববিজ্ঞান পূর্ণাঙ্গ পাঠ্যক্রম ও সৃজনশীল প্রস্তুতি।',
+      durationWeeks: 36,
+      feeAmount: 18000,
+      unitsCount: 16,
+    },
+    {
+      title: 'HSC Business Studies (এইচএসসি ব্যবসায় শিক্ষা)',
+      code: 'HSC-BUS',
+      category: 'HSC Business',
+      description: 'হিসাববিজ্ঞান, ফিন্যান্স, ব্যাংকিং ও ব্যবসায় সংগঠন ও ব্যবস্থাপনা স্পেশাল কেয়ার।',
+      durationWeeks: 32,
+      feeAmount: 14000,
+      unitsCount: 12,
+    },
+    {
+      title: 'HSC Humanities (এইচএসসি মানবিক বিভাগ)',
+      code: 'HSC-HUM',
+      category: 'HSC Arts',
+      description: 'অর্থনীতি, পৌরনীতি, যুক্তিবিদ্যা, সমাজবিজ্ঞান ও ইতিহাস ব্যাচ।',
+      durationWeeks: 30,
+      feeAmount: 12000,
+      unitsCount: 10,
+    },
+    {
+      title: 'BUET & Engineering Admission (ইঞ্জিনিয়ারিং ভর্তি)',
+      code: 'ADM-ENG',
+      category: 'Engineering Admission',
+      description: 'বুয়েট, রুয়েট, কুয়েট, চুয়েট ও আইইউটি স্ট্যান্ডার্ড প্রশ্নব্যাংক সমাধান ও ডেইলি টেস্ট।',
+      durationWeeks: 20,
+      feeAmount: 22000,
+      unitsCount: 20,
+    },
+    {
+      title: 'Medical & Dental Admission (মেডিকেল ভর্তি স্পেশাল)',
+      code: 'ADM-MED',
+      category: 'Medical Admission',
+      description: 'বায়োলজি, কেমিস্ট্রি, ফিজিক্স, জিকে ও ইংরেজি স্পেশাল রিভিশন ও ওএমআর মডেল টেস্ট।',
+      durationWeeks: 20,
+      feeAmount: 20000,
+      unitsCount: 22,
+    },
+    {
+      title: 'DU KA Unit Science (ঢাবি "ক" ইউনিট বিজ্ঞান ভর্তি)',
+      code: 'ADM-DUKA',
+      category: 'Varsity Admission',
+      description: 'ঢাকা বিশ্ববিদ্যালয় ক ইউনিট লিখিত ও এমসিকিউ ক্র্যাশ কোর্স।',
+      durationWeeks: 18,
+      feeAmount: 16000,
+      unitsCount: 16,
+    },
+    {
+      title: 'DU KHA/GA Unit (ঢাবি "খ" ও "গ" মানবিক/ব্যবসায়)',
+      code: 'ADM-DUKG',
+      category: 'Varsity Admission',
+      description: 'ঢাবি খ/গ ইউনিট জিকে, বাংলা, ইংরেজি ও সাবজেক্টভিত্তিক প্রশ্নব্যাংক এনালাইসিস।',
+      durationWeeks: 18,
+      feeAmount: 15000,
+      unitsCount: 14,
+    },
+    {
+      title: 'GST Cluster Admission (জিএসটি গুচ্ছ সমন্বিত ভর্তি)',
+      code: 'ADM-GST',
+      category: 'GST Admission',
+      description: 'সাধারণ এবং বিজ্ঞান ও প্রযুক্তি বিশ্ববিদ্যালয়ের সমন্বিত গুচ্ছ প্রস্তুতি।',
+      durationWeeks: 18,
+      feeAmount: 14000,
+      unitsCount: 15,
+    },
+    {
+      title: 'IBA & BUP Admission (আইবিএ ও বিইউপি স্পেশাল প্রোগ্রাম)',
+      code: 'ADM-IBA',
+      category: 'IBA/BUP Admission',
+      description: 'Analytical ability, Advanced English, Math & General Aptitude preparation.',
+      durationWeeks: 16,
+      feeAmount: 20000,
+      unitsCount: 18,
+    },
+    {
+      title: 'SSC Science (এসএসসি বিজ্ঞান বিভাগ ৯-১০ম)',
+      code: 'SSC-SCI',
+      category: 'SSC Science',
+      description: 'পদার্থ, রসায়ন, জীববিজ্ঞান ও সাধারণ/উচ্চতর গণিত সম্পূর্ণ কোর্স।',
+      durationWeeks: 40,
+      feeAmount: 15000,
+      unitsCount: 14,
+    },
+    {
+      title: 'Cadet College Admission (ক্যাডেট কলেজ ভর্তি কেয়ার)',
+      code: 'CADET',
+      category: 'Junior Care',
+      description: 'ষষ্ঠ/সপ্তম শ্রেণির ক্যাডেট কলেজ লিখিত ও ভাইভা স্পেশাল কোচিং।',
+      durationWeeks: 36,
+      feeAmount: 25000,
+      unitsCount: 20,
+    },
+  ];
+
+  function applyCoursePreset(preset: typeof bdCoursePresets[0]) {
+    courseTitle = preset.title;
+    courseCode = `${preset.code}-${Date.now().toString().slice(-4)}`;
+    courseCategory = preset.category;
+    courseDescription = preset.description;
+    courseDurationWeeks = preset.durationWeeks;
+    courseFeeAmount = preset.feeAmount;
+    courseUnitsCount = preset.unitsCount;
+    showToast('info', 'প্রিসেট প্রয়োগ সম্পন্ন', `"${preset.title}" তথ্য লোড করা হয়েছে।`);
+  }
+
   function handleCreateCourse() {
     if (!courseTitle || !courseCode) {
       showToast('error', 'ভুল তথ্য', 'কোর্সের শিরোনাম ও কোড আবশ্যক।');
@@ -308,25 +422,28 @@
         </button>
       </div>
 
-      {#if subTab === 'batches'}
-        <button
-          type="button"
-          class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-md shadow-indigo-600/30 transition-all flex items-center gap-1.5"
-          on:click={() => (isAddBatchModalOpen = true)}
-        >
-          <Plus class="w-4 h-4" />
-          <span>New Batch</span>
-        </button>
-      {:else if subTab === 'courses'}
+      <!-- Both Course & Batch Create Buttons Visible at the same time -->
+      <div class="flex items-center gap-2">
         <button
           type="button"
           class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-md shadow-indigo-600/30 transition-all flex items-center gap-1.5"
           on:click={openAddCourse}
+          title="নতুন কোর্স খুলুন"
+        >
+          <BookOpen class="w-4 h-4 text-indigo-200" />
+          <span>+ নতুন কোর্স (Course)</span>
+        </button>
+
+        <button
+          type="button"
+          class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-md shadow-emerald-600/30 transition-all flex items-center gap-1.5"
+          on:click={() => (isAddBatchModalOpen = true)}
+          title="নতুন ব্যাচ খুলুন"
         >
           <Plus class="w-4 h-4" />
-          <span>New Course</span>
+          <span>+ নতুন ব্যাচ (Batch)</span>
         </button>
-      {/if}
+      </div>
 
       <button
         type="button"
@@ -601,7 +718,17 @@
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div>
-        <label for="batch-course-select" class="block font-medium text-slate-300 mb-1">Course Curriculum</label>
+        <div class="flex items-center justify-between mb-1">
+          <label for="batch-course-select" class="block font-medium text-slate-300">Course Curriculum</label>
+          <button
+            type="button"
+            class="text-[11px] text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1"
+            on:click={() => { openAddCourse(); }}
+          >
+            <Plus class="w-3 h-3" />
+            <span>+ নতুন কোর্স</span>
+          </button>
+        </div>
         <select
           id="batch-course-select"
           bind:value={selectedCourseId}
@@ -782,35 +909,64 @@
 </Modal>
 
 <!-- Add Course Modal -->
-<Modal open={isAddCourseModalOpen} title="Create New Course" subtitle="Register academic course, syllabus structure & tuition fee" onClose={() => (isAddCourseModalOpen = false)}>
+<Modal open={isAddCourseModalOpen} title="নতুন কোর্স তৈরি করুন" subtitle="১-ক্লিকে প্রিসেট সিলেক্ট করুন অথবা কাস্টম কোর্স ও ফি লিখুন" onClose={() => (isAddCourseModalOpen = false)}>
   <form on:submit|preventDefault={handleCreateCourse} class="space-y-4 text-xs">
+    <!-- BD Coaching Preset Chips Bar -->
+    <div class="p-3.5 rounded-2xl bg-indigo-950/30 border border-indigo-500/20">
+      <div class="flex items-center justify-between mb-2">
+        <span class="font-bold text-white text-[11px] flex items-center gap-1.5">
+          <BookOpen class="w-3.5 h-3.5 text-indigo-400" />
+          <span>১-ক্লিকে বাংলাদেশ কোচিং কোর্স প্রিসেট নির্বাচন:</span>
+        </span>
+        <span class="text-[10px] text-slate-400">ক্লিক করলেই অটো-ফিল হবে</span>
+      </div>
+      <div class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
+        {#each bdCoursePresets as preset}
+          <button
+            type="button"
+            class="px-2.5 py-1 rounded-xl text-[11px] font-semibold bg-slate-900 border border-slate-700/80 hover:border-indigo-400 hover:text-white text-slate-300 transition-all flex items-center gap-1"
+            on:click={() => applyCoursePreset(preset)}
+          >
+            <span>+</span>
+            <span>{preset.title.split('(')[0].trim()}</span>
+          </button>
+        {/each}
+      </div>
+    </div>
+
     <div class="grid grid-cols-2 gap-3">
       <div>
-        <label for="new-course-title" class="block font-medium text-slate-300 mb-1">Course Title *</label>
+        <label for="new-course-title" class="block font-medium text-slate-300 mb-1">কোর্সের শিরোনাম *</label>
         <input id="new-course-title" type="text" bind:value={courseTitle} placeholder="যেমন: HSC পদার্থবিজ্ঞান ১ম ও ২য় পত্র" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none" required />
       </div>
       <div>
-        <label for="new-course-code" class="block font-medium text-slate-300 mb-1">Course Code *</label>
+        <label for="new-course-code" class="block font-medium text-slate-300 mb-1">কোর্স কোড *</label>
         <input id="new-course-code" type="text" bind:value={courseCode} placeholder="HSC-PHY-01" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none" required />
       </div>
     </div>
     <div class="grid grid-cols-3 gap-3">
       <div>
-        <label for="new-course-cat" class="block font-medium text-slate-300 mb-1">Category</label>
+        <label for="new-course-cat" class="block font-medium text-slate-300 mb-1">ক্যাটাগরি</label>
         <select id="new-course-cat" bind:value={courseCategory} class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:border-indigo-500 focus:outline-none">
-          <option value="HSC Science">HSC Science</option>
-          <option value="Engineering Admission">Engineering Admission</option>
-          <option value="Medical Admission">Medical Admission</option>
-          <option value="SSC Science">SSC Science</option>
+          <option value="HSC Science">HSC Science (এইচএসসি বিজ্ঞান)</option>
+          <option value="HSC Business">HSC Business (ব্যবসায় শিক্ষা)</option>
+          <option value="HSC Arts">HSC Arts (মানবিক বিভাগ)</option>
+          <option value="Engineering Admission">Engineering Admission (ইঞ্জিনিয়ারিং ভর্তি)</option>
+          <option value="Medical Admission">Medical Admission (মেডিকেল ভর্তি)</option>
+          <option value="Varsity Admission">Varsity Admission (বিশ্ববিদ্যালয় ভর্তি)</option>
+          <option value="GST Admission">GST Admission (গুচ্ছ বিশ্ববিদ্যালয়)</option>
+          <option value="IBA/BUP Admission">IBA / BUP Admission</option>
+          <option value="SSC Science">SSC Science (এসএসসি বিজ্ঞান)</option>
+          <option value="Junior Care">Junior Care (৬ষ্ঠ-৮ম ও ক্যাডেট)</option>
           <option value="General Academic">General Academic</option>
         </select>
       </div>
       <div>
-        <label for="new-course-weeks" class="block font-medium text-slate-300 mb-1">Duration (Weeks)</label>
+        <label for="new-course-weeks" class="block font-medium text-slate-300 mb-1">সময়কাল (সপ্তাহ)</label>
         <input id="new-course-weeks" type="number" bind:value={courseDurationWeeks} min="1" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:border-indigo-500 focus:outline-none" />
       </div>
       <div>
-        <label for="new-course-fee" class="block font-medium text-slate-300 mb-1">Tuition Fee (৳)</label>
+        <label for="new-course-fee" class="block font-medium text-slate-300 mb-1">কোর্স ফি (৳)</label>
         <input id="new-course-fee" type="number" bind:value={courseFeeAmount} min="0" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:border-indigo-500 focus:outline-none" />
       </div>
     </div>

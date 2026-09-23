@@ -133,8 +133,8 @@
           </div>
 
           <div class="mt-5 pt-4 border-t border-slate-800/80 flex items-center gap-1 text-xs font-semibold text-indigo-400 group-hover:text-indigo-300">
-            <CheckCircle2 class="w-3.5 h-3.5" />
-            <span>Ready in interactive demo</span>
+            <CheckCircle2 class="w-3.5 h-3.5 text-emerald-400" />
+            <span>Included in all academy plans</span>
           </div>
         </div>
       {/each}

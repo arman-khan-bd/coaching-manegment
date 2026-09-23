@@ -52,10 +52,10 @@
         <button
           type="button"
           class="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-2xl text-base font-semibold text-slate-200 bg-slate-900/80 hover:bg-slate-800 border border-slate-700/70 hover:border-slate-600 transition-all hover:scale-[1.02]"
-          on:click={() => navigate('/dashboard/overview')}
+          on:click={() => navigate('/login')}
         >
-          <Zap class="w-5 h-5 text-amber-400" />
-          <span>Launch Interactive Demo</span>
+          <Users class="w-5 h-5 text-indigo-400" />
+          <span>Sign In to Academy</span>
         </button>
       </div>
 

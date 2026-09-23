@@ -89,11 +89,8 @@ class MainActivity: FlutterActivity() {
         injectWebChromeClientForFileChooser(flutterEngine)
     }
 
-    /**
-     * Injects a WebChromeClient override into webview_flutter's platform view registry
-     * so that <input type="file"> / <input type="file" accept="image/*" capture> work
-     * inside the WebView dashboard.
-     */
+    // Injects a WebChromeClient override into webview_flutter's platform view registry
+    // so that file upload inputs and camera work inside the WebView dashboard.
     private fun injectWebChromeClientForFileChooser(flutterEngine: FlutterEngine) {
         // webview_flutter v4 registers its WebView platform through platform views.
         // We intercept at the Activity level via onActivityResult instead.
@@ -119,17 +116,15 @@ class MainActivity: FlutterActivity() {
         // picker whenever onShowFileChooser is triggered.
     }
 
-    /**
-     * Called when the WebView's native WebChromeClient.onShowFileChooser fires.
-     * We expose this via a MethodChannel message and use startActivityForResult.
-     *
-     * For webview_flutter >=4.10, the platform implementation (AndroidWebViewController)
-     * internally creates an InternalWebChromeClient. We patch it by finding the WebView
-     * in the view hierarchy and setting our own WebChromeClient that chains to the
-     * original one.
-     *
-     * We wire this up in onWindowFocusChanged once the view tree is ready.
-     */
+    // Called when the WebView's native WebChromeClient.onShowFileChooser fires.
+    // We expose this via a MethodChannel message and use startActivityForResult.
+    //
+    // For webview_flutter >=4.10, the platform implementation (AndroidWebViewController)
+    // internally creates an InternalWebChromeClient. We patch it by finding the WebView
+    // in the view hierarchy and setting our own WebChromeClient that chains to the
+    // original one.
+    //
+    // We wire this up in onWindowFocusChanged once the view tree is ready.
     private var webViewPatched = false
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {

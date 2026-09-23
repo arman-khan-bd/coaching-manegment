@@ -3,7 +3,7 @@ import { currentView, activeTab } from './store';
 
 export interface RouteState {
   path: string;
-  view: 'landing' | 'login' | 'register' | 'checkout' | 'dashboard' | 'saas_admin' | 'saas_admin_create';
+  view: 'landing' | 'login' | 'register' | 'checkout' | 'dashboard' | 'saas_admin';
   tab: string;
   step: number;
 }
@@ -105,18 +105,7 @@ export function resolveRoute(path: string, step: number = 1): RouteState {
     return { path: '/checkout', view: 'checkout', tab: 'overview', step: 1 };
   }
 
-  // 5. SaaS Platform Super Admin Create / Setup Page (e.g. /admin/create, /admin/register, /saas-admin/create)
-  if (
-    cleanPath === '/admin/create' ||
-    cleanPath === '/admin/register' ||
-    cleanPath === '/admin/setup' ||
-    cleanPath === '/saas-admin/create' ||
-    cleanPath === '/saas-admin/register'
-  ) {
-    return { path: '/admin/create', view: 'saas_admin_create', tab: 'create', step: 1 };
-  }
-
-  // 6. SaaS Platform Super Admin (e.g. /admin or /saas-admin)
+  // 5. SaaS Platform Super Admin (e.g. /admin or /saas-admin)
   if (cleanPath.startsWith('/admin') || cleanPath.startsWith('/saas-admin')) {
     const parts = cleanPath.split('/').filter(Boolean); // ['admin', 'plans']
     const tab = parts[1] || 'overview';
@@ -280,10 +269,6 @@ export function initRouter() {
       const targetUrl = `/admin/${tab}`;
       if (window.location.pathname !== targetUrl) {
         navigate(targetUrl, { replace: false });
-      }
-    } else if (view === 'saas_admin_create') {
-      if (window.location.pathname !== '/admin/create') {
-        navigate('/admin/create', { replace: false });
       }
     }
   });

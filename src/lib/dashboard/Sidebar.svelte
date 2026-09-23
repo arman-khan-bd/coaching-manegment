@@ -7,7 +7,9 @@
     batches,
     smsAccount,
     currentRole,
+    currentTeacherPermissions,
   } from '../store';
+  import { isModulePermitted } from '../permissions';
   import {
     LayoutDashboard,
     Users,
@@ -86,6 +88,10 @@
     navigate(`/dashboard/${slug}`);
     closeMobile();
   }
+
+  $: visibleNavItems = navItems.filter((item) =>
+    isModulePermitted(item.id, $currentTeacherPermissions, $currentRole)
+  );
 </script>
 
 <!-- ======================================================== -->
@@ -118,7 +124,7 @@
 
     <!-- Desktop Navigation List (List View as requested) -->
     <nav class="p-3 space-y-1 overflow-y-auto max-h-[calc(100vh-230px)]">
-      {#each navItems as item}
+      {#each visibleNavItems as item}
         <button
           type="button"
           class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all group
@@ -161,23 +167,25 @@
   <!-- Bottom: Android Gateway Status & SaaS Switcher -->
   <div class="p-3 border-t border-slate-800/80 space-y-2 bg-slate-950/40">
     <!-- Android Gateway Live Widget -->
-    <button
-      type="button"
-      class="w-full text-left p-2.5 rounded-xl border transition-all cursor-pointer
-      {gateway.connected ? 'bg-emerald-950/30 border-emerald-500/30' : 'bg-rose-950/30 border-rose-500/30'}"
-      on:click={() => selectTab('sms')}
-    >
-      <div class="flex items-center justify-between text-[11px]">
-        <div class="flex items-center gap-1.5 font-bold {gateway.connected ? 'text-emerald-300' : 'text-rose-300'}">
-          <Radio class="w-3.5 h-3.5 {gateway.connected ? 'animate-pulse text-emerald-400' : 'text-rose-400'}" />
-          <span>Android Gateway</span>
+    {#if isModulePermitted('sms', $currentTeacherPermissions, $currentRole)}
+      <button
+        type="button"
+        class="w-full text-left p-2.5 rounded-xl border transition-all cursor-pointer
+        {gateway.connected ? 'bg-emerald-950/30 border-emerald-500/30' : 'bg-rose-950/30 border-rose-500/30'}"
+        on:click={() => selectTab('sms')}
+      >
+        <div class="flex items-center justify-between text-[11px]">
+          <div class="flex items-center gap-1.5 font-bold {gateway.connected ? 'text-emerald-300' : 'text-rose-300'}">
+            <Radio class="w-3.5 h-3.5 {gateway.connected ? 'animate-pulse text-emerald-400' : 'text-rose-400'}" />
+            <span>Android Gateway</span>
+          </div>
+          <span class="text-[10px] text-slate-400">{gateway.batteryLevel}% 🔋</span>
         </div>
-        <span class="text-[10px] text-slate-400">{gateway.batteryLevel}% 🔋</span>
-      </div>
-      <p class="text-[10px] text-slate-400 mt-1 truncate">
-        {gateway.connected ? gateway.sim1Carrier : 'Offline - Tap to connect'}
-      </p>
-    </button>
+        <p class="text-[10px] text-slate-400 mt-1 truncate">
+          {gateway.connected ? gateway.sim1Carrier : 'Offline - Tap to connect'}
+        </p>
+      </button>
+    {/if}
 
     <!-- Exit to Landing / SaaS Public -->
     <button
@@ -236,13 +244,13 @@
         <Sparkles class="w-3.5 h-3.5 text-indigo-400" />
         <span>অ্যাপ মডিউল ও মেনু কার্ডস</span>
       </div>
-      <span class="text-[11px] text-slate-500">{navItems.length} টি ফিচার</span>
+      <span class="text-[11px] text-slate-500">{visibleNavItems.length} টি ফিচার</span>
     </div>
 
     <!-- Android Style Card Buttons Grid (2-columns on mobile!) -->
     <div class="flex-1 overflow-y-auto p-4 space-y-4">
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {#each navItems as item}
+        {#each visibleNavItems as item}
           {@const style = colorStyles[item.color] || colorStyles.indigo}
           {@const isActive = $activeTab === item.id}
 

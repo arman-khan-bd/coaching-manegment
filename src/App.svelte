@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { currentView, activeTab, currentRole, instituteSettings, refreshCurrentTenantDataFromDb, switchActiveTenant } from './lib/store';
+  import { currentView, activeTab, currentRole, instituteSettings, refreshCurrentTenantDataFromDb, switchActiveTenant, currentTeacherPermissions, teachers } from './lib/store';
   import ToastContainer from './lib/components/ToastContainer.svelte';
+  import { isModulePermitted } from './lib/permissions';
 
   // Landing Components
   import Navbar from './lib/landing/Navbar.svelte';
@@ -31,14 +32,13 @@
   import SmsTemplateManagerView from './lib/dashboard/SmsTemplateManagerView.svelte';
   import SyllabusRoutineView from './lib/dashboard/SyllabusRoutineView.svelte';
   import SaasAdminGatekeeper from './lib/saas/SaasAdminGatekeeper.svelte';
-  import SaasAdminCreateView from './lib/saas/SaasAdminCreateView.svelte';
 
   import { onMount, onDestroy } from 'svelte';
   import { initSupabaseAuth } from './lib/supabase';
   import { initRouter, navigate } from './lib/router';
   import { subscribeToSmsQueueRealtime } from './lib/smsQueueApi';
   import { smsQueue } from './lib/store';
-  import { LayoutDashboard, Users, CalendarClock, Smartphone, Grid } from 'lucide-svelte';
+  import { LayoutDashboard, Users, CalendarClock, Smartphone, Grid, ShieldAlert, ArrowRight } from 'lucide-svelte';
 
   let isMobileSidebarOpen = false;
 
@@ -52,12 +52,48 @@
 
   let unsubRealtime: any = null;
 
+  // List of candidate tabs to direct teacher if current activeTab is not permitted
+  const candidateTabs = [
+    { id: 'overview', slug: 'overview' },
+    { id: 'attendance', slug: 'attendance' },
+    { id: 'exams', slug: 'exams' },
+    { id: 'syllabus_routine', slug: 'syllabus-routine' },
+    { id: 'students', slug: 'students' },
+    { id: 'academics', slug: 'academics' },
+    { id: 'sms', slug: 'sms' },
+    { id: 'idcards', slug: 'idcards' },
+  ];
+
+  $: hasTabAccess = isModulePermitted($activeTab, $currentTeacherPermissions, $currentRole);
+
+  $: firstAllowedTab = candidateTabs.find((t) =>
+    isModulePermitted(t.id, $currentTeacherPermissions, $currentRole)
+  );
+
+  function goToAllowedTab() {
+    if (firstAllowedTab) {
+      navigate(`/dashboard/${firstAllowedTab.slug}`);
+    }
+  }
+
   onMount(() => {
     initRouter();
     refreshCurrentTenantDataFromDb();
     initSupabaseAuth((user) => {
       if (user) {
         currentRole.set(user.role);
+        if (user.role === 'teacher') {
+          let perms = user.permissions || [];
+          if (perms.length === 0) {
+            const match = $teachers.find((t) => t.email?.toLowerCase() === user.email?.toLowerCase());
+            if (match?.permissions && match.permissions.length > 0) {
+              perms = match.permissions;
+            }
+          }
+          currentTeacherPermissions.set(perms);
+        } else {
+          currentTeacherPermissions.set([]);
+        }
         if (user.coaching_center_id) {
           switchActiveTenant(user.coaching_center_id);
         } else {
@@ -131,10 +167,6 @@
   {:else if $currentView === 'saas_admin'}
     <SaasAdminGatekeeper activeTab={$activeTab} />
 
-  <!-- 5b. SAAS ADMIN CREATE PAGE -->
-  {:else if $currentView === 'saas_admin_create'}
-    <SaasAdminCreateView />
-
   <!-- 6. COACHING MANAGEMENT DASHBOARD -->
   {:else if $currentView === 'dashboard'}
     <div class="flex min-h-screen">
@@ -156,7 +188,34 @@
         <TopNav toggleMobile={toggleMobileSidebar} />
 
         <main class="flex-1 p-3 sm:p-6 lg:p-8 pb-24 md:pb-8 max-w-7xl w-full mx-auto">
-          {#if $activeTab === 'overview'}
+          {#if !hasTabAccess && $currentRole === 'teacher'}
+            <!-- Access Restricted View for Teacher with Limited Roles -->
+            <div class="max-w-xl mx-auto my-12 p-8 rounded-3xl bg-slate-900 border border-rose-500/30 text-center space-y-5 shadow-2xl relative overflow-hidden animate-in fade-in">
+              <div class="absolute -top-12 -right-12 w-44 h-44 bg-rose-500/10 rounded-full blur-3xl pointer-events-none"></div>
+              <div class="w-16 h-16 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-400 mx-auto flex items-center justify-center shadow-lg">
+                <ShieldAlert class="w-8 h-8" />
+              </div>
+              <div class="space-y-1">
+                <h3 class="text-xl font-bold text-white font-['Outfit']">অ্যাক্সেস সংরক্ষিত / Access Restricted</h3>
+                <p class="text-xs text-rose-300 font-medium">আপনার শিক্ষক অ্যাকাউন্টে এই মডিউলটি ব্যবহারের অনুমতি নেই</p>
+              </div>
+              <p class="text-xs text-slate-400 leading-relaxed max-w-md mx-auto">
+                প্রতিষ্ঠানের সুপার অ্যাডমিন কর্তৃক আপনার শিক্ষক আইডিতে শুধুমাত্র নির্ধারিত ফিচারসমূহের সীমিত অ্যাক্সেস (Limited Role Permissions) কার্যকর করা হয়েছে।
+              </p>
+              {#if firstAllowedTab}
+                <div class="pt-2">
+                  <button
+                    type="button"
+                    class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-all inline-flex items-center gap-2 shadow-lg shadow-indigo-600/30"
+                    on:click={goToAllowedTab}
+                  >
+                    <span>অনুমোদিত ড্যাশবোর্ডে প্রবেশ করুন</span>
+                    <ArrowRight class="w-4 h-4" />
+                  </button>
+                </div>
+              {/if}
+            </div>
+          {:else if $activeTab === 'overview'}
             <DashboardOverview />
           {:else if $activeTab === 'students'}
             <StudentsView />
@@ -185,61 +244,83 @@
 
         <!-- Android App Style Bottom Navigation Bar (md:hidden) -->
         <nav class="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-slate-900/95 border-t border-slate-800 backdrop-blur-xl px-2 py-1.5 flex items-center justify-around shadow-2xl">
-          <button
-            type="button"
-            class="flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all {$activeTab === 'overview' ? 'text-indigo-400 font-bold scale-105' : 'text-slate-400 hover:text-white'}"
-            on:click={() => navigate('/dashboard/overview')}
-          >
-            <div class="relative">
-              <LayoutDashboard class="w-5 h-5" />
-              {#if $activeTab === 'overview'}
-                <span class="w-1 h-1 rounded-full bg-indigo-400 absolute -bottom-1 left-1/2 -translate-x-1/2"></span>
-              {/if}
-            </div>
-            <span class="text-[10px]">হোম</span>
-          </button>
+          {#if isModulePermitted('overview', $currentTeacherPermissions, $currentRole)}
+            <button
+              type="button"
+              class="flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all {$activeTab === 'overview' ? 'text-indigo-400 font-bold scale-105' : 'text-slate-400 hover:text-white'}"
+              on:click={() => navigate('/dashboard/overview')}
+            >
+              <div class="relative">
+                <LayoutDashboard class="w-5 h-5" />
+                {#if $activeTab === 'overview'}
+                  <span class="w-1 h-1 rounded-full bg-indigo-400 absolute -bottom-1 left-1/2 -translate-x-1/2"></span>
+                {/if}
+              </div>
+              <span class="text-[10px]">হোম</span>
+            </button>
+          {/if}
 
-          <button
-            type="button"
-            class="flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all {$activeTab === 'students' ? 'text-indigo-400 font-bold scale-105' : 'text-slate-400 hover:text-white'}"
-            on:click={() => navigate('/dashboard/students')}
-          >
-            <div class="relative">
-              <Users class="w-5 h-5" />
-              {#if $activeTab === 'students'}
-                <span class="w-1 h-1 rounded-full bg-indigo-400 absolute -bottom-1 left-1/2 -translate-x-1/2"></span>
-              {/if}
-            </div>
-            <span class="text-[10px]">শিক্ষার্থী</span>
-          </button>
+          {#if isModulePermitted('students', $currentTeacherPermissions, $currentRole)}
+            <button
+              type="button"
+              class="flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all {$activeTab === 'students' ? 'text-indigo-400 font-bold scale-105' : 'text-slate-400 hover:text-white'}"
+              on:click={() => navigate('/dashboard/students')}
+            >
+              <div class="relative">
+                <Users class="w-5 h-5" />
+                {#if $activeTab === 'students'}
+                  <span class="w-1 h-1 rounded-full bg-indigo-400 absolute -bottom-1 left-1/2 -translate-x-1/2"></span>
+                {/if}
+              </div>
+              <span class="text-[10px]">শিক্ষার্থী</span>
+            </button>
+          {/if}
 
-          <button
-            type="button"
-            class="flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all {$activeTab === 'syllabus_routine' ? 'text-indigo-400 font-bold scale-105' : 'text-slate-400 hover:text-white'}"
-            on:click={() => navigate('/dashboard/syllabus-routine')}
-          >
-            <div class="relative">
-              <CalendarClock class="w-5 h-5" />
-              {#if $activeTab === 'syllabus_routine'}
-                <span class="w-1 h-1 rounded-full bg-indigo-400 absolute -bottom-1 left-1/2 -translate-x-1/2"></span>
-              {/if}
-            </div>
-            <span class="text-[10px]">রুটিন</span>
-          </button>
+          {#if isModulePermitted('syllabus_routine', $currentTeacherPermissions, $currentRole)}
+            <button
+              type="button"
+              class="flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all {$activeTab === 'syllabus_routine' ? 'text-indigo-400 font-bold scale-105' : 'text-slate-400 hover:text-white'}"
+              on:click={() => navigate('/dashboard/syllabus-routine')}
+            >
+              <div class="relative">
+                <CalendarClock class="w-5 h-5" />
+                {#if $activeTab === 'syllabus_routine'}
+                  <span class="w-1 h-1 rounded-full bg-indigo-400 absolute -bottom-1 left-1/2 -translate-x-1/2"></span>
+                {/if}
+              </div>
+              <span class="text-[10px]">রুটিন</span>
+            </button>
+          {/if}
 
-          <button
-            type="button"
-            class="flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all {$activeTab === 'sms' ? 'text-emerald-400 font-bold scale-105' : 'text-slate-400 hover:text-white'}"
-            on:click={() => navigate('/dashboard/sms')}
-          >
-            <div class="relative">
-              <Smartphone class="w-5 h-5" />
-              {#if $activeTab === 'sms'}
-                <span class="w-1 h-1 rounded-full bg-emerald-400 absolute -bottom-1 left-1/2 -translate-x-1/2"></span>
-              {/if}
-            </div>
-            <span class="text-[10px]">SMS হাব</span>
-          </button>
+          {#if isModulePermitted('attendance', $currentTeacherPermissions, $currentRole) && !isModulePermitted('sms', $currentTeacherPermissions, $currentRole)}
+            <button
+              type="button"
+              class="flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all {$activeTab === 'attendance' ? 'text-emerald-400 font-bold scale-105' : 'text-slate-400 hover:text-white'}"
+              on:click={() => navigate('/dashboard/attendance')}
+            >
+              <div class="relative">
+                <CalendarClock class="w-5 h-5" />
+                {#if $activeTab === 'attendance'}
+                  <span class="w-1 h-1 rounded-full bg-emerald-400 absolute -bottom-1 left-1/2 -translate-x-1/2"></span>
+                {/if}
+              </div>
+              <span class="text-[10px]">হাজিরা</span>
+            </button>
+          {:else if isModulePermitted('sms', $currentTeacherPermissions, $currentRole)}
+            <button
+              type="button"
+              class="flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all {$activeTab === 'sms' ? 'text-emerald-400 font-bold scale-105' : 'text-slate-400 hover:text-white'}"
+              on:click={() => navigate('/dashboard/sms')}
+            >
+              <div class="relative">
+                <Smartphone class="w-5 h-5" />
+                {#if $activeTab === 'sms'}
+                  <span class="w-1 h-1 rounded-full bg-emerald-400 absolute -bottom-1 left-1/2 -translate-x-1/2"></span>
+                {/if}
+              </div>
+              <span class="text-[10px]">SMS হাব</span>
+            </button>
+          {/if}
 
           <button
             type="button"
