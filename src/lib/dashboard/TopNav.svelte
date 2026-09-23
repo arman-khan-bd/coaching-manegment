@@ -1,12 +1,10 @@
 <script lang="ts">
   import {
-    currentRole,
     activeTab,
     smsAccount,
     instituteSettings,
     currentView,
     showToast,
-    type UserRole,
   } from '../store';
   import {
     Menu,
@@ -22,18 +20,6 @@
   } from 'lucide-svelte';
 
   export let toggleMobile: () => void = () => {};
-
-  const roles: { id: UserRole; label: string }[] = [
-    { id: 'institute_admin', label: 'Director (Admin)' },
-    { id: 'teacher', label: 'Faculty (Teacher)' },
-    { id: 'student', label: 'Student / Parent' },
-    { id: 'super_admin', label: 'Super Admin' },
-  ];
-
-  function switchRole(role: UserRole) {
-    currentRole.set(role);
-    showToast('info', 'Switched View Perspective', `Current perspective set to ${role.replace('_', ' ').toUpperCase()}`);
-  }
 
   import { navigate } from '../router';
 
@@ -95,22 +81,8 @@
     </div>
   </div>
 
-  <!-- Right: Role Switcher, SMS Wallet Widget, Profile -->
+  <!-- Right: SaaS Admin Switcher Button, SMS Wallet Widget, Profile -->
   <div class="flex items-center gap-1.5 sm:gap-3 shrink-0">
-    <!-- Role Switcher -->
-    <div class="hidden lg:flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-[11px]">
-      <span class="text-slate-400 px-2 font-medium">Role:</span>
-      {#each roles as r}
-        <button
-          type="button"
-          class="px-2.5 py-1 rounded-lg font-medium transition-all {$currentRole === r.id ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}"
-          on:click={() => switchRole(r.id)}
-        >
-          {r.label}
-        </button>
-      {/each}
-    </div>
-
     <!-- SaaS Admin Switcher Button -->
     <button
       type="button"

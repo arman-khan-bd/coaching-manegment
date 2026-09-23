@@ -5,36 +5,29 @@
     instituteSettings,
     showToast,
     switchActiveTenant,
-    generateCoachingId,
-    type UserRole,
   } from "../store";
   import { navigate } from "../router";
   import {
     supabaseSignIn,
-    supabaseSignUp,
     supabaseResetPasswordForEmail,
     supabaseUpdatePassword,
     currentAuthUser,
     authLoading,
     isPasswordRecoveryMode,
-    SUPABASE_URL,
   } from "../supabase";
   import {
     GraduationCap,
     ArrowLeft,
     ArrowRight,
-    ShieldCheck,
     Sparkles,
     Lock,
     Mail,
-    Building,
-    Phone,
-    User,
     CheckCircle2,
     AlertCircle,
     KeyRound,
     Eye,
     EyeOff,
+    UserPlus,
   } from "lucide-svelte";
 
   import { onMount } from "svelte";
@@ -50,7 +43,7 @@
     }
   });
 
-  let authMode: "signin" | "register" | "forgot" | "update_password" = "signin";
+  let authMode: "signin" | "forgot" | "update_password" = "signin";
 
   $: if ($isPasswordRecoveryMode) {
     authMode = "update_password";
@@ -70,14 +63,6 @@
   let newPassword = "";
   let confirmNewPassword = "";
   let showNewPassword = false;
-
-  // Register form
-  let regFullName = "";
-  let regEmail = "";
-  let regPassword = "";
-  let regInstituteName = "";
-  let regPhone = "";
-  let regRole: UserRole = "institute_admin";
 
   let errorMessage = "";
   let successMessage = "";
@@ -119,58 +104,6 @@
         "Sign In Failed",
         res.error || "Invalid credentials. Please verify your email and password.",
       );
-    }
-  }
-
-  async function handleSignUp() {
-    errorMessage = "";
-    successMessage = "";
-
-    if (!regEmail || !regPassword || !regFullName || !regInstituteName) {
-      errorMessage = "All fields marked * are required.";
-      return;
-    }
-
-    if (regPassword.length < 6) {
-      errorMessage = "Password must be at least 6 characters.";
-      return;
-    }
-
-    const newCoachingId = generateCoachingId(regInstituteName);
-
-    const res = await supabaseSignUp(regEmail, regPassword, {
-      fullName: regFullName,
-      instituteName: regInstituteName,
-      role: regRole,
-      phone: regPhone,
-      coachingCenterId: newCoachingId,
-    });
-
-    if (res.success) {
-      successMessage =
-        "Account created successfully in Supabase! Signing you in...";
-      showToast(
-        "success",
-        "Supabase Account Registered",
-        `Welcome ${regFullName}! Your profile is stored in Supabase.`,
-      );
-
-      // Auto login
-      setTimeout(async () => {
-        currentRole.set(regRole);
-        instituteSettings.update((curr) => ({
-          ...curr,
-          coachingCenterId: newCoachingId,
-          name: regInstituteName,
-          email: regEmail,
-          phone: regPhone || curr.phone,
-        }));
-        switchActiveTenant(newCoachingId);
-        navigate("/dashboard/overview");
-      }, 1000);
-    } else {
-      errorMessage = res.error || "Failed to register account.";
-      showToast("error", "Registration Error", res.error || "Check inputs.");
     }
   }
 
@@ -312,7 +245,7 @@
       {:else}
         <!-- Get Started / Registration Wizard Card -->
         <div
-          class="mb-5 sm:mb-6 p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-indigo-950/60 via-slate-900 to-indigo-950/40 border border-indigo-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-md"
+          class="mb-6 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-indigo-950/60 via-slate-900 to-indigo-950/40 border border-indigo-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-md"
         >
           <div>
             <p class="font-bold text-white flex items-center gap-1.5">
@@ -320,49 +253,27 @@
               <span>New Coaching Institute?</span>
             </p>
             <p class="text-[11px] text-slate-400 mt-0.5">
-              Set up your brand, student portal & SMS
+              Create your account with step-by-step setup
             </p>
           </div>
-          <button
-            type="button"
-            class="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-xs transition-all shrink-0 shadow-md shadow-indigo-600/30 flex items-center justify-center gap-1.5 hover:scale-[1.02]"
-            on:click={() => navigate("/register?step=1")}
-          >
-            <span>Get Started</span>
-            <ArrowRight class="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        <!-- Mode Switcher Tabs -->
-        <div
-          class="grid grid-cols-2 gap-1 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 mb-6 text-xs font-semibold"
-        >
-          <button
-            type="button"
-            class="py-2 rounded-xl transition-all {authMode === 'signin'
-              ? 'bg-indigo-600 text-white shadow-md'
-              : 'text-slate-400 hover:text-white'}"
-            on:click={() => {
-              authMode = "signin";
-              errorMessage = "";
-              successMessage = "";
-            }}
-          >
-            Sign In
-          </button>
-          <button
-            type="button"
-            class="py-2 rounded-xl transition-all {authMode === 'register'
-              ? 'bg-indigo-600 text-white shadow-md'
-              : 'text-slate-400 hover:text-white'}"
-            on:click={() => {
-              authMode = "register";
-              errorMessage = "";
-              successMessage = "";
-            }}
-          >
-            Create Account
-          </button>
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <button
+              type="button"
+              class="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-xs transition-all shrink-0 shadow-md shadow-indigo-600/30 flex items-center justify-center gap-1.5 hover:scale-[1.02]"
+              on:click={() => navigate("/register?step=1")}
+            >
+              <span>Get Started</span>
+              <ArrowRight class="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              class="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-indigo-300 hover:text-white border border-slate-700 font-semibold text-xs transition-colors flex items-center justify-center gap-1.5"
+              on:click={() => navigate("/register")}
+            >
+              <UserPlus class="w-3.5 h-3.5" />
+              <span>Register</span>
+            </button>
+          </div>
         </div>
       {/if}
 
@@ -465,6 +376,32 @@
               <ArrowRight class="w-4 h-4" />
             {/if}
           </button>
+
+          <!-- Bottom Action: Get Started & Register Step by Step -->
+          <div class="pt-5 border-t border-slate-800/80 text-center space-y-3">
+            <p class="text-xs text-slate-400">
+              Don't have an academy account? Create one with our step-by-step setup
+            </p>
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-2.5">
+              <button
+                type="button"
+                class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-xs transition-all shadow-md shadow-indigo-600/20 flex items-center justify-center gap-1.5"
+                on:click={() => navigate("/register?step=1")}
+              >
+                <Sparkles class="w-3.5 h-3.5 text-amber-400" />
+                <span>Get Started</span>
+                <ArrowRight class="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-indigo-300 hover:text-white border border-slate-700 font-semibold text-xs transition-colors flex items-center justify-center gap-1.5"
+                on:click={() => navigate("/register")}
+              >
+                <UserPlus class="w-3.5 h-3.5" />
+                <span>Register (Step by Step)</span>
+              </button>
+            </div>
+          </div>
         </form>
 
       <!-- TAB 2: FORGOT PASSWORD (SUPABASE) -->
@@ -577,138 +514,6 @@
             {:else}
               <CheckCircle2 class="w-4 h-4" />
               <span>পাসওয়ার্ড পরিবর্তন সম্পন্ন করুন</span>
-            {/if}
-          </button>
-        </form>
-
-      <!-- TAB 4: REGISTER -->
-      {:else}
-        <form
-          on:submit|preventDefault={handleSignUp}
-          class="space-y-3.5 text-xs"
-        >
-          <div>
-            <label
-              for="reg-fullname"
-              class="block font-medium text-slate-300 mb-1">Full Name *</label
-            >
-            <div class="relative">
-              <User
-                class="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2"
-              />
-              <input
-                id="reg-fullname"
-                type="text"
-                bind:value={regFullName}
-                placeholder="e.g. Dr. Robert Vance"
-                class="w-full pl-10 pr-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none text-sm"
-                required
-              />
-            </div>
-          </div>
-
-          <div>
-            <label
-              for="reg-institute"
-              class="block font-medium text-slate-300 mb-1"
-              >Coaching / Academy Name *</label
-            >
-            <div class="relative">
-              <Building
-                class="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2"
-              />
-              <input
-                id="reg-institute"
-                type="text"
-                bind:value={regInstituteName}
-                placeholder="কোচিং সেন্টারের নাম লিখুন"
-                class="w-full pl-10 pr-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none text-sm"
-                required
-              />
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            <div>
-              <label
-                for="reg-email"
-                class="block font-medium text-slate-300 mb-1">Email *</label
-              >
-              <input
-                id="reg-email"
-                type="email"
-                bind:value={regEmail}
-                placeholder="name@example.com"
-                class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none text-sm"
-                required
-              />
-            </div>
-
-            <div>
-              <label
-                for="reg-phone"
-                class="block font-medium text-slate-300 mb-1"
-                >Phone Number</label
-              >
-              <input
-                id="reg-phone"
-                type="text"
-                bind:value={regPhone}
-                placeholder="০১XXXXXXXXX"
-                class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none text-sm"
-              />
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            <div>
-              <label
-                for="reg-password"
-                class="block font-medium text-slate-300 mb-1">Password *</label
-              >
-              <input
-                id="reg-password"
-                type="password"
-                bind:value={regPassword}
-                placeholder="কমপক্ষে ৬ অক্ষর"
-                class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none text-sm"
-                required
-              />
-            </div>
-
-            <div>
-              <label
-                for="reg-role"
-                class="block font-medium text-slate-300 mb-1"
-                >Account Role</label
-              >
-              <select
-                id="reg-role"
-                bind:value={regRole}
-                class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white focus:border-indigo-500 focus:outline-none text-sm"
-              >
-                <option value="institute_admin"
-                  >Institute Director / Admin</option
-                >
-                <option value="teacher">Faculty Teacher</option>
-                <option value="student">Student / Guardian</option>
-              </select>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={$authLoading}
-            class="w-full py-3 px-4 mt-2 rounded-xl font-bold text-white bg-gradient-to-r from-emerald-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50"
-          >
-            {#if $authLoading}
-              <span
-                class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"
-              ></span>
-              <span>Registering in Supabase...</span>
-            {:else}
-              <span>Create Account in Supabase</span>
-              <ArrowRight class="w-4 h-4" />
             {/if}
           </button>
         </form>
