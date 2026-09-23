@@ -4,7 +4,8 @@
   "compatibility_date": "2026-09-21",
   "pages_build_output_dir": "dist",
   "assets": {
-    "directory": "dist"
+    "directory": "dist",
+    "not_found_handling": "single-page-application"
   },
   "vars": {
     "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_ibH84sYVdp6hleVaGN_i4g_6PQX3ajJ",
