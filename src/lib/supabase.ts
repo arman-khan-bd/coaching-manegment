@@ -25,6 +25,7 @@ export interface SupabaseUserProfile {
   email: string;
   full_name?: string;
   institute_name?: string;
+  coaching_center_id?: string;
   role: UserRole;
   phone?: string;
   created_at?: string;
@@ -67,6 +68,7 @@ function buildProfileFromAuthUser(user: any): SupabaseUserProfile {
     email: user.email || '',
     full_name: meta.full_name || meta.name || user.email?.split('@')[0] || 'User',
     institute_name: meta.institute_name || 'Apex Horizon Academy',
+    coaching_center_id: meta.coaching_center_id || meta.coaching_id || undefined,
     role: (meta.role as UserRole) || 'institute_admin',
     phone: meta.phone || '',
     created_at: user.created_at,
@@ -85,6 +87,7 @@ export async function supabaseSignUp(
     instituteName: string;
     role: UserRole;
     phone?: string;
+    coachingCenterId?: string;
   }
 ) {
   authLoading.set(true);
@@ -96,6 +99,7 @@ export async function supabaseSignUp(
         data: {
           full_name: meta.fullName,
           institute_name: meta.instituteName,
+          coaching_center_id: meta.coachingCenterId,
           role: meta.role,
           phone: meta.phone,
         },
@@ -110,6 +114,7 @@ export async function supabaseSignUp(
         email,
         full_name: meta.fullName,
         institute_name: meta.instituteName,
+        coaching_center_id: meta.coachingCenterId,
         role: meta.role,
         phone: meta.phone,
         created_at: new Date().toISOString(),
@@ -191,6 +196,7 @@ export async function syncStudentToDb(student: Student) {
   try {
     const { error } = await supabase.from('students').upsert({
       id: student.id,
+      coaching_id: student.coachingId || 'aac-dhaka-01',
       roll_no: student.rollNo,
       name: student.name,
       email: student.email,
@@ -214,6 +220,7 @@ export async function syncBatchToDb(batch: Batch) {
   try {
     const { error } = await supabase.from('batches').upsert({
       id: batch.id,
+      coaching_id: batch.coachingId || 'aac-dhaka-01',
       code: batch.code,
       name: batch.name,
       course_id: batch.courseId,
@@ -236,6 +243,7 @@ export async function syncAttendanceToDb(record: AttendanceRecord) {
   try {
     const { error } = await supabase.from('attendance').upsert({
       id: record.id,
+      coaching_id: record.coachingId || 'aac-dhaka-01',
       batch_id: record.batchId,
       student_id: record.studentId,
       date: record.date,
@@ -253,6 +261,7 @@ export async function syncInvoiceToDb(inv: FeeInvoice) {
   try {
     const { error } = await supabase.from('invoices').upsert({
       id: inv.id,
+      coaching_id: inv.coachingId || 'aac-dhaka-01',
       invoice_no: inv.invoiceNo,
       student_id: inv.studentId,
       student_name: inv.studentName,
@@ -276,6 +285,7 @@ export async function syncSmsLogToDb(log: SmsLog) {
   try {
     const { error } = await supabase.from('sms_logs').upsert({
       id: log.id,
+      coaching_id: log.coachingId || 'aac-dhaka-01',
       recipient_name: log.recipientName,
       recipient_phone: log.recipientPhone,
       message: log.message,
@@ -295,6 +305,7 @@ export async function syncInstituteSettingsToDb(settings: InstituteSettings) {
     // 1. Upsert into coaching_branding table
     const { error: brandErr } = await supabase.from('coaching_branding').upsert({
       id: 'primary_branch',
+      coaching_center_id: settings.coachingCenterId,
       name: settings.name,
       name_english: settings.nameEnglish,
       tagline: settings.tagline,
@@ -340,6 +351,7 @@ export async function syncInstituteSettingsToDb(settings: InstituteSettings) {
     // 2. Also upsert into institute_settings for redundancy
     await supabase.from('institute_settings').upsert({
       id: 'main',
+      coaching_center_id: settings.coachingCenterId,
       settings: settings,
       updated_at: new Date().toISOString(),
     });

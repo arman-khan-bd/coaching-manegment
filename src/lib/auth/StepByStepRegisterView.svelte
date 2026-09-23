@@ -5,6 +5,8 @@
     selectedPlan,
     subscriptionPlans,
     showToast,
+    generateCoachingId,
+    switchActiveTenant,
     type SubscriptionPlan,
   } from '../store';
   import { registerStep, setRegisterStep, navigate } from '../router';
@@ -136,6 +138,7 @@
 
   async function handleFinalSubmit() {
     isSubmitting = true;
+    const newCoachingId = generateCoachingId(coachingName, coachingAddress);
 
     try {
       // 1. Supabase Sign Up registration
@@ -144,11 +147,13 @@
         instituteName: coachingName,
         phone: adminPhone,
         role: 'institute_admin',
+        coachingCenterId: newCoachingId,
       });
 
       // 2. Update institute settings in frontend store
       instituteSettings.update((curr) => ({
         ...curr,
+        coachingCenterId: newCoachingId,
         name: coachingName,
         tagline: coachingTagline,
         address: coachingAddress,
@@ -156,11 +161,13 @@
         phone: adminPhone,
         defaultSmsGateway: selectedGatewayMode,
       }));
+      // Switch active tenant so all stores load from clean scoped namespace
+      switchActiveTenant(newCoachingId);
       currentRole.set('institute_admin');
 
       triggerCelebration();
       submissionSuccess = true;
-      showToast('success', 'নিবন্ধন সম্পন্ন হয়েছে!', `স্বাগতম ${coachingName}! আপনার অ্যাকাডেমিক ড্যাশবোর্ড প্রস্তুত।`);
+      showToast('success', 'নিবন্ধন সম্পন্ন হয়েছে!', `স্বাগতম ${coachingName}! Coaching ID: ${newCoachingId}`);
 
       setTimeout(() => {
         navigate('/dashboard/overview');
@@ -169,16 +176,18 @@
       // Fallback
       instituteSettings.update((curr) => ({
         ...curr,
+        coachingCenterId: newCoachingId,
         name: coachingName,
         tagline: coachingTagline,
         address: coachingAddress,
         email: adminEmail,
         phone: adminPhone,
       }));
+      switchActiveTenant(newCoachingId);
       currentRole.set('institute_admin');
       triggerCelebration();
       submissionSuccess = true;
-      showToast('success', 'অ্যাকাউন্ট প্রস্তুত', `স্বাগতম ${adminFullName}! ড্যাশবোর্ডে প্রবেশ করানো হচ্ছে...`);
+      showToast('success', 'অ্যাকাউন্ট প্রস্তুত', `স্বাগতম ${adminFullName}! Coaching ID: ${newCoachingId}`);
       setTimeout(() => {
         navigate('/dashboard/overview');
       }, 1500);

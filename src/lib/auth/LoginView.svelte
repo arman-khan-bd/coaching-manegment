@@ -1,5 +1,12 @@
 <script lang="ts">
-  import { currentRole, instituteSettings, showToast, type UserRole } from '../store';
+  import {
+    currentRole,
+    instituteSettings,
+    showToast,
+    switchActiveTenant,
+    generateCoachingId,
+    type UserRole,
+  } from '../store';
   import { navigate } from '../router';
   import {
     supabaseSignIn,
@@ -62,10 +69,13 @@
     const res = await supabaseSignIn(email, password);
     if (res.success && res.user) {
       currentRole.set(res.user.role);
+      const userCid = (res.user as any).coaching_center_id || 'aac-dhaka-01';
       instituteSettings.update((curr) => ({
         ...curr,
+        coachingCenterId: userCid,
         name: res.user?.institute_name || curr.name,
       }));
+      switchActiveTenant(userCid);
       showToast('success', 'Supabase Authenticated', `Welcome back, ${res.user.full_name}! Synced with Supabase.`);
       navigate('/dashboard/overview');
     } else {
@@ -89,11 +99,14 @@
       return;
     }
 
+    const newCoachingId = generateCoachingId(regInstituteName);
+
     const res = await supabaseSignUp(regEmail, regPassword, {
       fullName: regFullName,
       instituteName: regInstituteName,
       role: regRole,
       phone: regPhone,
+      coachingCenterId: newCoachingId,
     });
 
     if (res.success) {
@@ -105,10 +118,12 @@
         currentRole.set(regRole);
         instituteSettings.update((curr) => ({
           ...curr,
+          coachingCenterId: newCoachingId,
           name: regInstituteName,
           email: regEmail,
           phone: regPhone || curr.phone,
         }));
+        switchActiveTenant(newCoachingId);
         navigate('/dashboard/overview');
       }, 1000);
     } else {
@@ -121,6 +136,7 @@
     email = demoEmail;
     password = 'Password123!';
     currentRole.set(role);
+    switchActiveTenant('aac-dhaka-01');
     navigate('/dashboard/overview');
     showToast('success', 'Demo Login Activated', `Signed in as ${role.replace('_', ' ').toUpperCase()} (Demo Mode).`);
   }

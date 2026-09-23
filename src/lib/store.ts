@@ -1,4 +1,4 @@
-import { writable, derived } from 'svelte/store';
+import { writable, derived, get } from 'svelte/store';
 import type {
   UserRole,
   SubscriptionPlan,
@@ -41,6 +41,137 @@ import {
   loadSmsQueueFromSupabase,
   normalizePhoneNumber,
 } from './smsQueueApi';
+
+// ==========================================
+// COACHING ID GENERATOR — tenant isolation
+// ==========================================
+
+/**
+ * Generate a unique coaching center ID.
+ * Format: <initials>-<city-slug>-<timestamp-b36><random>
+ * Example: "aac-dhaka-014i7u09834"
+ */
+export function generateCoachingId(coachingName: string, city: string = 'bd'): string {
+  // Get initials from coaching name (up to 3 words)
+  const words = coachingName.trim().split(/\s+/).filter(Boolean);
+  const initials = words
+    .slice(0, 3)
+    .map((w) => w[0]?.toLowerCase() || '')
+    .join('')
+    .replace(/[^a-z]/g, '') || 'cf';
+
+  // City slug — keep letters only, lowercase, max 8 chars
+  const citySlug = city
+    .toLowerCase()
+    .replace(/[^a-z]/g, '')
+    .slice(0, 8) || 'bd';
+
+  // Timestamp base36 + random suffix
+  const ts = Date.now().toString(36); // e.g. "lm5b0xh"
+  const rand = Math.random().toString(36).slice(2, 7); // e.g. "4k9qz"
+
+  return `${initials}-${citySlug}-${ts}${rand}`;
+}
+
+// ==========================================
+// TENANT-SCOPED STORE FACTORY
+// ==========================================
+
+/**
+ * Creates a Svelte writable store whose data is persisted in localStorage under a
+ * coaching-specific namespace key: `coachflow_<key>_<coachingId>`.
+ *
+ * - For the legacy demo coaching ("aac-dhaka-01"), pre-populates with `demoData`.
+ * - For any other coaching, starts with an empty array (clean dashboard).
+ * - When `coachingId` changes (switching tenants), the store reloads from the new namespace.
+ */
+const tenantReloaders: Array<(cid: string) => void> = [];
+
+export function getActiveCoachingId(): string {
+  if (typeof window === 'undefined') return 'aac-dhaka-01';
+  try {
+    const id = localStorage.getItem('coachflow_active_coaching_id');
+    if (id) return id;
+    const saved = localStorage.getItem('coachflow_institute_settings');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed?.coachingCenterId) return parsed.coachingCenterId;
+    }
+  } catch (_) {}
+  return 'aac-dhaka-01';
+}
+
+/**
+ * Creates a Svelte writable store whose data is persisted in localStorage under a
+ * coaching-specific namespace key: `coachflow_<key>_<coachingId>`.
+ *
+ * - For the legacy demo coaching ("aac-dhaka-01"), pre-populates with `demoData`.
+ * - For any other coaching, starts with an empty array (clean dashboard).
+ * - When `coachingId` changes (switching tenants), the store reloads from the new namespace.
+ */
+function createTenantStore<T>(
+  key: string,
+  demoData: T[],
+  populateForNewTenants: boolean = false,
+  demoCoachingId: string = 'aac-dhaka-01'
+) {
+  function storageKey(coachingId: string) {
+    return `coachflow_${key}_${coachingId}`;
+  }
+
+  function loadFor(coachingId: string): T[] {
+    if (typeof window === 'undefined') {
+      return (populateForNewTenants || coachingId === demoCoachingId) ? demoData : [];
+    }
+    try {
+      const raw = localStorage.getItem(storageKey(coachingId));
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (_) {}
+    // First load for this coaching — demo gets demo data, others get empty (or starter data if populateForNewTenants)
+    return (populateForNewTenants || coachingId === demoCoachingId) ? demoData : [];
+  }
+
+  const activeId = getActiveCoachingId();
+  const store = writable<T[]>(loadFor(activeId));
+
+  // Persist on every change
+  if (typeof window !== 'undefined') {
+    store.subscribe((val) => {
+      const cid = getActiveCoachingId();
+      try {
+        localStorage.setItem(storageKey(cid), JSON.stringify(val));
+      } catch (_) {}
+    });
+  }
+
+  tenantReloaders.push((coachingId: string) => {
+    store.set(loadFor(coachingId));
+  });
+
+  return store;
+}
+
+/**
+ * Switch the active coaching tenant for all tenant stores.
+ * Call this on login and on registration.
+ */
+export function switchActiveTenant(coachingId: string) {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('coachflow_active_coaching_id', coachingId);
+  }
+  for (const reloader of tenantReloaders) {
+    try {
+      reloader(coachingId);
+    } catch (e) {
+      console.error('Failed to reload tenant store for', coachingId, e);
+    }
+  }
+}
+
+
 
 // ==========================================
 // NAVIGATION & AUTH STORES
@@ -302,14 +433,16 @@ export const coachingInstitutes = writable<CoachingInstitute[]>([
 
 // Coaching Actions
 export function addCoaching(data: Omit<CoachingInstitute, 'id' | 'createdAt' | 'totalRevenuePaid'>) {
+  const autoCoachingCenterId = data.coachingCenterId || generateCoachingId(data.name, data.city);
   const newInst: CoachingInstitute = {
     ...data,
     id: `inst-${Date.now()}`,
+    coachingCenterId: autoCoachingCenterId,
     createdAt: new Date().toISOString().split('T')[0],
     totalRevenuePaid: 0,
   };
   coachingInstitutes.update((all) => [newInst, ...all]);
-  showToast('success', 'কোচিং নিবন্ধিত', `"${newInst.name}" সফলভাবে যুক্ত করা হয়েছে।`);
+  showToast('success', 'কোচিং নিবন্ধিত', `"${newInst.name}" সফলভাবে যুক্ত করা হয়েছে। ID: ${autoCoachingCenterId}`);
 }
 
 export function updateCoaching(id: string, updates: Partial<CoachingInstitute>) {
@@ -1080,7 +1213,7 @@ export function updateInstituteSettings(partial: Partial<InstituteSettings>) {
 // ==========================================
 // COURSES & UNITS STORE (NCTB & ADMISSION CURRICULUMS)
 // ==========================================
-export const courses = writable<Course[]>([
+export const initialCourses: Course[] = [
   {
     id: 'c-1',
     code: 'HSC-PHY-01',
@@ -1129,7 +1262,8 @@ export const courses = writable<Course[]>([
     thumbnail: 'https://images.unsplash.com/photo-1530497610245-94d3c16cda28?w=400&auto=format&fit=crop&q=80',
     status: 'published',
   },
-]);
+];
+export const courses = createTenantStore<Course>('courses', initialCourses);
 
 export const units = writable<Unit[]>([
   {
@@ -1177,7 +1311,7 @@ export const units = writable<Unit[]>([
 // ==========================================
 // TEACHERS STORE (BANGLADESHI FACULTY)
 // ==========================================
-export const teachers = writable<Teacher[]>([
+export const initialTeachers: Teacher[] = [
   {
     id: 't-1',
     name: 'ইঞ্জি. মোঃ সাইফুল ইসলাম',
@@ -1223,12 +1357,13 @@ export const teachers = writable<Teacher[]>([
     status: 'active',
     education: 'বি.এস.সি ও এম.এস.সি (ফলিত গণিত, ঢাবি)',
   },
-]);
+];
+export const teachers = createTenantStore<Teacher>('teachers', initialTeachers);
 
 // ==========================================
 // BATCHES STORE (LOCAL COACHING BATCHES)
 // ==========================================
-export const batches = writable<Batch[]>([
+export const initialBatches: Batch[] = [
   {
     id: 'b-1',
     code: 'B-HSC-AM',
@@ -1289,12 +1424,13 @@ export const batches = writable<Batch[]>([
     status: 'running',
     startDate: '2026-02-10',
   },
-]);
+];
+export const batches = createTenantStore<Batch>('batches', initialBatches);
 
 // ==========================================
 // STUDENTS STORE (BANGLADESHI STUDENTS)
 // ==========================================
-export const students = writable<Student[]>([
+export const initialStudents: Student[] = [
   {
     id: 's-1',
     rollNo: 'AAC-2026-001',
@@ -1390,23 +1526,25 @@ export const students = writable<Student[]>([
     gender: 'male',
     dob: '2008-06-30',
   },
-]);
+];
+export const students = createTenantStore<Student>('students', initialStudents);
 
 // ==========================================
 // ATTENDANCE STORE
 // ==========================================
-export const attendanceRecords = writable<AttendanceRecord[]>([
+export const initialAttendance: AttendanceRecord[] = [
   { id: 'att-1', batchId: 'b-1', date: '2026-09-22', studentId: 's-1', status: 'present' },
   { id: 'att-2', batchId: 'b-1', date: '2026-09-22', studentId: 's-2', status: 'absent', remarks: 'অভিভাবককে এসএমএস পাঠানো হয়েছে' },
   { id: 'att-3', batchId: 'b-1', date: '2026-09-22', studentId: 's-4', status: 'present' },
   { id: 'att-4', batchId: 'b-3', date: '2026-09-22', studentId: 's-1', status: 'present' },
   { id: 'att-5', batchId: 'b-4', date: '2026-09-22', studentId: 's-3', status: 'late', remarks: '১০ মিনিট ট্রাফিক জ্যামে দেরি' },
-]);
+];
+export const attendanceRecords = createTenantStore<AttendanceRecord>('attendance', initialAttendance);
 
 // ==========================================
 // FEE INVOICES STORE (IN BDT ৳ WITH BKASH/NAGAD)
 // ==========================================
-export const feeInvoices = writable<FeeInvoice[]>([
+export const initialFeeInvoices: FeeInvoice[] = [
   {
     id: 'inv-101',
     invoiceNo: 'AAC-INV-2026-01',
@@ -1471,12 +1609,13 @@ export const feeInvoices = writable<FeeInvoice[]>([
     dueDate: '2026-09-12',
     paymentMethod: 'bKash',
   },
-]);
+];
+export const feeInvoices = createTenantStore<FeeInvoice>('feeinvoices', initialFeeInvoices);
 
 // ==========================================
 // EXAMS & MARKS STORE (GPA 5.0 SYSTEM)
 // ==========================================
-export const exams = writable<Exam[]>([
+export const initialExams: Exam[] = [
   {
     id: 'ex-1',
     title: 'ভেক্টর ও গতিবিদ্যা উইকলি মডেল টেস্ট ১',
@@ -1497,9 +1636,10 @@ export const exams = writable<Exam[]>([
     passMarks: 20,
     examType: 'Written',
   },
-]);
+];
+export const exams = createTenantStore<Exam>('exams', initialExams);
 
-export const examMarks = writable<ExamMark[]>([
+export const initialExamMarks: ExamMark[] = [
   {
     id: 'em-1',
     examId: 'ex-1',
@@ -1530,7 +1670,8 @@ export const examMarks = writable<ExamMark[]>([
     grade: 'A (GPA 4.0)',
     remarks: 'ভালো হয়েছে, রিভিশন বাড়াতে হবে',
   },
-]);
+];
+export const examMarks = createTenantStore<ExamMark>('exammarks', initialExamMarks);
 
 // ==========================================
 // DUAL-ENGINE SMS STORE (BANGLADESH TELECOM CARRIERS)
@@ -1643,36 +1784,9 @@ export const initialSmsTemplates: SmsTemplate[] = [
   },
 ];
 
-function loadStoredTemplates(): SmsTemplate[] {
-  if (typeof window !== 'undefined') {
-    const saved = localStorage.getItem('coachflow_sms_templates');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
-        }
-      } catch (e) {
-        console.error('Failed to parse sms templates from localStorage', e);
-      }
-    }
-  }
-  return initialSmsTemplates;
-}
+export const smsTemplates = createTenantStore<SmsTemplate>('smstemplates', initialSmsTemplates, true);
 
-export const smsTemplates = writable<SmsTemplate[]>(loadStoredTemplates());
-
-if (typeof window !== 'undefined') {
-  smsTemplates.subscribe((val) => {
-    try {
-      localStorage.setItem('coachflow_sms_templates', JSON.stringify(val));
-    } catch (e) {
-      // ignore
-    }
-  });
-}
-
-export const smsLogs = writable<SmsLog[]>([
+export const initialSmsLogs: SmsLog[] = [
   {
     id: 'log-1',
     recipientName: 'মেজর (অবঃ) আনিসুর রহমান (নাফিসার অভিভাবক)',
@@ -1703,7 +1817,8 @@ export const smsLogs = writable<SmsLog[]>([
     timestamp: '২০ সেপ্টেম্বর সকাল ১১:০৫ AM',
     cost: 0.35,
   },
-]);
+];
+export const smsLogs = createTenantStore<SmsLog>('smslogs', initialSmsLogs, false);
 
 // 10-Second Polling Outbox Queue store
 export const smsQueue = writable<SmsQueueItem[]>([
@@ -1732,6 +1847,7 @@ export function addStudent(studentData: Omit<Student, 'id' | 'rollNo'>) {
     const rollNo = `AAC-2026-${String(nextNum).padStart(3, '0')}`;
     const newStudent: Student = {
       ...studentData,
+      coachingId: studentData.coachingId || getActiveCoachingId(),
       id: `s-${Date.now()}`,
       rollNo,
     };
@@ -1760,6 +1876,7 @@ export function deleteStudent(id: string) {
 export function addBatch(batchData: Omit<Batch, 'id' | 'enrolledCount'>) {
   const newBatch: Batch = {
     ...batchData,
+    coachingId: batchData.coachingId || getActiveCoachingId(),
     id: `b-${Date.now()}`,
     enrolledCount: 0,
   };
@@ -1773,6 +1890,7 @@ export function addTeacher(teacherData: Omit<Teacher, 'id'>) {
   teachers.update((all) => [
     {
       ...teacherData,
+      coachingId: teacherData.coachingId || getActiveCoachingId(),
       id: `t-${Date.now()}`,
     },
     ...all,
@@ -1839,6 +1957,7 @@ export function addExam(examData: Omit<Exam, 'id'>, autoPopulateStudents: boolea
   const newId = `ex-${Date.now()}`;
   const newExam: Exam = {
     ...examData,
+    coachingId: examData.coachingId || getActiveCoachingId(),
     id: newId,
   };
 
@@ -2014,6 +2133,7 @@ export function markBatchAttendance(
     const filtered = existing.filter((r) => !(r.batchId === batchId && r.date === today));
     const newRecs: AttendanceRecord[] = records.map((r) => ({
       id: `att-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      coachingId: getActiveCoachingId(),
       batchId,
       date: today,
       studentId: r.studentId,
@@ -2102,6 +2222,7 @@ export function sendSms(
 
   const newLog: SmsLog = {
     id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+    coachingId: getActiveCoachingId(),
     recipientName,
     recipientPhone: normalizedPhone,
     message,
@@ -2294,7 +2415,7 @@ export function toggleTemplateLanguage(id: string) {
 // ==========================================
 // SYLLABUS STORE (CURRICULUM & LECTURE BREAKDOWNS)
 // ==========================================
-export const syllabusItems = writable<SyllabusItem[]>([
+export const initialSyllabus: SyllabusItem[] = [
   {
     id: 'syl-1',
     courseId: 'c-1',
@@ -2423,12 +2544,13 @@ export const syllabusItems = writable<SyllabusItem[]>([
     textbookReference: 'হাসান স্যার (বোটানি) ও গাজী আজমল স্যার (জুলজি)',
     remarks: '১০০ নম্বরের ওএমআর ভিত্তিক টেস্ট সম্পন্ন',
   },
-]);
+];
+export const syllabusItems = createTenantStore<SyllabusItem>('syllabus', initialSyllabus, false);
 
 // ==========================================
 // CLASS ROUTINE / TIMETABLE STORE (WEEKLY SCHEDULE)
 // ==========================================
-export const routineSlots = writable<RoutineSlot[]>([
+export const initialRoutine: RoutineSlot[] = [
   {
     id: 'rt-1',
     batchId: 'b-1',
@@ -2559,7 +2681,8 @@ export const routineSlots = writable<RoutineSlot[]>([
     roomNumber: 'রুম ১০২',
     classType: 'doubt_solve',
   },
-]);
+];
+export const routineSlots = createTenantStore<RoutineSlot>('routine', initialRoutine, false);
 
 // ==========================================
 // SYLLABUS & ROUTINE CRUD METHODS
@@ -2567,6 +2690,7 @@ export const routineSlots = writable<RoutineSlot[]>([
 export function addSyllabusItem(data: Omit<SyllabusItem, 'id'>) {
   const newItem: SyllabusItem = {
     ...data,
+    coachingId: (data as any).coachingId || getActiveCoachingId(),
     id: `syl-${Date.now()}`,
   };
   syllabusItems.update((all) => [newItem, ...all]);
@@ -2586,6 +2710,7 @@ export function deleteSyllabusItem(id: string) {
 export function addRoutineSlot(data: Omit<RoutineSlot, 'id'>) {
   const newSlot: RoutineSlot = {
     ...data,
+    coachingId: (data as any).coachingId || getActiveCoachingId(),
     id: `rt-${Date.now()}`,
   };
   routineSlots.update((all) => [...all, newSlot]);

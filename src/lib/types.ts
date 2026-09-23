@@ -18,6 +18,7 @@ export interface SubscriptionPlan {
 
 export interface Student {
   id: string;
+  coachingId?: string; // Tenant isolation — which coaching this student belongs to
   rollNo: string;
   name: string;
   email: string;
@@ -38,6 +39,7 @@ export interface Student {
 
 export interface Teacher {
   id: string;
+  coachingId?: string; // Tenant isolation
   name: string;
   email: string;
   phone: string;
@@ -54,6 +56,7 @@ export interface Teacher {
 
 export interface Course {
   id: string;
+  coachingId?: string; // Tenant isolation
   code: string;
   title: string;
   category: string;
@@ -78,6 +81,7 @@ export interface Unit {
 
 export interface Batch {
   id: string;
+  coachingId?: string; // Tenant isolation
   code: string;
   name: string;
   courseId: string;
@@ -94,6 +98,7 @@ export interface Batch {
 
 export interface AttendanceRecord {
   id: string;
+  coachingId?: string; // Tenant isolation
   batchId: string;
   date: string;
   studentId: string;
@@ -103,6 +108,7 @@ export interface AttendanceRecord {
 
 export interface FeeInvoice {
   id: string;
+  coachingId?: string; // Tenant isolation
   invoiceNo: string;
   studentId: string;
   studentName: string;
@@ -120,6 +126,7 @@ export interface FeeInvoice {
 
 export interface Exam {
   id: string;
+  coachingId?: string; // Tenant isolation
   title: string;
   courseId: string;
   batchId: string;
@@ -161,6 +168,7 @@ export interface SmsAccount {
 
 export interface SmsLog {
   id: string;
+  coachingId?: string; // Tenant isolation
   recipientName: string;
   recipientPhone: string;
   message: string;
@@ -285,6 +293,7 @@ export interface ToastMessage {
 
 export interface SyllabusItem {
   id: string;
+  coachingId?: string; // Tenant isolation
   courseId: string;
   courseName: string;
   subject: string;
@@ -302,6 +311,7 @@ export interface SyllabusItem {
 
 export interface RoutineSlot {
   id: string;
+  coachingId?: string; // Tenant isolation
   batchId: string;
   batchName: string;
   day: 'Saturday' | 'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday';
@@ -320,6 +330,7 @@ export interface RoutineSlot {
 
 export interface CoachingInstitute {
   id: string;
+  coachingCenterId?: string; // Unique auto-generated ID (e.g. aac-dhaka-014i7u09834)
   name: string;
   slug: string;
   ownerName: string;
