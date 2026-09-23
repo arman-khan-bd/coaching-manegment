@@ -215,6 +215,9 @@ class MainActivity: FlutterActivity() {
                 putExtra(Intent.EXTRA_INITIAL_INTENTS, intents.toTypedArray())
             }
         } else {
+            Intent.createChooser(galleryIntent, "Choose Image")
+        }
+
         try {
             startActivityForResult(chooserIntent, FILE_CHOOSER_REQUEST)
         } catch (e: Exception) {
@@ -349,7 +352,7 @@ class MainActivity: FlutterActivity() {
                     }
                 }
             }
-        } catch (_: Exception) {}
+        } catch (e: Exception) {}
 
         if (simList.isEmpty()) {
             simList.add(mapOf(
@@ -382,7 +385,7 @@ class MainActivity: FlutterActivity() {
                 "level" to pct,
                 "isCharging" to isCharging
             )
-        } catch (_: Exception) {
+        } catch (e: Exception) {
             return mapOf(
                 "level" to 90,
                 "isCharging" to true
