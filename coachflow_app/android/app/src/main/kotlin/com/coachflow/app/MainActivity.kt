@@ -215,10 +215,13 @@ class MainActivity: FlutterActivity() {
                 putExtra(Intent.EXTRA_INITIAL_INTENTS, intents.toTypedArray())
             }
         } else {
-            Intent.createChooser(galleryIntent, "Choose Image")
+        try {
+            startActivityForResult(chooserIntent, FILE_CHOOSER_REQUEST)
+        } catch (e: Exception) {
+            filePathCallback?.onReceiveValue(null)
+            filePathCallback = null
+            cameraImageUri = null
         }
-
-        startActivityForResult(chooserIntent, FILE_CHOOSER_REQUEST)
     }
 
     private fun createImageFile(): File? {
@@ -329,22 +332,24 @@ class MainActivity: FlutterActivity() {
 
     private fun getDetectedSimCards(): List<Map<String, Any>> {
         val simList = mutableListOf<Map<String, Any>>()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
-            val subManager = getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as? SubscriptionManager
-            if (subManager != null && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
-                val activeSubs = subManager.activeSubscriptionInfoList
-                if (!activeSubs.isNullOrEmpty()) {
-                    for (info in activeSubs) {
-                        simList.add(mapOf(
-                            "slotIndex" to info.simSlotIndex,
-                            "carrierName" to (info.displayName?.toString() ?: info.carrierName?.toString() ?: "Mobile Carrier"),
-                            "subscriptionId" to info.subscriptionId,
-                            "isFirstSim" to (info.simSlotIndex == 0)
-                        ))
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
+                val subManager = getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as? SubscriptionManager
+                if (subManager != null && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
+                    val activeSubs = subManager.activeSubscriptionInfoList
+                    if (!activeSubs.isNullOrEmpty()) {
+                        for (info in activeSubs) {
+                            simList.add(mapOf(
+                                "slotIndex" to info.simSlotIndex,
+                                "carrierName" to (info.displayName?.toString() ?: info.carrierName?.toString() ?: "Mobile Carrier"),
+                                "subscriptionId" to info.subscriptionId,
+                                "isFirstSim" to (info.simSlotIndex == 0)
+                            ))
+                        }
                     }
                 }
             }
-        }
+        } catch (_: Exception) {}
 
         if (simList.isEmpty()) {
             simList.add(mapOf(
@@ -364,17 +369,24 @@ class MainActivity: FlutterActivity() {
     }
 
     private fun getBatteryLevelAndCharging(): Map<String, Any> {
-        val batteryIntent = registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
-        val level = batteryIntent?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
-        val scale = batteryIntent?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: -1
-        val status = batteryIntent?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
+        try {
+            val batteryIntent = registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+            val level = batteryIntent?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
+            val scale = batteryIntent?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: -1
+            val status = batteryIntent?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
 
-        val pct = if (level >= 0 && scale > 0) (level * 100) / scale else 90
-        val isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
+            val pct = if (level >= 0 && scale > 0) (level * 100) / scale else 90
+            val isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
 
-        return mapOf(
-            "level" to pct,
-            "isCharging" to isCharging
-        )
+            return mapOf(
+                "level" to pct,
+                "isCharging" to isCharging
+            )
+        } catch (_: Exception) {
+            return mapOf(
+                "level" to 90,
+                "isCharging" to true
+            )
+        }
     }
 }

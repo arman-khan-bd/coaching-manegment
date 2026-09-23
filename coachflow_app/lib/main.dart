@@ -6,7 +6,7 @@ import 'views/api_docs_view.dart';
 import 'views/sms_gateway_view.dart';
 import 'views/webview_dashboard_view.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
@@ -15,10 +15,7 @@ void main() async {
     systemNavigationBarIconBrightness: Brightness.light,
   ));
 
-  final service = SmsPollingService();
-  await service.initialize();
-  await SmsNativeService.requestPermissions();
-
+  // Run app immediately so Android window renders first frame without watchdog timeout
   runApp(const CoachFlowApp());
 }
 
@@ -65,6 +62,13 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
   void initState() {
     super.initState();
     _pollingService.addListener(_onServiceUpdate);
+
+    // Initialize polling and check permissions safely AFTER first frame renders
+    // This prevents Android 11 startup ANRs and app crashes during permission grant restarts
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _pollingService.initialize();
+      await SmsNativeService.requestPermissions();
+    });
   }
 
   void _onServiceUpdate() {
