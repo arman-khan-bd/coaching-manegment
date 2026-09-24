@@ -39,16 +39,46 @@ export function printElement(
   const orientation = options.orientation || 'portrait';
   const margin = options.pageMargin || '8mm 10mm';
 
+  // Extract all existing stylesheets and in-memory CSS rules from current document
+  let pageStyles = '';
+  try {
+    Array.from(document.styleSheets).forEach((sheet) => {
+      try {
+        if (sheet.cssRules && sheet.cssRules.length > 0) {
+          const rules = Array.from(sheet.cssRules).map((r) => r.cssText).join('\n');
+          pageStyles += `<style>${rules}</style>\n`;
+        }
+      } catch (err) {
+        if (sheet.href) {
+          pageStyles += `<link rel="stylesheet" href="${sheet.href}">\n`;
+        }
+      }
+    });
+
+    // Also include any inline style tags that might not have been in document.styleSheets
+    Array.from(document.querySelectorAll('style')).forEach((st) => {
+      if (!pageStyles.includes(st.innerHTML.slice(0, 40))) {
+        pageStyles += st.outerHTML + '\n';
+      }
+    });
+  } catch (e) {
+    console.warn('Could not collect page styles:', e);
+  }
+
+  const originUrl = typeof window !== 'undefined' ? window.location.origin : '';
+
   // Build standalone self-contained printable HTML document
   const printDoc = `<!DOCTYPE html>
 <html lang="bn">
 <head>
   <meta charset="UTF-8" />
+  <base href="${originUrl}/" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${title}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Dancing+Script:wght@600;700&family=Hind+Siliguri:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  ${pageStyles}
   <style>
     *, *::before, *::after {
       box-sizing: border-box;
@@ -133,7 +163,51 @@ export function printElement(
     .border-slate-900 { border-color: #0f172a !important; }
 
     .rounded-xl, .rounded-2xl, .rounded-3xl { border-radius: 6px !important; }
+    .rounded-full { border-radius: 9999px !important; }
     .shadow-xl, .shadow-2xl, .shadow-md, .shadow-sm { box-shadow: none !important; }
+
+    /* Layout & Flexbox Utilities */
+    .flex { display: flex !important; }
+    .inline-flex { display: inline-flex !important; }
+    .items-center { align-items: center !important; }
+    .items-start { align-items: flex-start !important; }
+    .items-end { align-items: flex-end !important; }
+    .justify-between { justify-content: space-between !important; }
+    .justify-center { justify-content: center !important; }
+    .justify-end { justify-content: flex-end !important; }
+    .flex-col { flex-direction: column !important; }
+    .flex-row { flex-direction: row !important; }
+    .flex-wrap { flex-wrap: wrap !important; }
+    .flex-1 { flex: 1 1 0% !important; }
+    .flex-shrink-0 { flex-shrink: 0 !important; }
+
+    .grid { display: grid !important; }
+    .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+    .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+    .grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+
+    .gap-1 { gap: 4px !important; }
+    .gap-2 { gap: 8px !important; }
+    .gap-3 { gap: 12px !important; }
+    .gap-4 { gap: 16px !important; }
+    .gap-6 { gap: 24px !important; }
+
+    .w-14 { width: 56px !important; }
+    .h-14 { height: 56px !important; }
+    .w-16 { width: 64px !important; }
+    .h-16 { height: 64px !important; }
+    .w-20 { width: 80px !important; }
+    .h-20 { height: 80px !important; }
+    .w-24 { width: 96px !important; }
+    .h-24 { height: 96px !important; }
+    .w-32 { width: 128px !important; }
+    .w-36 { width: 144px !important; }
+    .w-full { width: 100% !important; }
+
+    .text-center { text-align: center !important; }
+    .text-right { text-align: right !important; }
+    .text-left { text-align: left !important; }
+    img { max-width: 100%; object-fit: contain; }
 
     /* Hide screen-only items */
     .no-print {

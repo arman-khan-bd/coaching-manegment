@@ -679,43 +679,65 @@
         style="font-family: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif;"
       >
         <!-- Document Header / Institute Branding -->
-        <div class="flex items-start justify-between pb-4 border-b-2 border-slate-900 gap-4">
-          <div class="flex items-center gap-4">
+        <div
+          class="flex items-start justify-between pb-4 border-b-2 border-slate-900 gap-4"
+          style="display: flex !important; justify-content: space-between !important; align-items: flex-start !important; border-bottom: 2px solid #0f172a !important; padding-bottom: 16px !important; gap: 16px !important; width: 100% !important;"
+        >
+          <div
+            class="flex items-center gap-4"
+            style="display: flex !important; align-items: center !important; gap: 14px !important; flex: 1 !important; min-width: 0 !important;"
+          >
             {#if $instituteSettings.logo}
               <img
                 src={$instituteSettings.logo}
                 alt="Logo"
                 class="w-16 h-16 object-contain rounded-lg border border-slate-200"
+                style="width: 60px !important; height: 60px !important; min-width: 60px !important; max-width: 60px !important; max-height: 60px !important; object-fit: contain !important; border-radius: 8px !important; border: 1px solid #cbd5e1 !important; flex-shrink: 0 !important;"
               />
             {:else}
-              <div class="w-14 h-14 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-xl">
+              <div
+                class="w-14 h-14 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-xl"
+                style="width: 54px !important; height: 54px !important; min-width: 54px !important; max-width: 54px !important; border-radius: 10px !important; background-color: #0f172a !important; color: #ffffff !important; display: flex !important; align-items: center !important; justify-content: center !important; font-weight: 800 !important; font-size: 18px !important; flex-shrink: 0 !important;"
+              >
                 CF
               </div>
             {/if}
-            <div>
-              <h1 class="text-2xl font-black text-slate-900 leading-tight">
+            <div style="min-width: 0 !important;">
+              <h1
+                class="text-2xl font-black text-slate-900 leading-tight"
+                style="font-size: 20px !important; font-weight: 900 !important; color: #0f172a !important; line-height: 1.2 !important; margin: 0 !important;"
+              >
                 {$instituteSettings.name || 'অ্যাপেক্স একাডেমিক কেয়ার'}
               </h1>
               {#if $instituteSettings.nameEnglish}
-                <div class="text-xs font-semibold text-slate-600 tracking-wider uppercase font-['Outfit']">
+                <div
+                  class="text-xs font-semibold text-slate-600 tracking-wider uppercase font-['Outfit']"
+                  style="font-size: 11px !important; font-weight: 600 !important; color: #475569 !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; margin-top: 2px !important;"
+                >
                   {$instituteSettings.nameEnglish}
                 </div>
               {/if}
-              <div class="text-xs text-slate-600 mt-0.5">
+              <div
+                class="text-xs text-slate-600 mt-0.5"
+                style="font-size: 10.5px !important; color: #64748b !important; margin-top: 3px !important; line-height: 1.3 !important;"
+              >
                 {$instituteSettings.tagline || 'মানসম্মত শিক্ষা ও সেরা প্রস্তুতির নির্ভরযোগ্য প্রতিষ্ঠান'}
               </div>
             </div>
           </div>
 
-          <div class="text-right text-xs text-slate-600 space-y-0.5">
+          <div
+            class="text-right text-xs text-slate-600 space-y-0.5"
+            style="text-align: right !important; font-size: 10.5px !important; color: #475569 !important; line-height: 1.4 !important; flex-shrink: 0 !important; min-width: 170px !important;"
+          >
             {#if $instituteSettings.establishedYear}
-              <div>স্থাপিত: {$instituteSettings.establishedYear}</div>
+              <div>স্থাপিত: <strong>{$instituteSettings.establishedYear}</strong></div>
             {/if}
             {#if $instituteSettings.branchName}
-              <div class="font-semibold text-slate-800">শাখা: {$instituteSettings.branchName}</div>
+              <div style="font-weight: 700 !important; color: #1e293b !important;">শাখা: {$instituteSettings.branchName}</div>
             {/if}
-            <div>হটলাইন: {$instituteSettings.phone || '01700-000000'}</div>
-            <div>{$instituteSettings.address || 'ঢাকা, বাংলাদেশ'}</div>
+            <div>হটলাইন: <strong>{$instituteSettings.phone || '01700-000000'}</strong></div>
+            <div style="max-width: 190px !important; word-wrap: break-word !important;">{$instituteSettings.address || 'ঢাকা, বাংলাদেশ'}</div>
           </div>
         </div>
 
@@ -814,33 +836,62 @@
         </table>
 
         <!-- Notice & Instructions Box -->
-        <div class="border border-slate-300 rounded-lg p-3 bg-slate-50 text-[11px] text-slate-700 leading-relaxed mb-8">
-          <div class="font-bold text-slate-900 mb-1 flex items-center gap-1.5">
+        <div
+          class="border border-slate-300 rounded-lg p-3 bg-slate-50 text-[11px] text-slate-700 leading-relaxed mb-6"
+          style="border: 1px solid #cbd5e1 !important; border-radius: 6px !important; padding: 10px 14px !important; background-color: #f8fafc !important; font-size: 10.5px !important; color: #334155 !important; line-height: 1.5 !important; margin-bottom: 24px !important; -webkit-print-color-adjust: exact !important;"
+        >
+          <div
+            class="font-bold text-slate-900 mb-1 flex items-center gap-1.5"
+            style="font-weight: 700 !important; color: #0f172a !important; margin-bottom: 4px !important; display: flex !important; align-items: center !important; gap: 6px !important;"
+          >
             <Info class="w-3.5 h-3.5 text-indigo-700" />
             <span>শিক্ষার্থী ও অভিভাবকদের জন্য প্রয়োজনীয় নির্দেশনা:</span>
           </div>
-          <ol class="list-decimal pl-5 space-y-0.5">
-            <li>ক্লাসে প্রতিটি বিষয়ের নির্ধারিত মূল পাঠ্যবই এবং কোচিং লেকচার শিট সাথে আনা বাধ্যতামূলক।</li>
-            <li>সর্বশেষ বোর্ড অনুমোদিত বা সংশোধিত সংস্করণের বই সংগ্রহ করার জন্য অনুরোধ করা যাচ্ছে।</li>
+          <ol
+            class="list-decimal pl-5 space-y-0.5"
+            style="padding-left: 20px !important; margin: 0 !important; list-style-type: decimal !important;"
+          >
+            <li style="margin-bottom: 2px !important;">ক্লাসে প্রতিটি বিষয়ের নির্ধারিত মূল পাঠ্যবই এবং কোচিং লেকচার শিট সাথে আনা বাধ্যতামূলক।</li>
+            <li style="margin-bottom: 2px !important;">সর্বশেষ বোর্ড অনুমোদিত বা সংশোধিত সংস্করণের বই সংগ্রহ করার জন্য অনুরোধ করা যাচ্ছে।</li>
             <li>যেকোনো সহায়ক প্রশ্নব্যাংক বা নোটস কোচিং লাইব্রেরি বা অফিস কাউন্টার থেকেও সংগ্রহ করা যাবে।</li>
           </ol>
         </div>
 
         <!-- Official Signatures Strip -->
-        <div class="pt-8 border-t border-slate-300 flex items-end justify-between text-center text-xs text-slate-700">
-          <div class="w-36 text-center">
-            <div class="w-32 border-b border-slate-400 mx-auto mb-1 h-8"></div>
-            <div class="font-semibold text-slate-900">একাডেমিক সমন্বয়কারী</div>
-            <div class="text-[10px] text-slate-500">পাঠ্যক্রম ও মূল্যায়ন শাখা</div>
+        <div
+          class="pt-6 border-t border-slate-300 flex items-end justify-between text-center text-xs text-slate-700 page-break-inside-avoid"
+          style="display: flex !important; justify-content: space-between !important; align-items: flex-end !important; border-top: 1.5px solid #94a3b8 !important; padding-top: 24px !important; margin-top: 28px !important; width: 100% !important; page-break-inside: avoid !important; break-inside: avoid !important;"
+        >
+          <!-- Left: Academic Coordinator -->
+          <div
+            style="width: 150px !important; min-width: 130px !important; max-width: 170px !important; text-align: center !important; flex-shrink: 0 !important;"
+          >
+            <div style="width: 120px !important; border-bottom: 1.5px solid #475569 !important; margin: 0 auto 6px !important; height: 32px !important;"></div>
+            <div style="font-weight: 700 !important; color: #0f172a !important; font-size: 11px !important;">
+              {$instituteSettings.academicCoordinator || 'একাডেমিক সমন্বয়কারী'}
+            </div>
+            <div style="font-size: 9.5px !important; color: #64748b !important; margin-top: 1px !important;">
+              পাঠ্যক্রম ও মূল্যায়ন শাখা
+            </div>
+            <div style="font-size: 8px !important; text-transform: uppercase !important; color: #94a3b8 !important; letter-spacing: 0.5px !important; margin-top: 2px !important;">
+              ACADEMIC COORDINATOR
+            </div>
           </div>
 
-          <!-- Official Stamp Seal (Auto or Uploaded) -->
-          <div class="flex items-center justify-center">
+          <!-- Center: Official Stamp Seal (Auto or Uploaded) -->
+          <div
+            style="width: 100px !important; display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; text-align: center !important; flex-shrink: 0 !important;"
+          >
             <OfficialSeal size="sm" colorScheme="indigo" />
+            <div style="font-size: 8px !important; color: #94a3b8 !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; margin-top: 4px !important;">
+              প্রাতিষ্ঠানিক সিলমোহর
+            </div>
           </div>
 
-          <!-- Authorized Signature (Auto or Uploaded) -->
-          <div class="flex items-center justify-end">
+          <!-- Right: Authorized Signature (Auto or Uploaded) -->
+          <div
+            style="width: 160px !important; min-width: 140px !important; max-width: 180px !important; display: flex !important; justify-content: flex-end !important; text-align: center !important; flex-shrink: 0 !important;"
+          >
             <OfficialSignature
               label="অধ্যক্ষ / পরিচালক"
               darkText={true}
@@ -850,8 +901,13 @@
         </div>
 
         <!-- Print Footer Stamp -->
-        <div class="mt-6 pt-3 border-t border-slate-200 text-center text-[10px] text-slate-400 font-mono">
-          System Generated Book List Voucher • CoachFlow Academic Management Engine • Printed on {new Date().toLocaleString('bn-BD')}
+        <div
+          class="mt-6 pt-3 border-t border-slate-200 text-center font-mono"
+          style="display: flex !important; justify-content: space-between !important; align-items: center !important; border-top: 1px solid #e2e8f0 !important; margin-top: 18px !important; padding-top: 8px !important; font-size: 9px !important; color: #94a3b8 !important; font-family: monospace, sans-serif !important;"
+        >
+          <div>আইডি: {$instituteSettings.coachingCenterId || 'AAC-2026'} • শাখা: {$instituteSettings.branchName || 'প্রধান ক্যাম্পাস'}</div>
+          <div>CoachFlow Academic Management System • Book List Voucher</div>
+          <div>তারিখ: {new Date().toLocaleDateString('bn-BD')}</div>
         </div>
       </div>
     </div>

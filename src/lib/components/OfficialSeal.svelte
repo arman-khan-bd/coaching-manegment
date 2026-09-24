@@ -15,7 +15,14 @@
   $: coachingId = $instituteSettings.coachingCenterId || 'AAC-2026';
   $: sealUrl = sealUrlOverride || $instituteSettings.officialSealUrl;
 
-  // Size dimensions for container
+  // Pixel sizes for strict cross-environment and print preservation
+  const pixelSizes = {
+    xs: 32,
+    sm: 58,
+    md: 80,
+    lg: 110,
+  };
+
   const dimensions = {
     xs: 'w-8 h-8',
     sm: 'w-14 h-14',
@@ -51,17 +58,21 @@
   };
 
   $: activeColor = colorStyles[colorScheme] || colorStyles.indigo;
+  $: pxSize = pixelSizes[size] || 80;
 </script>
 
 {#if sealUrl}
   <div
     class="relative inline-flex items-center justify-center select-none {dimensions[size]} {rotate ? 'rotate-[-5deg]' : ''}"
-    style="-webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;"
+    style="width: {pxSize}px !important; height: {pxSize}px !important; min-width: {pxSize}px !important; min-height: {pxSize}px !important; max-width: {pxSize}px !important; max-height: {pxSize}px !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; flex-shrink: 0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;"
   >
     <img
       src={sealUrl}
       alt="Official Institute Seal"
-      class="w-full h-full object-contain rounded-full drop-shadow print:drop-shadow-none"
+      width={pxSize}
+      height={pxSize}
+      style="width: {pxSize}px !important; height: {pxSize}px !important; max-width: {pxSize}px !important; max-height: {pxSize}px !important; object-fit: contain !important; border-radius: 9999px !important; display: block !important;"
+      class="object-contain rounded-full drop-shadow print:drop-shadow-none"
     />
   </div>
 {:else}
@@ -69,12 +80,13 @@
   <div
     class="relative inline-flex items-center justify-center select-none {dimensions[size]} {rotate ? '-rotate-6' : ''} transition-transform hover:rotate-0"
     title="Official Auto-Generated Institute Seal"
-    style="-webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;"
+    style="width: {pxSize}px !important; height: {pxSize}px !important; min-width: {pxSize}px !important; min-height: {pxSize}px !important; max-width: {pxSize}px !important; max-height: {pxSize}px !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; flex-shrink: 0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;"
   >
     <svg
+      width={pxSize}
+      height={pxSize}
       viewBox="0 0 120 120"
-      class="w-full h-full overflow-visible"
-      style="color: {activeColor.border};"
+      style="width: {pxSize}px !important; height: {pxSize}px !important; min-width: {pxSize}px !important; min-height: {pxSize}px !important; max-width: {pxSize}px !important; max-height: {pxSize}px !important; display: block !important; margin: 0 auto !important; color: {activeColor.border}; overflow: visible;"
     >
       <defs>
         <!-- Top Arc Path for Institute Name -->
