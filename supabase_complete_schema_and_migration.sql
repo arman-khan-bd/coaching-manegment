@@ -558,8 +558,46 @@ create policy "Allow all on coaching_branding" on public.coaching_branding for a
 create policy "Allow all on institute_settings" on public.institute_settings for all using (true) with check (true);
 create policy "Allow all on sms_queue" on public.sms_queue for all using (true) with check (true);
 
--- Enable Supabase Realtime for instant SMS queue dispatch and data sync
-alter publication supabase_realtime add table public.sms_queue;
-alter publication supabase_realtime add table public.students;
-alter publication supabase_realtime add table public.attendance;
-alter publication supabase_realtime add table public.invoices;
+-- Enable Supabase Realtime for instant SMS queue dispatch and data sync (Idempotent)
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables 
+    where pubname = 'supabase_realtime' and tablename = 'sms_queue'
+  ) then
+    begin
+      alter publication supabase_realtime add table public.sms_queue;
+    exception when others then null;
+    end;
+  end if;
+
+  if not exists (
+    select 1 from pg_publication_tables 
+    where pubname = 'supabase_realtime' and tablename = 'students'
+  ) then
+    begin
+      alter publication supabase_realtime add table public.students;
+    exception when others then null;
+    end;
+  end if;
+
+  if not exists (
+    select 1 from pg_publication_tables 
+    where pubname = 'supabase_realtime' and tablename = 'attendance'
+  ) then
+    begin
+      alter publication supabase_realtime add table public.attendance;
+    exception when others then null;
+    end;
+  end if;
+
+  if not exists (
+    select 1 from pg_publication_tables 
+    where pubname = 'supabase_realtime' and tablename = 'invoices'
+  ) then
+    begin
+      alter publication supabase_realtime add table public.invoices;
+    exception when others then null;
+    end;
+  end if;
+end $$;
