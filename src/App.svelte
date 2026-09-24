@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { currentView, activeTab, currentRole, instituteSettings, refreshCurrentTenantDataFromDb, switchActiveTenant, currentTeacherPermissions, teachers } from './lib/store';
+  import { currentView, activeTab, currentRole, instituteSettings, refreshCurrentTenantDataFromDb, switchActiveTenant, currentTeacherPermissions, teachers, loginSaasAdmin, platformUsers } from './lib/store';
+  import { get } from 'svelte/store';
   import ToastContainer from './lib/components/ToastContainer.svelte';
   import { isModulePermitted } from './lib/permissions';
 
@@ -83,6 +84,35 @@
     refreshCurrentTenantDataFromDb();
     initSupabaseAuth((user) => {
       if (user) {
+        // If user is super_admin in Supabase or platformUsers, route to SaaS Admin Portal
+        const isSuperAdmin =
+          user.role === 'super_admin' ||
+          user.role === 'platform_support' ||
+          get(platformUsers).some(
+            (pu) =>
+              pu.email?.toLowerCase() === user.email?.toLowerCase() &&
+              (pu.role === 'super_admin' || pu.role === 'platform_support')
+          );
+
+        if (isSuperAdmin) {
+          loginSaasAdmin({
+            id: user.id,
+            name: user.full_name || user.email || 'Super Admin',
+            email: user.email || '',
+          });
+          currentRole.set('super_admin');
+          currentTeacherPermissions.set([]);
+          if (typeof window !== 'undefined') {
+            const path = window.location.pathname;
+            if (path === '/login' || path === '/signin' || path === '/dashboard' || path === '/dashboard/' || path.startsWith('/dashboard')) {
+              currentView.set('saas_admin');
+              activeTab.set('overview');
+              navigate('/admin/overview');
+            }
+          }
+          return;
+        }
+
         currentRole.set(user.role);
         if (user.role === 'teacher') {
           let perms = user.permissions || [];
@@ -176,7 +206,7 @@
 
   <!-- 5. SAAS SUPER ADMIN DASHBOARD (PROTECTED) -->
   {:else if $currentView === 'saas_admin'}
-    <SaasAdminGatekeeper activeTab={$activeTab} />
+    <SaasAdminGatekeeper bind:activeTab={$activeTab} />
 
   <!-- 6. COACHING MANAGEMENT DASHBOARD -->
   {:else if $currentView === 'dashboard'}
