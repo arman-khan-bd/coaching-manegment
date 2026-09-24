@@ -6,6 +6,7 @@
     currentView,
     showToast,
     logoutDashboardUser,
+    syncCurrentDataDirectToSupabase,
   } from '../store';
   import {
     Menu,
@@ -17,8 +18,8 @@
     CheckCircle,
     UserCheck,
     Coins,
-    Shield,
     Loader2,
+    RefreshCw,
   } from 'lucide-svelte';
 
   export let toggleMobile: () => void = () => {};
@@ -26,6 +27,19 @@
   import { navigate } from '../router';
 
   let isLoggingOut = false;
+  let isSyncing = false;
+
+  async function handleCloudSync() {
+    if (isSyncing) return;
+    isSyncing = true;
+    try {
+      await syncCurrentDataDirectToSupabase();
+    } catch (err: any) {
+      showToast('error', 'সিঙ্ক ত্রুটি', err?.message || 'সুপাবেজ সংযোগ ব্যর্থ হয়েছে।');
+    } finally {
+      isSyncing = false;
+    }
+  }
 
   async function handleLogout() {
     if (isLoggingOut) return;
@@ -93,17 +107,20 @@
     </div>
   </div>
 
-  <!-- Right: SaaS Admin Switcher Button, SMS Wallet Widget, Profile -->
-  <div class="flex items-center gap-1.5 sm:gap-3 shrink-0">
-    <!-- SaaS Admin Switcher Button -->
+  <!-- Right: Supabase Sync, SMS Wallet Widget, Profile, Logout -->
+  <div class="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+
+    <!-- Supabase Direct Cloud Sync Button -->
     <button
       type="button"
-      class="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 transition-all text-xs font-semibold shadow-sm"
-      on:click={() => navigate('/admin')}
-      title="Open SaaS Super Admin Platform"
+      class="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-900/50 hover:border-emerald-400/50 transition-all text-xs font-semibold disabled:opacity-50"
+      on:click={handleCloudSync}
+      disabled={isSyncing}
+      title="সরাসরি Supabase ক্লাউড ডাটাবেজে সমস্ত তথ্য সিঙ্ক ও সেভ করুন"
+      aria-label="Sync with Supabase"
     >
-      <Shield class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
-      <span class="hidden sm:inline">SaaS Admin</span>
+      <RefreshCw class="w-3.5 h-3.5 text-emerald-400 {isSyncing ? 'animate-spin' : ''}" />
+      <span class="hidden md:inline font-medium">ক্লাউড সিঙ্ক</span>
     </button>
 
     <!-- Cloud SMS Wallet Balance Widget -->

@@ -54,6 +54,7 @@ import {
   syncInstituteSettingsToDb,
   loadInstituteSettingsFromDb,
   loadTenantDataFromSupabase,
+  syncAllLocalDataToSupabase,
   supabaseSignOut,
   currentAuthUser,
 } from './supabase';
@@ -229,6 +230,43 @@ export function refreshCurrentTenantDataFromDb() {
       onSyllabus: (data) => { if (data.length > 0) syllabusItems.set(data); },
       onRoutine: (data) => { if (data.length > 0) routineSlots.set(data); },
     }).catch((e) => console.warn('Supabase tenant initial hydration catch:', e));
+  }
+}
+
+/**
+ * Direct sync of all current store data into Supabase Cloud Database.
+ * Runs safe fallback upserts on all 13 core tables.
+ */
+export async function syncCurrentDataDirectToSupabase(): Promise<{ success: boolean; syncedCounts: Record<string, number>; errors: string[] }> {
+  const cid = getActiveCoachingId();
+  const currentData = {
+    students: get(students),
+    teachers: get(teachers),
+    batches: get(batches),
+    courses: get(courses),
+    attendance: get(attendanceRecords),
+    invoices: get(feeInvoices),
+    exams: get(exams),
+    examMarks: get(examMarks),
+    smsLogs: get(smsLogs),
+    smsTemplates: get(smsTemplates),
+    syllabus: get(syllabusItems),
+    routine: get(routineSlots),
+    settings: get(instituteSettings),
+  };
+
+  showToast('info', 'ক্লাউড সিঙ্ক শুরু হয়েছে', 'সুপাবেজ ডাটাবেজে সমস্ত তথ্য সরাসরি সেভ করা হচ্ছে...');
+  try {
+    const res = await syncAllLocalDataToSupabase(cid, currentData);
+    if (res.errors.length === 0) {
+      showToast('success', 'ডাটাবেজে সংরক্ষিত হয়েছে', 'আপনার সমস্ত তথ্য সফলভাবে সরাসরি Supabase ডাটাবেজে সংরক্ষিত হয়েছে!');
+    } else {
+      showToast('warning', 'আংশিক সিঙ্ক সম্পন্ন', `কিছু তথ্য সংরক্ষণে সমস্যা: ${res.errors[0]}`);
+    }
+    return res;
+  } catch (err: any) {
+    showToast('error', 'সিঙ্ক ব্যর্থ হয়েছে', err?.message || 'Supabase ক্লাউড ডাটাবেজে সংযোগ করতে সমস্যা হয়েছে।');
+    return { success: false, syncedCounts: {}, errors: [err?.message || 'Unknown error'] };
   }
 }
 
@@ -1782,7 +1820,7 @@ export function addExam(examData: Omit<Exam, 'id'>, autoPopulateStudents: boolea
         };
       });
       examMarks.update((all) => [...all, ...initialMarks]);
-      syncExamMarksToDb(initialMarks);
+      syncExamMarksToDb(initialMarks, getActiveCoachingId());
     }
   }
 
@@ -1858,7 +1896,7 @@ export function saveBulkExamMarks(
       };
     });
 
-    syncExamMarksToDb(updatedForExam);
+    syncExamMarksToDb(updatedForExam, getActiveCoachingId());
     return [...others, ...updatedForExam];
   });
 
@@ -1923,7 +1961,7 @@ export function addOrUpdateExamMark(
   });
 
   if (targetMark) {
-    syncExamMarksToDb([targetMark]);
+    syncExamMarksToDb([targetMark], getActiveCoachingId());
   }
 
   showToast('success', 'ফলাফল হালনাগাদ', `${data.studentName}-এর নম্বর সফলভাবে সংরক্ষিত হয়েছে।`);
