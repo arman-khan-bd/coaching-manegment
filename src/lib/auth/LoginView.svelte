@@ -79,7 +79,7 @@
     const res = await supabaseSignIn(email, password);
     if (res.success && res.user) {
       currentRole.set(res.user.role);
-      if (res.user.role === 'teacher') {
+      if (res.user.role === "teacher") {
         currentTeacherPermissions.set(res.user.permissions || []);
       } else {
         currentTeacherPermissions.set([]);
@@ -98,11 +98,13 @@
       );
       navigate("/dashboard/overview");
     } else {
-      errorMessage = res.error || "Authentication failed. Check your email and password.";
+      errorMessage =
+        res.error || "Authentication failed. Check your email and password.";
       showToast(
         "error",
         "Sign In Failed",
-        res.error || "Invalid credentials. Please verify your email and password.",
+        res.error ||
+          "Invalid credentials. Please verify your email and password.",
       );
     }
   }
@@ -123,10 +125,11 @@
       showToast(
         "success",
         "রিসেট লিঙ্ক প্রেরিত",
-        "আপনার ইমেইল ইনবক্সে পাসওয়ার্ড রিসেট করার লিঙ্ক পাঠানো হয়েছে।"
+        "আপনার ইমেইল ইনবক্সে পাসওয়ার্ড রিসেট করার লিঙ্ক পাঠানো হয়েছে।",
       );
     } else {
-      errorMessage = res.error || "পাসওয়ার্ড রিসেট ইমেইল পাঠাতে ব্যর্থ হয়েছে।";
+      errorMessage =
+        res.error || "পাসওয়ার্ড রিসেট ইমেইল পাঠাতে ব্যর্থ হয়েছে।";
       showToast("error", "ত্রুটি", errorMessage);
     }
   }
@@ -148,8 +151,13 @@
     const res = await supabaseUpdatePassword(newPassword);
     if (res.success) {
       isPasswordRecoveryMode.set(false);
-      successMessage = "আপনার পাসওয়ার্ড সফলভাবে হালনাগাদ হয়েছে! অনুগ্রহ করে লগইন করুন।";
-      showToast("success", "পাসওয়ার্ড হালনাগাদ সম্পন্ন", "আপনার নতুন পাসওয়ার্ড কার্যকর হয়েছে।");
+      successMessage =
+        "আপনার পাসওয়ার্ড সফলভাবে হালনাগাদ হয়েছে! অনুগ্রহ করে লগইন করুন।";
+      showToast(
+        "success",
+        "পাসওয়ার্ড হালনাগাদ সম্পন্ন",
+        "আপনার নতুন পাসওয়ার্ড কার্যকর হয়েছে।",
+      );
       setTimeout(() => {
         authMode = "signin";
         password = "";
@@ -206,9 +214,9 @@
         </div>
         <h2 class="text-xl sm:text-2xl font-bold text-white font-['Outfit']">
           {#if authMode === "signin"}
-            Sign In to CoachFlow
+            সাইন ইন করুন
           {:else if authMode === "register"}
-            Register New Academy
+            নতুন কোচিং এর জন্য অ্যাকাউন্ট তৈরি করুন
           {:else if authMode === "forgot"}
             পাসওয়ার্ড ভুলে গেছেন?
           {:else if authMode === "update_password"}
@@ -217,9 +225,9 @@
         </h2>
         <p class="text-xs text-slate-400 mt-1">
           {#if authMode === "signin"}
-            Access your coaching dashboard with Supabase Auth
+            আপনার কোচিং ড্যাশবোর্ডে লগইন করুন
           {:else if authMode === "register"}
-            Create your academy admin profile stored in Supabase
+            নতুন কোচিং এর জন্য অ্যাকাউন্ট তৈরি করুন
           {:else if authMode === "forgot"}
             আপনার নিবন্ধিত ইমেইলে পাসওয়ার্ড রিসেট লিঙ্ক পাঠানো হবে
           {:else if authMode === "update_password"}
@@ -242,39 +250,6 @@
           <ArrowLeft class="w-3.5 h-3.5" />
           <span>লগইনে ফিরে যান (Back to Sign In)</span>
         </button>
-      {:else}
-        <!-- Get Started / Registration Wizard Card -->
-        <div
-          class="mb-6 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-indigo-950/60 via-slate-900 to-indigo-950/40 border border-indigo-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-md"
-        >
-          <div>
-            <p class="font-bold text-white flex items-center gap-1.5">
-              <Sparkles class="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span>New Coaching Institute?</span>
-            </p>
-            <p class="text-[11px] text-slate-400 mt-0.5">
-              Create your account with step-by-step setup
-            </p>
-          </div>
-          <div class="flex items-center gap-2 w-full sm:w-auto">
-            <button
-              type="button"
-              class="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-xs transition-all shrink-0 shadow-md shadow-indigo-600/30 flex items-center justify-center gap-1.5 hover:scale-[1.02]"
-              on:click={() => navigate("/register?step=1")}
-            >
-              <span>Get Started</span>
-              <ArrowRight class="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              class="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-indigo-300 hover:text-white border border-slate-700 font-semibold text-xs transition-colors flex items-center justify-center gap-1.5"
-              on:click={() => navigate("/register")}
-            >
-              <UserPlus class="w-3.5 h-3.5" />
-              <span>Register</span>
-            </button>
-          </div>
-        </div>
       {/if}
 
       <!-- Alerts -->
@@ -301,7 +276,7 @@
         <form on:submit|preventDefault={handleSignIn} class="space-y-4 text-xs">
           <div>
             <label for="sb-email" class="block font-medium text-slate-300 mb-1"
-              >Email Address</label
+              >ইমেইল এড্রেস</label
             >
             <div class="relative">
               <Mail
@@ -321,7 +296,7 @@
           <div>
             <div class="flex items-center justify-between mb-1">
               <label for="sb-pass" class="font-medium text-slate-300"
-                >Password</label
+                >পাসওয়ার্ড</label
               >
               <button
                 type="button"
@@ -333,7 +308,7 @@
                   successMessage = "";
                 }}
               >
-                Forgot Password?
+                পাসওয়ার্ড ভুলে গেছেন?
               </button>
             </div>
             <div class="relative">
@@ -370,9 +345,9 @@
               <span
                 class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"
               ></span>
-              <span>Authenticating with Supabase...</span>
+              <span>লগইন হচ্ছে...</span>
             {:else}
-              <span>Sign In with Supabase</span>
+              <span>লগইন করুন</span>
               <ArrowRight class="w-4 h-4" />
             {/if}
           </button>
@@ -380,10 +355,12 @@
           <!-- Bottom Action: Get Started & Register Step by Step -->
           <div class="pt-5 border-t border-slate-800/80 text-center space-y-3">
             <p class="text-xs text-slate-400">
-              Don't have an academy account? Create one with our step-by-step setup
+              কোনো একাউন্ট তৈরি করা নেই? নিচে ক্লিক করে নতুন একাউন্ট তৈরি করুন!
             </p>
-            <div class="flex flex-col sm:flex-row items-center justify-center gap-2.5">
-              <button
+            <div
+              class="flex flex-col sm:flex-row items-center justify-center gap-2.5"
+            >
+              <!-- <button
                 type="button"
                 class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-xs transition-all shadow-md shadow-indigo-600/20 flex items-center justify-center gap-1.5"
                 on:click={() => navigate("/register?step=1")}
@@ -391,24 +368,30 @@
                 <Sparkles class="w-3.5 h-3.5 text-amber-400" />
                 <span>Get Started</span>
                 <ArrowRight class="w-3.5 h-3.5" />
-              </button>
+              </button> -->
               <button
                 type="button"
                 class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-indigo-300 hover:text-white border border-slate-700 font-semibold text-xs transition-colors flex items-center justify-center gap-1.5"
                 on:click={() => navigate("/register")}
               >
                 <UserPlus class="w-3.5 h-3.5" />
-                <span>Register (Step by Step)</span>
+                <span>নতুন একাউন্ট তৈরি করুন!</span>
               </button>
             </div>
           </div>
         </form>
 
-      <!-- TAB 2: FORGOT PASSWORD (SUPABASE) -->
+        <!-- TAB 2: FORGOT PASSWORD (SUPABASE) -->
       {:else if authMode === "forgot"}
-        <form on:submit|preventDefault={handleForgotPassword} class="space-y-4 text-xs">
+        <form
+          on:submit|preventDefault={handleForgotPassword}
+          class="space-y-4 text-xs"
+        >
           <div>
-            <label for="sb-forgot-email" class="block font-medium text-slate-300 mb-1">
+            <label
+              for="sb-forgot-email"
+              class="block font-medium text-slate-300 mb-1"
+            >
               নিবন্ধিত ইমেইল অ্যাড্রেস *
             </label>
             <div class="relative">
@@ -449,11 +432,17 @@
           </button>
         </form>
 
-      <!-- TAB 3: UPDATE NEW PASSWORD (RECOVERY) -->
+        <!-- TAB 3: UPDATE NEW PASSWORD (RECOVERY) -->
       {:else if authMode === "update_password"}
-        <form on:submit|preventDefault={handleUpdateNewPassword} class="space-y-4 text-xs">
+        <form
+          on:submit|preventDefault={handleUpdateNewPassword}
+          class="space-y-4 text-xs"
+        >
           <div>
-            <label for="sb-new-pass" class="block font-medium text-slate-300 mb-1">
+            <label
+              for="sb-new-pass"
+              class="block font-medium text-slate-300 mb-1"
+            >
               নতুন পাসওয়ার্ড (New Password) *
             </label>
             <div class="relative">
@@ -483,7 +472,10 @@
           </div>
 
           <div>
-            <label for="sb-cnew-pass" class="block font-medium text-slate-300 mb-1">
+            <label
+              for="sb-cnew-pass"
+              class="block font-medium text-slate-300 mb-1"
+            >
               পাসওয়ার্ড নিশ্চিত করুন (Confirm Password) *
             </label>
             <div class="relative">

@@ -32,8 +32,6 @@
   import {
     Smartphone,
     Radio,
-    Battery,
-    Wifi,
     QrCode,
     Coins,
     Send,
@@ -51,6 +49,7 @@
     Users,
     Phone,
     Sparkles,
+    MessageSquare,
   } from 'lucide-svelte';
 
   let pollIntervalTimer: any;
@@ -320,11 +319,11 @@
 
       <div class="bg-slate-950/80 p-3 rounded-2xl border border-slate-800 text-center min-w-[130px]">
         <span class="text-[10px] text-slate-400 uppercase font-semibold">Android Node</span>
-        <div class="text-sm font-bold {gateway.connected ? 'text-emerald-400' : 'text-rose-400'} flex items-center justify-center gap-1.5 mt-0.5">
-          <span class="w-2 h-2 rounded-full {gateway.connected ? 'bg-emerald-400 animate-ping' : 'bg-rose-400'}"></span>
-          <span>{gateway.connected ? 'Online' : 'Disconnected'}</span>
+        <div class="text-sm font-bold {gateway.connected ? 'text-emerald-400' : 'text-slate-300'} flex items-center justify-center gap-1.5 mt-0.5">
+          <span class="w-2 h-2 rounded-full {gateway.connected ? 'bg-emerald-400 animate-ping' : 'bg-emerald-400'}"></span>
+          <span>Active SIM 1</span>
         </div>
-        <span class="text-[10px] text-slate-400 mt-0.5 block">{gateway.batteryLevel}% Battery</span>
+        <span class="text-[10px] text-emerald-400/90 font-mono mt-0.5 block">৳০.০০ / SMS</span>
       </div>
     </div>
   </div>
@@ -385,167 +384,100 @@
   <!-- TAB 1: ANDROID GATEWAY CONFIG -->
   {#if activeSmsTab === 'gateway'}
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      <!-- Device Telemetry Card -->
-      <div class="lg:col-span-7 rounded-3xl bg-slate-900/80 border border-slate-800 p-6 flex flex-col justify-between">
+      <!-- Device Pairing & Download Card -->
+      <div class="lg:col-span-12 rounded-3xl bg-slate-900/80 border border-slate-800 p-6 flex flex-col justify-between">
         <div>
-          <div class="flex items-center justify-between pb-4 border-b border-slate-800">
-            <div>
-              <h3 class="text-base font-bold text-white font-['Outfit']">{gateway.deviceName}</h3>
-              <p class="text-xs text-slate-400 mt-0.5">Last Sync: {gateway.lastSyncTime}</p>
-            </div>
-
-            <button
-              type="button"
-              class="px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5
-              {gateway.connected ? 'bg-rose-950/40 text-rose-300 border border-rose-500/30 hover:bg-rose-900/40' : 'bg-emerald-950/40 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-900/40'}"
-              on:click={toggleAndroidGateway}
-            >
-              <RefreshCw class="w-3.5 h-3.5" />
-              <span>{gateway.connected ? 'Disconnect Device' : 'Connect Device'}</span>
-            </button>
-          </div>
-
-          <!-- Live Metrics Grid -->
-          <div class="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-            <div class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800">
-              <span class="text-slate-400 block text-[10px] uppercase font-semibold">Battery:</span>
-              <div class="text-lg font-bold text-white mt-1 flex items-center gap-1.5">
-                <Battery class="w-4 h-4 text-emerald-400" />
-                <span>{gateway.batteryLevel}%</span>
+          <div class="flex items-center justify-between mb-4 pb-4 border-b border-slate-800">
+            <div class="flex items-center gap-2.5">
+              <div class="w-10 h-10 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+                <QrCode class="w-5 h-5" />
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-white font-['Outfit']">Pair Android Phone Gateway</h3>
+                <p class="text-xs text-slate-400">Install the CoachFlow Gateway APK to send unlimited parent SMS via your local SIM bundle at ৳0.00 cost</p>
               </div>
             </div>
-
-            <div class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800">
-              <span class="text-slate-400 block text-[10px] uppercase font-semibold">Network Signal:</span>
-              <div class="text-lg font-bold text-white mt-1 flex items-center gap-1.5">
-                <Wifi class="w-4 h-4 text-indigo-400" />
-                <span>{gateway.signalStrength}% (5G)</span>
-              </div>
-            </div>
-
-            <div class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800">
-              <span class="text-slate-400 block text-[10px] uppercase font-semibold">SIM 1 Carrier:</span>
-              <div class="text-xs font-bold text-slate-200 mt-1 truncate">
-                {gateway.sim1Carrier}
-              </div>
-            </div>
-
-            <div class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800">
-              <span class="text-slate-400 block text-[10px] uppercase font-semibold">Today's Sent:</span>
-              <div class="text-lg font-bold text-emerald-400 mt-1">
-                {gateway.sim1DailySent} / {gateway.sim1DailyLimit}
-              </div>
-            </div>
-          </div>
-
-          <!-- Daily Safety Quota Slider -->
-          <div class="mt-6 p-4 rounded-2xl bg-slate-950 border border-slate-800">
-            <div class="flex items-center justify-between text-xs mb-2">
-              <span class="font-semibold text-slate-300">Carrier Anti-Spam Safety Limit:</span>
-              <span class="font-bold text-indigo-300">{gateway.sim1DailyLimit} SMS / Day</span>
-            </div>
-            <div class="w-full bg-slate-900 rounded-full h-2.5 overflow-hidden border border-slate-800">
-              <div
-                class="bg-gradient-to-r from-indigo-500 to-emerald-500 h-2.5 rounded-full"
-                style="width: {(gateway.sim1DailySent / gateway.sim1DailyLimit) * 100}%"
-              ></div>
-            </div>
-            <p class="text-[11px] text-slate-400 mt-2">
-              Automatically pauses sending and queues remaining messages if local SIM reaches this safe threshold.
-            </p>
-          </div>
-        </div>
-
-        <!-- API & Webhook Creds -->
-        <div class="mt-6 pt-4 border-t border-slate-800 space-y-3 text-xs">
-          <div>
-            <label for="gw-api-key" class="block text-slate-400 font-semibold mb-1">Android Gateway API Key</label>
-            <div class="flex rounded-xl bg-slate-950 border border-slate-800 overflow-hidden">
-              <input
-                id="gw-api-key"
-                type="text"
-                readonly
-                value={gateway.apiKey}
-                class="w-full px-3 py-2 bg-transparent text-slate-300 font-mono text-xs focus:outline-none"
-              />
-              <button
-                type="button"
-                class="px-3 py-2 bg-slate-800/80 text-slate-300 hover:text-white flex items-center gap-1"
-                on:click={() => copyToClipboard(gateway.apiKey, 'API Key')}
-              >
-                <Copy class="w-3.5 h-3.5" />
-                <span>Copy</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Pairing QR Code & Mobile Instructions -->
-      <div class="lg:col-span-5 rounded-3xl bg-slate-900/80 border border-slate-800 p-6 flex flex-col justify-between">
-        <div>
-          <div class="flex items-center justify-between mb-3">
-            <div class="flex items-center gap-2">
-              <QrCode class="w-5 h-5 text-indigo-400" />
-              <h3 class="text-base font-bold text-white font-['Outfit']">Pair New Android Phone</h3>
-            </div>
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+            <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
               {apkConfig.versionName}
             </span>
           </div>
-          <p class="text-xs text-slate-400 leading-relaxed">
-            Install the <strong>CoachFlow Gateway APK</strong> from your dashboard and scan this QR code to route SMS through local SIM cards at zero gateway cost.
-          </p>
 
-          <!-- Dynamic Scannable QR Container -->
-          <div class="my-5 p-3 rounded-2xl bg-white w-48 h-48 mx-auto flex items-center justify-center shadow-2xl border-4 border-indigo-500/20">
-            <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(apkConfig.downloadUrl)}`}
-              alt="Scan to Download Android SMS Gateway"
-              class="w-40 h-40 object-contain rounded-lg"
-            />
-          </div>
-
-          <div class="text-center mb-4">
-            <span class="text-[11px] font-mono text-emerald-400 font-semibold">
-              Scan with phone camera to download APK ({apkConfig.fileSizeMb})
-            </span>
-          </div>
-
-          <!-- Step by Step -->
-          <div class="space-y-2 text-xs text-slate-300 bg-slate-950 p-3.5 rounded-2xl border border-slate-800">
-            <div class="flex items-center gap-2">
-              <span class="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">1</span>
-              <span>Insert local SIM card with an SMS bundle (GP / Robi / BL).</span>
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+            <!-- Dynamic Scannable QR Container -->
+            <div class="md:col-span-4 flex flex-col items-center justify-center p-4 rounded-2xl bg-slate-950 border border-slate-800">
+              <div class="p-2.5 rounded-2xl bg-white w-44 h-44 flex items-center justify-center shadow-xl border-4 border-indigo-500/20">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(apkConfig.downloadUrl)}`}
+                  alt="Scan to Download Android SMS Gateway"
+                  class="w-36 h-36 object-contain rounded-lg"
+                />
+              </div>
+              <span class="text-[11px] font-mono text-emerald-400 font-semibold mt-3 text-center">
+                Scan with phone camera to download APK ({apkConfig.fileSizeMb})
+              </span>
             </div>
-            <div class="flex items-center gap-2">
-              <span class="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">2</span>
-              <span>Install CoachFlow APK & scan QR to pair your institute.</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">3</span>
-              <span>All parent alerts will transmit through your SIM!</span>
+
+            <!-- Step by Step Guide & API Key -->
+            <div class="md:col-span-8 space-y-4">
+              <div class="space-y-2 text-xs text-slate-300 bg-slate-950 p-4 rounded-2xl border border-slate-800">
+                <div class="flex items-center gap-2.5">
+                  <span class="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">1</span>
+                  <span>Insert local SIM card with an SMS bundle (GP / Robi / Banglalink / Teletalk).</span>
+                </div>
+                <div class="flex items-center gap-2.5">
+                  <span class="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">2</span>
+                  <span>Install CoachFlow Gateway APK & scan QR to pair your institute.</span>
+                </div>
+                <div class="flex items-center gap-2.5">
+                  <span class="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">3</span>
+                  <span>All parent alerts, attendance notifications & fees reminders will transmit through your SIM!</span>
+                </div>
+              </div>
+
+              <!-- API Key Field -->
+              <div class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 text-xs">
+                <label for="gw-api-key" class="block text-slate-400 font-semibold mb-1">Android Gateway API Key</label>
+                <div class="flex rounded-xl bg-slate-900 border border-slate-800 overflow-hidden">
+                  <input
+                    id="gw-api-key"
+                    type="text"
+                    readonly
+                    value={gateway.apiKey}
+                    class="w-full px-3 py-2 bg-transparent text-slate-300 font-mono text-xs focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    class="px-3 py-2 bg-slate-800/80 text-slate-300 hover:text-white flex items-center gap-1"
+                    on:click={() => copyToClipboard(gateway.apiKey, 'API Key')}
+                  >
+                    <Copy class="w-3.5 h-3.5" />
+                    <span>Copy</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Download Buttons -->
+              <div class="flex flex-col sm:flex-row gap-2 pt-1">
+                <a
+                  href={apkConfig.downloadUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="flex-1 py-2.5 px-4 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/30 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Smartphone class="w-4 h-4" />
+                  <span>Download Android Gateway APK ({apkConfig.versionName})</span>
+                </a>
+                <button
+                  type="button"
+                  class="py-2.5 px-4 rounded-xl text-xs text-slate-300 hover:text-white bg-slate-950 border border-slate-800 hover:border-slate-700 transition-colors flex items-center justify-center gap-1.5"
+                  on:click={() => copyToClipboard(apkConfig.downloadUrl, 'APK Download URL')}
+                >
+                  <Copy class="w-3.5 h-3.5" />
+                  <span>Copy APK Link</span>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-
-        <div class="mt-6 flex flex-col gap-2">
-          <a
-            href={apkConfig.downloadUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            class="w-full py-2.5 px-4 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/30 transition-colors flex items-center justify-center gap-2"
-          >
-            <span>Download Android Gateway APK ({apkConfig.versionName} • {apkConfig.fileSizeMb})</span>
-          </a>
-          <button
-            type="button"
-            class="w-full py-1.5 px-3 rounded-xl text-[11px] text-slate-400 hover:text-white bg-slate-950 border border-slate-800 hover:border-slate-700 transition-colors flex items-center justify-center gap-1.5"
-            on:click={() => copyToClipboard(apkConfig.downloadUrl, 'APK Download URL')}
-          >
-            <Copy class="w-3 h-3" />
-            <span>Copy APK Download Link</span>
-          </button>
         </div>
       </div>
     </div>
