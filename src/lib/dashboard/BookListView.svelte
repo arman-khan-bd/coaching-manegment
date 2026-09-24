@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from 'svelte';
   import {
     books,
     courses,
@@ -194,11 +195,16 @@
     isDeleteConfirmOpen = false;
   }
 
-  function handlePrintBookList() {
+  async function handlePrintBookList() {
+    if (!isPrintPreviewOpen) {
+      isPrintPreviewOpen = true;
+      await tick();
+      await new Promise((r) => setTimeout(r, 120));
+    }
     printElement('print-booklist-document', {
       title: `বুক-লিস্ট-২০২৬-${$instituteSettings.name || 'Coaching'}`,
       orientation: 'portrait',
-      pageMargin: '12mm',
+      pageMargin: '10mm 12mm',
     });
   }
 </script>
@@ -351,104 +357,104 @@
         </button>
       </div>
     {:else}
-      <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse">
-          <thead>
-            <tr class="border-b border-slate-800 bg-slate-950/50 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-              <th class="py-3.5 px-4 w-12 text-center">নং</th>
-              <th class="py-3.5 px-4 min-w-[200px]">বইয়ের বিবরণ ও সংস্করণ</th>
-              <th class="py-3.5 px-4 min-w-[140px]">বিষয় ও শ্রেণি</th>
-              <th class="py-3.5 px-4 min-w-[150px]">লেখক ও প্রকাশনী</th>
-              <th class="py-3.5 px-4 text-center">ধরন</th>
-              <th class="py-3.5 px-4 text-right">মূল্য (আনুমানিক)</th>
-              <th class="py-3.5 px-4 text-right">অ্যাকশন</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-800/60 text-sm">
-            {#each paginatedBooks as book, idx}
-              <tr class="hover:bg-slate-800/40 transition-colors group">
-                <!-- Serial -->
-                <td class="py-3.5 px-4 text-center font-mono text-xs text-slate-400">
-                  {(currentPage - 1) * pageSize + idx + 1}
-                </td>
+      <!-- Modern Responsive List View (Replaces rigid table) -->
+      <div class="p-3 sm:p-5 space-y-3">
+        {#each paginatedBooks as book, idx}
+          <div
+            class="group relative rounded-2xl bg-slate-900/60 hover:bg-slate-900 border border-slate-800/80 hover:border-indigo-500/40 p-4 sm:p-5 transition-all duration-200 shadow-md hover:shadow-indigo-500/10 flex flex-col lg:flex-row lg:items-center justify-between gap-4"
+          >
+            <!-- Left Info Area -->
+            <div class="flex items-start gap-3.5 flex-1 min-w-0">
+              <!-- Index Number & Icon Badge -->
+              <div class="flex-shrink-0 flex items-center gap-2.5">
+                <span class="w-6 text-center font-mono text-xs font-semibold text-slate-500 group-hover:text-indigo-400 transition-colors">
+                  {(currentPage - 1) * pageSize + idx + 1}.
+                </span>
+                <div class="w-11 h-11 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 flex items-center justify-center flex-shrink-0 shadow-inner group-hover:scale-105 transition-transform">
+                  <BookOpen class="w-5 h-5" />
+                </div>
+              </div>
 
-                <!-- Title & Edition -->
-                <td class="py-3.5 px-4">
-                  <div class="flex items-start gap-3">
-                    <div class="w-8 h-8 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <BookOpen class="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div class="font-semibold text-white group-hover:text-indigo-300 transition-colors">
-                        {book.title}
-                      </div>
-                      <div class="text-xs text-slate-400 flex items-center gap-2 mt-0.5">
-                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px]">{book.edition || 'লেটেস্ট'}</span>
-                        {#if book.notes}
-                          <span class="text-slate-400 truncate max-w-xs" title={book.notes}>• {book.notes}</span>
-                        {/if}
-                      </div>
-                    </div>
-                  </div>
-                </td>
-
-                <!-- Subject & Class -->
-                <td class="py-3.5 px-4">
-                  <div class="font-medium text-slate-200">{book.subject}</div>
-                  <div class="text-xs text-indigo-400/90 font-medium mt-0.5">{book.classLevel}</div>
-                </td>
-
-                <!-- Author & Publisher -->
-                <td class="py-3.5 px-4">
-                  <div class="text-slate-200">{book.author}</div>
-                  {#if book.publisher}
-                    <div class="text-xs text-slate-400">{book.publisher}</div>
-                  {/if}
-                </td>
-
-                <!-- Required Badge -->
-                <td class="py-3.5 px-4 text-center">
+              <!-- Main Book Details -->
+              <div class="min-w-0 flex-1 space-y-1.5">
+                <div class="flex flex-wrap items-center gap-2">
+                  <h3 class="font-bold text-white text-base group-hover:text-indigo-300 transition-colors">
+                    {book.title}
+                  </h3>
                   {#if book.isRequired === 'mandatory'}
-                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                      <CheckCircle2 class="w-3 h-3" />
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                      <CheckCircle2 class="w-3.5 h-3.5" />
                       <span>বাধ্যতামূলক</span>
                     </span>
                   {:else}
-                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                      <BookmarkCheck class="w-3 h-3" />
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                      <BookmarkCheck class="w-3.5 h-3.5" />
                       <span>সহায়ক / ঐচ্ছিক</span>
                     </span>
                   {/if}
-                </td>
+                  <span class="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 text-[11px] border border-slate-700/80 font-medium">
+                    {book.edition || 'লেটেস্ট সংস্করণ'}
+                  </span>
+                </div>
 
-                <!-- Price -->
-                <td class="py-3.5 px-4 text-right font-mono font-medium text-slate-200">
-                  {book.price ? `৳ ${book.price}` : '—'}
-                </td>
+                <!-- Meta Row: Subject, Class, Author, Publisher -->
+                <div class="flex flex-wrap items-center gap-y-1 gap-x-3 text-xs text-slate-400">
+                  <span class="inline-flex items-center gap-1 text-indigo-400 font-medium">
+                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+                    {book.subject}
+                  </span>
+                  <span>•</span>
+                  <span class="text-slate-300 font-medium">{book.classLevel}</span>
+                  <span>•</span>
+                  <span>লেখক: <strong class="text-slate-200 font-medium">{book.author}</strong></span>
+                  {#if book.publisher}
+                    <span>•</span>
+                    <span>প্রকাশনী: <span class="text-slate-300">{book.publisher}</span></span>
+                  {/if}
+                </div>
 
-                <!-- Actions -->
-                <td class="py-3.5 px-4 text-right">
-                  <div class="flex items-center justify-end gap-1.5">
-                    <button
-                      on:click={() => openEditModal(book)}
-                      class="p-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-slate-800 transition-colors"
-                      title="সম্পাদনা করুন"
-                    >
-                      <Edit3 class="w-4 h-4" />
-                    </button>
-                    <button
-                      on:click={() => promptDelete(book)}
-                      class="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-                      title="মুছে ফেলুন"
-                    >
-                      <Trash2 class="w-4 h-4" />
-                    </button>
+                <!-- Notes / Special Instructions -->
+                {#if book.notes}
+                  <div class="text-xs text-slate-400 flex items-center gap-1.5 pt-0.5">
+                    <span class="text-indigo-400 font-bold">ℹ</span>
+                    <span class="italic text-slate-300">{book.notes}</span>
                   </div>
-                </td>
-              </tr>
-            {/each}
-          </tbody>
-        </table>
+                {/if}
+              </div>
+            </div>
+
+            <!-- Right Price & Action Area -->
+            <div class="flex items-center justify-between lg:justify-end gap-5 border-t lg:border-t-0 pt-3 lg:pt-0 border-slate-800/80 flex-shrink-0">
+              <!-- Price Display -->
+              <div class="text-left lg:text-right">
+                <span class="text-[10px] text-slate-400 block uppercase font-medium">মূল্য (আনুমানিক)</span>
+                <span class="text-base font-bold font-mono text-emerald-400">
+                  {book.price ? `৳ ${book.price.toLocaleString('bn-BD')}` : '—'}
+                </span>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="flex items-center gap-2">
+                <button
+                  on:click={() => openEditModal(book)}
+                  class="p-2 rounded-xl bg-slate-800 hover:bg-indigo-600/20 text-slate-300 hover:text-indigo-300 border border-slate-700 hover:border-indigo-500/40 transition-all shadow-sm active:scale-95 flex items-center gap-1.5 text-xs font-medium"
+                  title="সম্পাদনা করুন"
+                >
+                  <Edit3 class="w-4 h-4" />
+                  <span class="hidden sm:inline">সম্পাদনা</span>
+                </button>
+                <button
+                  on:click={() => promptDelete(book)}
+                  class="p-2 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-slate-300 hover:text-rose-400 border border-slate-700 hover:border-rose-500/40 transition-all shadow-sm active:scale-95 flex items-center gap-1.5 text-xs font-medium"
+                  title="মুছে ফেলুন"
+                >
+                  <Trash2 class="w-4 h-4" />
+                  <span class="hidden sm:inline">মুছুন</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        {/each}
       </div>
 
       <div class="p-4 pt-0">
@@ -467,7 +473,7 @@
 <!-- ADD / EDIT BOOK MODAL -->
 <!-- ========================================================================= -->
 <Modal
-  isOpen={isAddEditModalOpen}
+  open={isAddEditModalOpen}
   onClose={() => (isAddEditModalOpen = false)}
   title={editingId ? 'বইয়ের তথ্য সম্পাদনা' : 'নতুন বই যুক্ত করুন'}
   maxWidth="max-w-2xl"
@@ -631,12 +637,12 @@
 <!-- DELETE CONFIRMATION MODAL -->
 <!-- ========================================================================= -->
 <ConfirmModal
-  isOpen={isDeleteConfirmOpen}
+  open={isDeleteConfirmOpen}
   title="বইটি মুছে ফেলার নিশ্চিতকরণ"
-  message={`আপনি কি নিশ্চিতভাবে '${bookToDelete?.title || ''}' বইটি তালিকা থেকে মুছে ফেলতে চান? এটি মুছে ফেলা হলে তালিকা থেকে বাদ পড়বে।`}
+  message="আপনি কি নিশ্চিতভাবে বইটি তালিকা থেকে মুছে ফেলতে চান? এটি মুছে ফেলা হলে তালিকা থেকে বাদ পড়বে।"
+  itemName={bookToDelete?.title || ''}
   confirmText="হ্যাঁ, মুছে ফেলুন"
   cancelText="না, রাখুন"
-  type="danger"
   onConfirm={confirmDelete}
   onCancel={() => (isDeleteConfirmOpen = false)}
 />
@@ -645,7 +651,7 @@
 <!-- OFFICIAL A4 BOOK LIST PRINT PREVIEW MODAL -->
 <!-- ========================================================================= -->
 <Modal
-  isOpen={isPrintPreviewOpen}
+  open={isPrintPreviewOpen}
   onClose={() => (isPrintPreviewOpen = false)}
   title="বুক লিস্ট অফিসিয়াল প্রিন্ট প্রিভিউ"
   maxWidth="max-w-4xl"

@@ -160,28 +160,49 @@ export function printElement(
 </head>
 <body>
   <div class="printable-root">
-    ${clone.innerHTML}
+    ${clone.outerHTML}
   </div>
   <script>
-    window.addEventListener('load', function() {
-      setTimeout(function() {
+    function triggerPrint() {
+      try {
+        window.focus();
         window.print();
-        setTimeout(function() {
-          window.close();
-        }, 300);
-      }, 450);
-    });
+      } catch (err) {
+        console.warn('Print error:', err);
+      }
+    }
+    if (document.readyState === 'complete') {
+      setTimeout(triggerPrint, 350);
+    } else {
+      window.addEventListener('load', function() {
+        setTimeout(triggerPrint, 350);
+      });
+      // Safety timeout in case load event already occurred
+      setTimeout(triggerPrint, 700);
+    }
   <\/script>
 </body>
 </html>`;
 
-  // Use hidden iframe or popup window
-  const printWindow = window.open('', '_blank', 'width=900,height=750,menubar=no,toolbar=no,location=no,status=no');
+  // Use popup window with parent-side print trigger
+  const printWindow = window.open('', '_blank', 'width=960,height=800,menubar=no,toolbar=no,location=no,status=no');
   if (printWindow) {
-    printWindow.document.open();
-    printWindow.document.write(printDoc);
-    printWindow.document.close();
-    return true;
+    try {
+      printWindow.document.open();
+      printWindow.document.write(printDoc);
+      printWindow.document.close();
+      setTimeout(() => {
+        try {
+          printWindow.focus();
+          printWindow.print();
+        } catch (e) {
+          // Handled by child script
+        }
+      }, 500);
+      return true;
+    } catch (e) {
+      console.warn('Popup write failed, falling back to iframe:', e);
+    }
   }
 
   // Fallback: if popup blocked, use hidden iframe
@@ -203,6 +224,14 @@ export function printElement(
       doc.open();
       doc.write(printDoc);
       doc.close();
+      setTimeout(() => {
+        try {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+        } catch (e) {
+          console.error('Iframe print invocation error:', e);
+        }
+      }, 500);
       return true;
     }
   } catch (err) {
