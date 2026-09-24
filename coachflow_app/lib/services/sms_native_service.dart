@@ -5,46 +5,24 @@ import '../models/sms_item.dart';
 class SmsNativeService {
   static const MethodChannel _channel = MethodChannel('com.coachflow.app/sms_gateway');
 
-  /// Request SMS, Phone State, Camera and Media permissions safely across all Android versions (including Android 11)
+  /// Safely request required SMS and Phone permissions together without activity collisions
   static Future<bool> requestPermissions() async {
     try {
-      // 1. Core SMS Permission
-      if (await Permission.sms.isDenied) {
-        await Permission.sms.request();
-      }
+      final statuses = await [
+        Permission.sms,
+        Permission.phone,
+      ].request();
 
-      // 2. Phone State Permission (needed for SIM slot detection)
-      if (await Permission.phone.isDenied) {
-        await Permission.phone.request();
-      }
+      final smsGranted = statuses[Permission.sms]?.isGranted ?? false;
+      final phoneGranted = statuses[Permission.phone]?.isGranted ?? false;
 
-      // 3. Camera Permission (for image upload)
-      if (await Permission.camera.isDenied) {
-        await Permission.camera.request();
-      }
-
-      // 4. Storage / Photos Permission (gracefully handled by platform capability)
-      try {
-        if (await Permission.storage.isDenied) {
-          await Permission.storage.request();
-        }
-      } catch (_) {}
-
-      try {
-        if (await Permission.photos.isDenied) {
-          await Permission.photos.request();
-        }
-      } catch (_) {}
-
-      // 5. Notification Permission (Android 13+ only, safe pass on Android 11)
+      // Optional notification permission requested silently in background if needed
       try {
         if (await Permission.notification.isDenied) {
           await Permission.notification.request();
         }
       } catch (_) {}
 
-      final smsGranted = await Permission.sms.isGranted;
-      final phoneGranted = await Permission.phone.isGranted;
       return smsGranted && phoneGranted;
     } catch (e) {
       return false;

@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'services/sms_native_service.dart';
@@ -8,6 +9,18 @@ import 'views/webview_dashboard_view.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Defensive global error boundaries: prevent any uncaught error from closing the app
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    debugPrint('[CoachFlow Error] FlutterError: ${details.exceptionAsString()}');
+  };
+
+  PlatformDispatcher.instance.onError = (error, stack) {
+    debugPrint('[CoachFlow Error] PlatformDispatcher: $error\n$stack');
+    return true; // Mark as handled so process does not crash
+  };
+
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,
@@ -64,10 +77,21 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
     _pollingService.addListener(_onServiceUpdate);
 
     // Initialize polling and check permissions safely AFTER first frame renders
-    // This prevents Android 11 startup ANRs and app crashes during permission grant restarts
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await _pollingService.initialize();
-      await SmsNativeService.requestPermissions();
+      try {
+        await _pollingService.initialize();
+      } catch (e) {
+        debugPrint('[CoachFlow] Polling service init error: $e');
+      }
+
+      // Safe delayed permission check to avoid any activity startup collision
+      Future.delayed(const Duration(milliseconds: 600), () async {
+        try {
+          await SmsNativeService.requestPermissions();
+        } catch (e) {
+          debugPrint('[CoachFlow] Permission request error: $e');
+        }
+      });
     });
   }
 
