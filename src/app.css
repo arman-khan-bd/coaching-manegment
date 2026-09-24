@@ -159,10 +159,13 @@
     display: none !important;
   }
 
-  body * {
+  /* Only hide screen body when executing direct in-place window.print() */
+  body.printing-in-place * {
     visibility: hidden;
   }
 
+  body.printing-in-place .printable-area,
+  body.printing-in-place .printable-area *,
   .printable-area,
   .printable-area * {
     visibility: visible !important;

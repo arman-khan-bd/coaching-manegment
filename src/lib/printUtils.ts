@@ -39,28 +39,22 @@ export function printElement(
   const orientation = options.orientation || 'portrait';
   const margin = options.pageMargin || '8mm 10mm';
 
-  // Extract all existing stylesheets and in-memory CSS rules from current document
+  // Cleanly collect document stylesheets without broken rules
   let pageStyles = '';
   try {
-    Array.from(document.styleSheets).forEach((sheet) => {
-      try {
-        if (sheet.cssRules && sheet.cssRules.length > 0) {
-          const rules = Array.from(sheet.cssRules).map((r) => r.cssText).join('\n');
-          pageStyles += `<style>${rules}</style>\n`;
+    const styleEls = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'));
+    pageStyles = styleEls
+      .map((el) => {
+        if (el.tagName === 'STYLE') {
+          // Remove any global visibility hidden rules that might hide print content
+          const cleaned = el.innerHTML
+            .replace(/body\s*\*\s*\{\s*visibility\s*:\s*hidden\s*;?\s*\}/gi, '')
+            .replace(/visibility\s*:\s*hidden/gi, 'visibility: visible');
+          return `<style>${cleaned}</style>`;
         }
-      } catch (err) {
-        if (sheet.href) {
-          pageStyles += `<link rel="stylesheet" href="${sheet.href}">\n`;
-        }
-      }
-    });
-
-    // Also include any inline style tags that might not have been in document.styleSheets
-    Array.from(document.querySelectorAll('style')).forEach((st) => {
-      if (!pageStyles.includes(st.innerHTML.slice(0, 40))) {
-        pageStyles += st.outerHTML + '\n';
-      }
-    });
+        return el.outerHTML;
+      })
+      .join('\n');
   } catch (e) {
     console.warn('Could not collect page styles:', e);
   }
@@ -84,6 +78,7 @@ export function printElement(
       box-sizing: border-box;
       margin: 0;
       padding: 0;
+      visibility: visible !important;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
       color-adjust: exact !important;
@@ -104,6 +99,8 @@ export function printElement(
       height: auto !important;
       padding: 0 !important;
       margin: 0 !important;
+      visibility: visible !important;
+      display: block !important;
     }
 
     .printable-root {
@@ -112,6 +109,13 @@ export function printElement(
       margin: 0 auto !important;
       background: #ffffff !important;
       color: #0f172a !important;
+      visibility: visible !important;
+      display: block !important;
+      opacity: 1 !important;
+    }
+
+    .printable-area, .printable-area * {
+      visibility: visible !important;
     }
 
     /* Preserve all Tailwind colors & table borders */
@@ -236,83 +240,95 @@ export function printElement(
   <div class="printable-root">
     ${clone.outerHTML}
   </div>
-  <script>
-    function triggerPrint() {
-      try {
-        window.focus();
-        window.print();
-      } catch (err) {
-        console.warn('Print error:', err);
-      }
-    }
-    if (document.readyState === 'complete') {
-      setTimeout(triggerPrint, 350);
-    } else {
-      window.addEventListener('load', function() {
-        setTimeout(triggerPrint, 350);
-      });
-      // Safety timeout in case load event already occurred
-      setTimeout(triggerPrint, 700);
-    }
-  <\/script>
 </body>
 </html>`;
 
-  // Use popup window with parent-side print trigger
-  const printWindow = window.open('', '_blank', 'width=960,height=800,menubar=no,toolbar=no,location=no,status=no');
-  if (printWindow) {
-    try {
-      printWindow.document.open();
-      printWindow.document.write(printDoc);
-      printWindow.document.close();
-      setTimeout(() => {
-        try {
-          printWindow.focus();
-          printWindow.print();
-        } catch (e) {
-          // Handled by child script
-        }
-      }, 500);
-      return true;
-    } catch (e) {
-      console.warn('Popup write failed, falling back to iframe:', e);
-    }
-  }
-
-  // Fallback: if popup blocked, use hidden iframe
+  // PRIMARY PRINT ENGINE: Hidden iframe (triggers direct print dialog, NO blank popup window)
   try {
-    let iframe = document.getElementById('cf-print-iframe') as HTMLIFrameElement;
-    if (!iframe) {
-      iframe = document.createElement('iframe');
-      iframe.id = 'cf-print-iframe';
-      iframe.style.position = 'fixed';
-      iframe.style.right = '0';
-      iframe.style.bottom = '0';
-      iframe.style.width = '0';
-      iframe.style.height = '0';
-      iframe.style.border = '0';
-      document.body.appendChild(iframe);
+    const existingIframe = document.getElementById('cf-print-iframe');
+    if (existingIframe) {
+      existingIframe.remove();
     }
+
+    const iframe = document.createElement('iframe');
+    iframe.id = 'cf-print-iframe';
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    iframe.style.opacity = '0';
+    iframe.style.pointerEvents = 'none';
+    document.body.appendChild(iframe);
+
     const doc = iframe.contentWindow?.document || iframe.contentDocument;
     if (doc) {
       doc.open();
       doc.write(printDoc);
       doc.close();
-      setTimeout(() => {
+
+      const runIframePrint = () => {
         try {
           iframe.contentWindow?.focus();
           iframe.contentWindow?.print();
+          setTimeout(() => {
+            try { iframe.remove(); } catch (e) {}
+          }, 3500);
         } catch (e) {
-          console.error('Iframe print invocation error:', e);
+          console.warn('Iframe print call failed, trying popup window:', e);
+          fallbackWindowPrint(printDoc);
         }
-      }, 500);
-      return true;
+      };
+
+      if (iframe.contentWindow) {
+        if (doc.readyState === 'complete') {
+          setTimeout(runIframePrint, 250);
+        } else {
+          iframe.onload = () => setTimeout(runIframePrint, 200);
+          setTimeout(runIframePrint, 600);
+        }
+        return true;
+      }
     }
   } catch (err) {
-    console.error('Print iframe error:', err);
+    console.warn('Iframe print setup error, falling back to popup window:', err);
   }
 
-  // Final fallback to native print
-  window.print();
-  return true;
+  // SECONDARY FALLBACK: Clean popup window with auto-close
+  return fallbackWindowPrint(printDoc);
+}
+
+function fallbackWindowPrint(html: string): boolean {
+  try {
+    const printWindow = window.open('', '_blank', 'width=960,height=800,menubar=no,toolbar=no,location=no,status=no');
+    if (!printWindow) {
+      window.print();
+      return false;
+    }
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+
+    const doPrint = () => {
+      try {
+        printWindow.focus();
+        printWindow.print();
+        printWindow.onafterprint = () => {
+          try { printWindow.close(); } catch (e) {}
+        };
+      } catch (e) {}
+    };
+
+    if (printWindow.document.readyState === 'complete') {
+      setTimeout(doPrint, 300);
+    } else {
+      printWindow.onload = () => setTimeout(doPrint, 250);
+      setTimeout(doPrint, 700);
+    }
+    return true;
+  } catch (e) {
+    window.print();
+    return false;
+  }
 }
