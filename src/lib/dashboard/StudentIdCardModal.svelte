@@ -63,10 +63,12 @@
 <head>
   <meta charset="UTF-8" />
   <title>Student ID Card — ${student?.name ?? ''}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
   ${styleLinks}
   ${styleTags}
   <style>
-    *, *::before, *::after { box-sizing: border-box; }
+    *, *::before, *::after { box-sizing: border-box; font-family: 'Hind Siliguri', 'Noto Sans Bengali', system-ui, sans-serif; }
     html, body {
       background: #ffffff !important;
       margin: 0 !important;

@@ -18,6 +18,7 @@ import type {
   ToastMessage,
   SyllabusItem,
   RoutineSlot,
+  BookItem,
   CoachingInstitute,
   PlatformSubscription,
   PlatformUser,
@@ -51,6 +52,8 @@ import {
   deleteSyllabusFromDb,
   syncRoutineToDb,
   deleteRoutineFromDb,
+  syncBookToDb,
+  deleteBookFromDb,
   syncInstituteSettingsToDb,
   loadInstituteSettingsFromDb,
   loadTenantDataFromSupabase,
@@ -209,6 +212,7 @@ export function switchActiveTenant(coachingId: string) {
       onSmsTemplates: (data) => { if (data.length > 0) smsTemplates.set(data); },
       onSyllabus: (data) => { if (data.length > 0) syllabusItems.set(data); },
       onRoutine: (data) => { if (data.length > 0) routineSlots.set(data); },
+      onBooks: (data) => { if (data.length > 0) books.set(data); },
     }).catch((e) => console.warn('Supabase tenant hydration catch:', e));
   }
 }
@@ -229,6 +233,7 @@ export function refreshCurrentTenantDataFromDb() {
       onSmsTemplates: (data) => { if (data.length > 0) smsTemplates.set(data); },
       onSyllabus: (data) => { if (data.length > 0) syllabusItems.set(data); },
       onRoutine: (data) => { if (data.length > 0) routineSlots.set(data); },
+      onBooks: (data) => { if (data.length > 0) books.set(data); },
     }).catch((e) => console.warn('Supabase tenant initial hydration catch:', e));
   }
 }
@@ -252,6 +257,7 @@ export async function syncCurrentDataDirectToSupabase(): Promise<{ success: bool
     smsTemplates: get(smsTemplates),
     syllabus: get(syllabusItems),
     routine: get(routineSlots),
+    books: get(books),
     settings: get(instituteSettings),
   };
 
@@ -2357,6 +2363,164 @@ export function deleteRoutineSlot(id: string) {
   routineSlots.update((all) => all.filter((slot) => slot.id !== id));
   deleteRoutineFromDb(id);
   showToast('info', 'ক্লাস স্লট অপসারিত', 'রুটিন থেকে ক্লাসটি সরানো হয়েছে।');
+}
+
+// ==========================================
+// ACADEMIC BOOK LIST STORE (TEXTBOOKS & MATERIALS)
+// ==========================================
+export const initialBooks: BookItem[] = [
+  {
+    id: 'book-1',
+    coachingId: 'aac-dhaka-01',
+    title: 'উচ্চতর গণিত ১ম পত্র (একাদশ-দ্বাদশ)',
+    subject: 'উচ্চতর গণিত',
+    author: 'প্রফেসর অসীম কুমার সাহা',
+    publisher: 'অক্ষরপত্র প্রকাশনী',
+    courseId: 'c1',
+    courseName: 'HSC পূর্ণাঙ্গ বিজ্ঞান ব্যাচ (২০২৬)',
+    classLevel: 'HSC ১ম বর্ষ',
+    edition: '২০২৫-২৬ সংস্করণ',
+    price: 420,
+    isRequired: 'mandatory',
+    notes: 'অধ্যায় ১-৭ প্রথম সাময়িক পরীক্ষার সিলেবাসভুক্ত। ক্লাসে সাথে আনা বাধ্যতামূলক।',
+    createdAt: '2026-01-10T10:00:00Z',
+  },
+  {
+    id: 'book-2',
+    coachingId: 'aac-dhaka-01',
+    title: 'রসায়ন ১ম পত্র (তত্ত্বীয় ও ব্যবহারিক)',
+    subject: 'রসায়ন',
+    author: 'ড. গাজী মোঃ আহসানুল কবীর ও ড. রবিউল ইসলাম',
+    publisher: 'হাসান বুক হাউস',
+    courseId: 'c1',
+    courseName: 'HSC পূর্ণাঙ্গ বিজ্ঞান ব্যাচ (২০২৬)',
+    classLevel: 'HSC ১ম বর্ষ',
+    edition: '২০২৫ সংস্করণ',
+    price: 395,
+    isRequired: 'mandatory',
+    notes: 'গুণগত রসায়ন ও পর্যায়বৃত্ত ধর্মের সমস্যাবলি অনুশীলনের জন্য মূল পাঠ্যবই।',
+    createdAt: '2026-01-10T10:00:00Z',
+  },
+  {
+    id: 'book-3',
+    coachingId: 'aac-dhaka-01',
+    title: 'পদার্থবিজ্ঞান ১ম পত্র',
+    subject: 'পদার্থবিজ্ঞান',
+    author: 'ড. শাহজাহান তপন ও ড. রানা চৌধুরী',
+    publisher: 'কাজল ব্রাদার্স লি.',
+    courseId: 'c1',
+    courseName: 'HSC পূর্ণাঙ্গ বিজ্ঞান ব্যাচ (২০২৬)',
+    classLevel: 'HSC ১ম বর্ষ',
+    edition: '২০২৬ সংস্করণ',
+    price: 450,
+    isRequired: 'mandatory',
+    notes: 'ভেক্টর, গতিবিদ্যা ও নিউটনিয়ান বলবিদ্যার সকল গাণিতিক সমস্যার স্ট্যান্ডার্ড গাইড।',
+    createdAt: '2026-01-12T10:00:00Z',
+  },
+  {
+    id: 'book-4',
+    coachingId: 'aac-dhaka-01',
+    title: 'কোচফ্লো ইঞ্জিনিয়ারিং কোয়ান্টাম প্রশ্নব্যাংক (বুয়েট ও রুয়েট)',
+    subject: 'ইঞ্জিনিয়ারিং স্পেশাল',
+    author: 'কোচফ্লো একাডেমি রিসার্চ উইং',
+    publisher: 'কোচফ্লো পাবলিকেশন্স',
+    courseId: 'c2',
+    courseName: 'ইঞ্জিনিয়ারিং ও প্রযুক্তি বিশ্ববিদ্যালয় ভর্তি প্রস্তুতি',
+    classLevel: 'এডমিশন ২০২৬',
+    edition: '১০ম সংশোধিত সংস্করণ ২০২৬',
+    price: 650,
+    isRequired: 'mandatory',
+    notes: 'বিগত ২৫ বছরের বুয়েট, কুয়েট, রুয়েট ও চুয়েট ভর্তি পরীক্ষার সমাধানকৃত প্রশ্নব্যাংক।',
+    createdAt: '2026-01-15T10:00:00Z',
+  },
+  {
+    id: 'book-5',
+    coachingId: 'aac-dhaka-01',
+    title: 'মেডিকেল ডেন্টাল বায়োলজি মাস্টার প্রশ্নব্যাংক',
+    subject: 'জীববিজ্ঞান',
+    author: 'ডা. মেসবাহ উদ্দিন ও কোচফ্লো ডক্টরস ফোরাম',
+    publisher: 'জয়কলি পাবলিকেশন্স',
+    courseId: 'c3',
+    courseName: 'মেডিকেল ও ডেন্টাল এক্সক্লুসিভ এডমিশন ব্যাচ',
+    classLevel: 'এডমিশন ২০২৬',
+    edition: '২০২৬ এডিশন',
+    price: 580,
+    isRequired: 'mandatory',
+    notes: 'মেডিকেল ভর্তি পরীক্ষার নির্ভুল ব্যাখ্যা সহ চ্যাপ্টারওয়াইজ এমসিকিউ সংকলন।',
+    createdAt: '2026-01-18T10:00:00Z',
+  },
+  {
+    id: 'book-6',
+    coachingId: 'aac-dhaka-01',
+    title: 'Advanced English Grammar & Model Questions',
+    subject: 'ইংরেজি',
+    author: 'Chowdhury & Hossain',
+    publisher: 'Advanced Publications',
+    courseId: 'c1',
+    courseName: 'HSC পূর্ণাঙ্গ বিজ্ঞান ব্যাচ (২০২৬)',
+    classLevel: 'HSC ১ম ও ২য় বর্ষ',
+    edition: 'লেটেস্ট এডিশন',
+    price: 360,
+    isRequired: 'optional',
+    notes: 'সহায়ক ব্যাকরণ ও বোর্ড প্রশ্ন সমাধানের জন্য রেফারেন্স বই।',
+    createdAt: '2026-01-20T10:00:00Z',
+  },
+  {
+    id: 'book-7',
+    coachingId: 'aac-dhaka-01',
+    title: 'এসএসসি সাধারণ গণিত ও উচ্চতর গণিত মডেল সমাধান',
+    subject: 'সাধারণ ও উচ্চতর গণিত',
+    author: 'এম. এ. জব্বার',
+    publisher: 'পাঞ্জেরী পাবলিকেশন্স',
+    courseId: 'c4',
+    courseName: 'এসএসসি বোর্ড স্পেশাল প্রিপারেশন ২০২৬',
+    classLevel: '১০ম শ্রেণি (SSC)',
+    edition: '২০২৬ সংস্করণ',
+    price: 280,
+    isRequired: 'optional',
+    notes: 'বোর্ড স্ট্যান্ডার্ড সৃজনশীল প্রশ্ন ও সমাধান।',
+    createdAt: '2026-02-01T10:00:00Z',
+  },
+];
+
+export const books = createTenantStore<BookItem>('books', initialBooks, true);
+export const bookList = books;
+
+export function addBook(data: Omit<BookItem, 'id' | 'createdAt' | 'updatedAt'>) {
+  const newBook: BookItem = {
+    ...data,
+    coachingId: (data as any).coachingId || getActiveCoachingId(),
+    id: `bk-${Date.now()}`,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  books.update((all) => [newBook, ...all]);
+  syncBookToDb(newBook);
+  showToast('success', 'নতুন বই তালিকায় যোগ হয়েছে', `'${newBook.title}' সফলভাবে বই তালিকায় যুক্ত হয়েছে।`);
+  return newBook;
+}
+
+export function updateBook(id: string, updates: Partial<BookItem>) {
+  let updatedBook: BookItem | undefined;
+  books.update((all) =>
+    all.map((b) => {
+      if (b.id === id) {
+        updatedBook = { ...b, ...updates, updatedAt: new Date().toISOString() };
+        return updatedBook;
+      }
+      return b;
+    })
+  );
+  if (updatedBook) {
+    syncBookToDb(updatedBook);
+  }
+  showToast('success', 'বইয়ের তথ্য আপডেট হয়েছে', 'বইয়ের তথ্য সফলভাবে পরিবর্তন করা হয়েছে।');
+}
+
+export function deleteBook(id: string) {
+  books.update((all) => all.filter((b) => b.id !== id));
+  deleteBookFromDb(id);
+  showToast('info', 'বই সরানো হয়েছে', 'বইটি তালিকা থেকে মুছে ফেলা হয়েছে।');
 }
 
 // ==========================================

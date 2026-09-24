@@ -60,6 +60,7 @@
     teachers: { bn: 'শিক্ষক ও স্টাফ', en: 'Teachers' },
     academics: { bn: 'কোর্স ও ব্যাচ', en: 'Academics' },
     syllabus_routine: { bn: 'সিলেবাস ও রুটিন', en: 'Routine' },
+    books: { bn: 'বুক লিস্ট ও পাঠ্যসামগ্রী', en: 'Book List & Materials' },
     attendance: { bn: 'ব্যাচ হাজিরা', en: 'Attendance' },
     sms: { bn: 'এসএমএস হাব', en: 'SMS Hub' },
     sms_templates: { bn: 'এসএমএস টেমপ্লেট', en: 'Templates' },

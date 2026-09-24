@@ -2,6 +2,7 @@
   import { students, batches, courses, instituteSettings, showToast, type Student } from '../store';
   import IdCardRenderer from '../components/IdCardRenderer.svelte';
   import Badge from '../components/Badge.svelte';
+  import { printElement } from '../printUtils';
   import {
     Printer,
     Check,
@@ -131,16 +132,15 @@
       showToast('error', 'কোনো শিক্ষার্থী নির্বাচিত নেই', 'অনুগ্রহ করে অন্তত একজন শিক্ষার্থী নির্বাচন করুন।');
       return;
     }
-    window.print();
+    printElement('bulk-idcards-print-container', {
+      title: 'Student-Bulk-ID-Cards',
+      orientation: 'portrait',
+      pageMargin: '8mm',
+    });
   }
 
   function handleExportHtml() {
-    if (selectedStudentIds.size === 0) {
-      showToast('error', 'কোনো শিক্ষার্থী নির্বাচিত নেই', 'অনুগ্রহ করে শিক্ষার্থী নির্বাচন করুন।');
-      return;
-    }
-    showToast('success', 'PDF প্রিন্ট প্রস্তুতি', `${selectedStudentIds.size} জন শিক্ষার্থীর কার্ড প্রিন্ট উইন্ডো ওপেন হচ্ছে...`);
-    window.print();
+    handlePrint();
   }
 </script>
 
@@ -337,7 +337,7 @@
       </div>
     {:else}
       <!-- Printable Multi-Page A4 Sheets Container -->
-      <div class="printable-area space-y-8">
+      <div id="bulk-idcards-print-container" class="printable-area space-y-8">
         {#each a4Pages as page (page.pageNumber)}
           <div class="a4-print-sheet rounded-2xl sm:rounded-3xl bg-slate-900/60 border border-slate-700/60 p-3 sm:p-6 shadow-2xl relative overflow-x-auto">
             <!-- Screen Page Indicator Header (Hidden in Print) -->

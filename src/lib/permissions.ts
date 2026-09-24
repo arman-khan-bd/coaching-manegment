@@ -262,7 +262,12 @@ export function isModulePermitted(
 
   // If no permissions specified at all, default to basic view
   if (perms.length === 0) {
-    return tabSlug === 'overview' || tabSlug === 'syllabus_routine';
+    return tabSlug === 'overview' || tabSlug === 'syllabus_routine' || tabSlug === 'books';
+  }
+
+  // Books is accessible to teachers with academic/syllabus view or by default
+  if (tabSlug === 'books') {
+    return true;
   }
 
   // Overview

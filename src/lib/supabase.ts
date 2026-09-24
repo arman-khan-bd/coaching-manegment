@@ -15,6 +15,7 @@ import type {
   SmsTemplate,
   SyllabusItem,
   RoutineSlot,
+  BookItem,
 } from './types';
 
 export const SUPABASE_URL =
@@ -1031,6 +1032,59 @@ export async function deleteRoutineFromDb(id: string) {
 }
 
 // ----------------------------------------------------
+// 12.5. BOOKS / BOOK LIST
+// ----------------------------------------------------
+export async function syncBookToDb(book: BookItem, coachingId?: string) {
+  const cid = book.coachingId || coachingId || 'aac-dhaka-01';
+  const payload = {
+    id: book.id,
+    coaching_id: cid,
+    title: book.title,
+    subject: book.subject || '',
+    author: book.author || '',
+    publisher: book.publisher || null,
+    course_id: book.courseId || null,
+    course_name: book.courseName || '',
+    class_level: book.classLevel || '',
+    edition: book.edition || '',
+    price: Number(book.price) || 0,
+    is_required: book.isRequired || 'mandatory',
+    notes: book.notes || null,
+    updated_at: new Date().toISOString(),
+  };
+  return await safeUpsert('books', payload);
+}
+
+export async function fetchBooksFromDb(coachingId: string): Promise<BookItem[]> {
+  const data = await safeSelect('books', coachingId);
+  return data.map((d: any) => ({
+    id: d.id,
+    coachingId: d.coaching_id || coachingId,
+    title: d.title || '',
+    subject: d.subject || '',
+    author: d.author || '',
+    publisher: d.publisher || '',
+    courseId: d.course_id || '',
+    courseName: d.course_name || '',
+    classLevel: d.class_level || '',
+    edition: d.edition || '',
+    price: Number(d.price) || 0,
+    isRequired: d.is_required || 'mandatory',
+    notes: d.notes || '',
+    createdAt: d.created_at || '',
+    updatedAt: d.updated_at || '',
+  }));
+}
+
+export async function deleteBookFromDb(id: string) {
+  try {
+    await supabase.from('books').delete().eq('id', id);
+  } catch (e) {
+    console.warn('deleteBookFromDb catch:', e);
+  }
+}
+
+// ----------------------------------------------------
 // 13. INSTITUTE SETTINGS & BRANDING
 // ----------------------------------------------------
 export async function syncInstituteSettingsToDb(settings: InstituteSettings) {
@@ -1177,6 +1231,7 @@ export async function loadTenantDataFromSupabase(
     onSmsTemplates?: (data: SmsTemplate[]) => void;
     onSyllabus?: (data: SyllabusItem[]) => void;
     onRoutine?: (data: RoutineSlot[]) => void;
+    onBooks?: (data: BookItem[]) => void;
   }
 ) {
   if (!coachingId) return;
@@ -1195,6 +1250,7 @@ export async function loadTenantDataFromSupabase(
       templatesRes,
       syllabusRes,
       routineRes,
+      booksRes,
     ] = await Promise.allSettled([
       fetchStudentsFromDb(coachingId),
       fetchTeachersFromDb(coachingId),
@@ -1208,6 +1264,7 @@ export async function loadTenantDataFromSupabase(
       fetchSmsTemplatesFromDb(coachingId),
       fetchSyllabusFromDb(coachingId),
       fetchRoutineFromDb(coachingId),
+      fetchBooksFromDb(coachingId),
     ]);
 
     if (studentsRes.status === 'fulfilled' && studentsRes.value && callbacks?.onStudents) {
@@ -1246,6 +1303,9 @@ export async function loadTenantDataFromSupabase(
     if (routineRes.status === 'fulfilled' && routineRes.value && callbacks?.onRoutine) {
       callbacks.onRoutine(routineRes.value);
     }
+    if (booksRes.status === 'fulfilled' && booksRes.value && callbacks?.onBooks) {
+      callbacks.onBooks(booksRes.value);
+    }
   } catch (e) {
     console.warn('loadTenantDataFromSupabase error:', e);
   }
@@ -1266,6 +1326,7 @@ export async function syncAllLocalDataToSupabase(coachingId: string, data: {
   smsTemplates?: SmsTemplate[];
   syllabus?: SyllabusItem[];
   routine?: RoutineSlot[];
+  books?: BookItem[];
   settings?: InstituteSettings;
 }): Promise<{ success: boolean; synced: Record<string, number>; errors: string[] }> {
   const cid = coachingId || 'aac-dhaka-01';
@@ -1329,6 +1390,11 @@ export async function syncAllLocalDataToSupabase(coachingId: string, data: {
   for (const rt of data.routine || []) {
     const res = await syncRoutineToDb({ ...rt, coachingId: cid }, cid);
     if (res.success) synced.routine = (synced.routine || 0) + 1;
+  }
+
+  for (const bk of data.books || []) {
+    const res = await syncBookToDb({ ...bk, coachingId: cid }, cid);
+    if (res.success) synced.books = (synced.books || 0) + 1;
   }
 
   if (data.settings) {

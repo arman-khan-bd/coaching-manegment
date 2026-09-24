@@ -23,6 +23,7 @@
   import Modal from '../components/Modal.svelte';
   import Badge from '../components/Badge.svelte';
   import ConfirmModal from '../components/ConfirmModal.svelte';
+  import { printElement } from '../printUtils';
   import {
     Award,
     CheckCircle2,
@@ -1546,7 +1547,11 @@
         <button
           type="button"
           class="px-5 py-2 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-500 flex items-center gap-2 shadow-lg"
-          on:click={() => window.print()}
+          on:click={() =>
+            printElement('print-tabulation-area', {
+              title: `ট্যাবুল্যাশন-শিট-${currentExam?.title || 'Exam'}`,
+              orientation: 'landscape',
+            })}
         >
           <Printer class="w-4 h-4" />
           <span>ট্যাবুল্যাশন শিট প্রিন্ট করুন</span>
@@ -1636,7 +1641,11 @@
         <button
           type="button"
           class="px-5 py-2 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-500 flex items-center gap-2"
-          on:click={() => window.print()}
+          on:click={() =>
+            printElement('print-student-report', {
+              title: `নম্বরপত্র-${selectedStudentMark?.studentName || 'Student'}`,
+              orientation: 'portrait',
+            })}
         >
           <Printer class="w-4 h-4" />
           <span>Print Report Card</span>

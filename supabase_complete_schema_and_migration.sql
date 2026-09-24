@@ -600,4 +600,50 @@ begin
     exception when others then null;
     end;
   end if;
+
+  if not exists (
+    select 1 from pg_publication_tables 
+    where pubname = 'supabase_realtime' and tablename = 'books'
+  ) then
+    begin
+      alter publication supabase_realtime add table public.books;
+    exception when others then null;
+    end;
+  end if;
 end $$;
+
+-- ------------------------------------------------------------------------------
+-- 15. BOOKS / ACADEMIC BOOK LIST TABLE
+-- ------------------------------------------------------------------------------
+create table if not exists public.books (
+  id text primary key,
+  coaching_id text default 'aac-dhaka-01',
+  title text not null,
+  subject text default '',
+  author text default '',
+  publisher text,
+  course_id text,
+  course_name text default '',
+  class_level text default '',
+  edition text default '',
+  price numeric default 0,
+  is_required text default 'mandatory',
+  notes text,
+  created_at timestamp with time zone default timezone('utc'::text, now()),
+  updated_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+create index if not exists idx_books_coaching_id on public.books(coaching_id);
+create index if not exists idx_books_class_level on public.books(class_level);
+
+alter table public.books enable row level security;
+
+do $$ begin
+  if not exists (
+    select 1 from pg_policies where tablename = 'books' and policyname = 'Allow public access to books'
+  ) then
+    create policy "Allow public access to books" on public.books
+      for all using (true) with check (true);
+  end if;
+end $$;
+

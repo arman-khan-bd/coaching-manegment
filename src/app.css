@@ -36,17 +36,18 @@
   }
 
   body {
-    font-family: 'Noto Sans Bengali', 'Plus Jakarta Sans', 'Outfit', system-ui, -apple-system, sans-serif;
+    font-family: 'Hind Siliguri', 'Noto Sans Bengali', 'Plus Jakarta Sans', 'Outfit', system-ui, -apple-system, sans-serif;
   }
 
-  /* Ensure Bengali script always uses Noto Sans Bengali */
+  /* Ensure Bengali script always uses Hind Siliguri and Noto Sans Bengali */
   :lang(bn),
-  [lang="bn"] {
-    font-family: 'Noto Sans Bengali', sans-serif;
+  [lang="bn"],
+  .font-bangla {
+    font-family: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif !important;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+    font-family: 'Hind Siliguri', 'Outfit', 'Plus Jakarta Sans', sans-serif;
   }
 }
 
@@ -90,48 +91,109 @@
   box-shadow: 0 12px 30px -10px rgba(99, 102, 241, 0.15);
 }
 
-/* Print Styles for ID Cards, A4 Sheets, Fee Receipts, and Report Cards */
+/* ========================================================================= */
+/* COMPREHENSIVE PRINT STYLES FOR ALL DASHBOARD PRINT WINDOWS                */
+/* Ensures printed documents look 100% identical to on-screen previews       */
+/* ========================================================================= */
 @media print {
-  * {
+  *, *::before, *::after {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     color-adjust: exact !important;
+    box-sizing: border-box !important;
   }
 
   @page {
     size: A4 portrait;
-    margin: 8mm;
+    margin: 8mm 10mm;
   }
 
+  /* Reset body & html to pristine white background */
   html, body {
     margin: 0 !important;
     padding: 0 !important;
     background: #ffffff !important;
+    color: #0f172a !important;
+    font-family: 'Hind Siliguri', 'Noto Sans Bengali', system-ui, -apple-system, sans-serif !important;
     width: 100% !important;
     min-height: 100% !important;
+    overflow: visible !important;
+  }
+
+  /* Completely hide all non-printable application chrome */
+  header,
+  nav,
+  aside,
+  .no-print,
+  button,
+  .modal-backdrop {
+    display: none !important;
+  }
+
+  /* Reset Modal wrapper containers so they don't clip, scroll, or darken */
+  #app,
+  main,
+  [role="dialog"],
+  [role="dialog"] > div,
+  [role="dialog"] > div > div {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* Hide modal header bar & footer buttons inside modal */
+  [role="dialog"] > div > div:first-child,
+  [role="dialog"] > div > div:last-child:not(.printable-area) {
+    display: none !important;
   }
 
   body * {
     visibility: hidden;
   }
 
-  .printable-area, .printable-area * {
-    visibility: visible;
+  .printable-area,
+  .printable-area * {
+    visibility: visible !important;
   }
 
   .printable-area {
-    position: absolute !important;
+    position: relative !important;
+    display: block !important;
     left: 0 !important;
     top: 0 !important;
     width: 100% !important;
-    margin: 0 !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
     padding: 0 !important;
-    background: transparent !important;
-    display: block !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
+    border: none !important;
+    font-family: 'Hind Siliguri', 'Noto Sans Bengali', system-ui, sans-serif !important;
   }
 
-  .no-print {
-    display: none !important;
+  /* Preserve table styling exactly as preview */
+  .printable-area table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+  .printable-area th,
+  .printable-area td {
+    border-color: #cbd5e1 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   /* Multi-page A4 sheet structure */
@@ -147,6 +209,8 @@
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
   }
 
   .a4-print-sheet:last-child {

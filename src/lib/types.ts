@@ -209,6 +209,24 @@ export interface SmsTemplate {
   content?: string; // backwards compatibility
 }
 
+export interface BookItem {
+  id: string;
+  coachingId?: string;
+  title: string;
+  subject: string;
+  author: string;
+  publisher?: string;
+  courseId?: string;
+  courseName: string;
+  classLevel: string;
+  edition: string;
+  price?: number;
+  isRequired: 'mandatory' | 'optional';
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface InstituteSettings {
   // 1. General & Brand
   name: string;

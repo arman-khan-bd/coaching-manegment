@@ -31,6 +31,7 @@
   import BulkIdCardsView from './lib/dashboard/BulkIdCardsView.svelte';
   import SmsTemplateManagerView from './lib/dashboard/SmsTemplateManagerView.svelte';
   import SyllabusRoutineView from './lib/dashboard/SyllabusRoutineView.svelte';
+  import BookListView from './lib/dashboard/BookListView.svelte';
   import SaasAdminGatekeeper from './lib/saas/SaasAdminGatekeeper.svelte';
 
   import { onMount, onDestroy } from 'svelte';
@@ -58,6 +59,7 @@
     { id: 'attendance', slug: 'attendance' },
     { id: 'exams', slug: 'exams' },
     { id: 'syllabus_routine', slug: 'syllabus-routine' },
+    { id: 'books', slug: 'books' },
     { id: 'students', slug: 'students' },
     { id: 'academics', slug: 'academics' },
     { id: 'sms', slug: 'sms' },
@@ -236,6 +238,8 @@
             <AcademicsView />
           {:else if $activeTab === 'syllabus_routine'}
             <SyllabusRoutineView />
+          {:else if $activeTab === 'books'}
+            <BookListView />
           {:else if $activeTab === 'attendance'}
             <AttendanceView />
           {:else if $activeTab === 'sms'}

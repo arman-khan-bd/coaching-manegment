@@ -221,10 +221,11 @@
   <meta charset="UTF-8"/>
   <title>${mode === 'syllabus' ? 'সিলেবাস' : 'রুটিন'} প্রিন্ট — ${inst.name}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-    body{font-family:'Noto Sans Bengali',Arial,sans-serif;background:#fff;color:#0f172a;padding:20px 24px;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    body{font-family:'Hind Siliguri','Noto Sans Bengali',Arial,sans-serif;background:#fff;color:#0f172a;padding:20px 24px;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     @page{size:A4 portrait;margin:10mm 12mm;}
     @media print{body{padding:0;}}
     table{border-collapse:collapse;width:100%;}

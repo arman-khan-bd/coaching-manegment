@@ -17,6 +17,7 @@
   import Modal from '../components/Modal.svelte';
   import Badge from '../components/Badge.svelte';
   import ConfirmModal from '../components/ConfirmModal.svelte';
+  import { printElement } from '../printUtils';
   import {
     CreditCard,
     DollarSign,
@@ -177,7 +178,10 @@
   }
 
   function printReceipt() {
-    window.print();
+    printElement('print-receipt-voucher', {
+      title: `মানি-রসিদ-${receiptInvoice?.invoiceNo || 'voucher'}`,
+      orientation: 'portrait',
+    });
   }
 
   function handleOpenFeeSms(invoice: FeeInvoice) {
