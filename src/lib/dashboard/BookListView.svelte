@@ -13,6 +13,8 @@
   import Modal from '../components/Modal.svelte';
   import ConfirmModal from '../components/ConfirmModal.svelte';
   import Pagination from '../components/Pagination.svelte';
+  import OfficialSeal from '../components/OfficialSeal.svelte';
+  import OfficialSignature from '../components/OfficialSignature.svelte';
   import { printElement } from '../printUtils';
   import {
     BookOpen,
@@ -819,24 +821,25 @@
         </div>
 
         <!-- Official Signatures Strip -->
-        <div class="pt-8 border-t border-slate-300 grid grid-cols-3 gap-6 text-center text-xs text-slate-700">
-          <div>
-            <div class="border-b border-slate-400 pb-1 mb-1 font-semibold text-slate-900">
-              একাডেমিক সমন্বয়কারী
-            </div>
-            <div class="text-[10px] text-slate-500">কোচফ্লো একাডেমি</div>
-          </div>
-          <div>
-            <div class="border-b border-slate-400 pb-1 mb-1 font-semibold text-slate-900">
-              বিভাগীয় প্রধান
-            </div>
+        <div class="pt-8 border-t border-slate-300 flex items-end justify-between text-center text-xs text-slate-700">
+          <div class="w-36 text-center">
+            <div class="w-32 border-b border-slate-400 mx-auto mb-1 h-8"></div>
+            <div class="font-semibold text-slate-900">একাডেমিক সমন্বয়কারী</div>
             <div class="text-[10px] text-slate-500">পাঠ্যক্রম ও মূল্যায়ন শাখা</div>
           </div>
-          <div>
-            <div class="border-b border-slate-400 pb-1 mb-1 font-semibold text-slate-900">
-              অধ্যক্ষ / পরিচালক
-            </div>
-            <div class="text-[10px] text-slate-500">{$instituteSettings.name || 'Apex Academic Care'}</div>
+
+          <!-- Official Stamp Seal (Auto or Uploaded) -->
+          <div class="flex items-center justify-center">
+            <OfficialSeal size="sm" colorScheme="indigo" />
+          </div>
+
+          <!-- Authorized Signature (Auto or Uploaded) -->
+          <div class="flex items-center justify-end">
+            <OfficialSignature
+              label="অধ্যক্ষ / পরিচালক"
+              darkText={true}
+              underline={true}
+            />
           </div>
         </div>
 

@@ -18,6 +18,8 @@
   import Badge from '../components/Badge.svelte';
   import ConfirmModal from '../components/ConfirmModal.svelte';
   import Pagination from '../components/Pagination.svelte';
+  import OfficialSeal from '../components/OfficialSeal.svelte';
+  import OfficialSignature from '../components/OfficialSignature.svelte';
   import { printElement } from '../printUtils';
   import {
     CreditCard,
@@ -573,13 +575,26 @@
           </tbody>
         </table>
 
-        <!-- Signatures -->
-        <div class="pt-6 flex items-center justify-between text-[11px] text-slate-500">
-          <div>
-            <div class="font-mono text-[10px]">Verified By System</div>
+        <!-- Signatures & Official Seal -->
+        <div class="pt-6 border-t border-slate-200 flex items-center justify-between">
+          <div class="text-left text-[10px] text-slate-500 font-mono space-y-0.5">
+            <div class="font-bold text-slate-700">ডিজিটাল ভেরিফাইড রসিদ</div>
+            <div>আইডি: AAC-VCH-{receiptInvoice.invoiceNo}</div>
+            <div>তারিখ: {new Date().toLocaleDateString('bn-BD')}</div>
           </div>
-          <div class="text-right border-t border-slate-400 pt-1 w-32">
-            <span>Authorized Signature</span>
+
+          <!-- Official Circular Stamp Seal -->
+          <div class="flex items-center justify-center">
+            <OfficialSeal size="sm" colorScheme="indigo" />
+          </div>
+
+          <!-- Authorized Calligraphic Signature -->
+          <div class="flex items-center justify-end">
+            <OfficialSignature
+              label="Authorized Signature"
+              darkText={true}
+              underline={true}
+            />
           </div>
         </div>
       </div>

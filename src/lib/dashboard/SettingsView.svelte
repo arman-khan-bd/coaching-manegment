@@ -1,6 +1,8 @@
 <script lang="ts">
   import { instituteSettings, defaultInstituteSettings, showToast } from '../store';
   import type { InstituteSettings } from '../types';
+  import OfficialSeal from '../components/OfficialSeal.svelte';
+  import OfficialSignature from '../components/OfficialSignature.svelte';
   import {
     Building,
     Phone,
@@ -1072,45 +1074,29 @@ create policy "Authenticated users can update coaching branding"
             <div class="pt-2 flex items-end justify-between relative min-h-[90px]">
               <!-- Official Stamp Seal Area -->
               <div class="relative w-32 flex flex-col items-center justify-center">
+                <OfficialSeal
+                  size="md"
+                  colorScheme="indigo"
+                  sealUrlOverride={form.officialSealUrl}
+                  customText={form.officialSealText}
+                />
                 {#if form.officialSealUrl}
-                  <div class="relative group">
-                    <img
-                      src={form.officialSealUrl}
-                      alt="Official Seal"
-                      class="w-24 h-24 object-contain rounded-full rotate-[-6deg] drop-shadow-md transition-transform group-hover:rotate-0"
-                    />
-                    <span class="text-[8px] font-bold text-emerald-700 uppercase tracking-widest block text-center mt-1">✓ সিলমোহর সংস্থাপিত</span>
-                  </div>
+                  <span class="text-[8px] font-bold text-emerald-700 uppercase tracking-widest block text-center mt-1">✓ সিলমোহর সংস্থাপিত</span>
                 {:else}
-                  <div class="w-24 h-24 rounded-full border-2 border-dashed border-indigo-500/60 flex flex-col items-center justify-center p-1 text-center rotate-[-6deg] bg-indigo-50/50">
-                    <span class="text-[7px] font-black text-indigo-700 uppercase tracking-wider">{form.nameEnglish || 'COACHFLOW'}</span>
-                    <div class="my-0.5 w-6 h-0.5 bg-indigo-500/50"></div>
-                    <span class="text-[8px] font-bold text-indigo-600 uppercase">OFFICIAL SEAL</span>
-                    <span class="text-[6px] text-indigo-500 font-mono mt-0.5">VERIFIED</span>
-                  </div>
-                  <span class="text-[8px] text-slate-400 mt-1">সিল আপলোড করা হয়নি</span>
+                  <span class="text-[8px] font-semibold text-indigo-600 uppercase tracking-wider block text-center mt-1">অটো-জেনারেটেড সিল</span>
                 {/if}
               </div>
 
               <!-- Authorized Signature Area -->
               <div class="text-center w-48 relative">
-                {#if form.directorSignatureUrl}
-                  <div class="h-12 flex items-end justify-center mb-1">
-                    <img
-                      src={form.directorSignatureUrl}
-                      alt="Director Signature"
-                      class="max-h-12 max-w-[150px] object-contain"
-                    />
-                  </div>
-                {:else}
-                  <div class="h-12 flex items-end justify-center mb-1">
-                    <p class="font-serif italic text-base text-indigo-900 tracking-wide">{form.directorSignature || 'Md. Saiful Islam'}</p>
-                  </div>
-                {/if}
-
-                <div class="w-40 h-0.5 bg-slate-900 mx-auto mb-1"></div>
-                <p class="font-bold text-slate-900 text-[11px] leading-tight">{form.directorName || 'প্রধান শিক্ষক / পরিচালক'}</p>
-                <p class="text-[9px] text-slate-600">{form.directorDesignation || 'নির্বাহী পরিচালক'}</p>
+                <OfficialSignature
+                  name={form.directorName}
+                  designation={form.directorDesignation}
+                  signatureUrl={form.directorSignatureUrl}
+                  label={form.directorSignatureUrl ? 'ডিজিটাল স্বাক্ষর সংস্থাপিত' : 'অটো-জেনারেটেড স্বাক্ষর'}
+                  darkText={true}
+                  underline={true}
+                />
               </div>
             </div>
           </div>

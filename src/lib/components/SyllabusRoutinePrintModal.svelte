@@ -1,6 +1,8 @@
 <script lang="ts">
   import { instituteSettings } from '../store';
   import type { SyllabusItem, RoutineSlot } from '../types';
+  import OfficialSeal from './OfficialSeal.svelte';
+  import OfficialSignature from './OfficialSignature.svelte';
   import {
     Printer,
     X,
@@ -189,23 +191,36 @@
         </div>`;
     }
 
+    const sealHtml = inst.officialSealUrl
+      ? `<img src="${inst.officialSealUrl}" alt="Official Seal" style="width:58px;height:58px;object-fit:contain;border-radius:50%;margin-bottom:4px;transform:rotate(-6deg);" />`
+      : `<div style="width:62px;height:62px;border:2px solid #4338ca;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(238,242,255,0.6);color:#3730a3;font-family:sans-serif;transform:rotate(-6deg);margin-bottom:4px;box-sizing:border-box;padding:2px;text-align:center;">
+           <span style="font-size:6px;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;line-height:1;">${(inst.nameEnglish || inst.name || 'COACHFLOW').slice(0, 16)}</span>
+           <span style="font-size:6.5px;font-weight:900;color:#ffffff;background:#4338ca;padding:1px 3px;border-radius:2px;margin:2px 0;letter-spacing:0.5px;">OFFICIAL SEAL</span>
+           <span style="font-size:5px;font-weight:700;">★ VERIFIED ★</span>
+         </div>`;
+
+    const signatureHtml = inst.directorSignatureUrl
+      ? `<img src="${inst.directorSignatureUrl}" alt="Signature" style="max-height:34px;max-width:130px;object-fit:contain;margin-bottom:2px;" />`
+      : `<span style="font-family:'Caveat','Dancing Script','Brush Script MT',cursive;font-size:18px;font-weight:bold;color:#1e1b4b;font-style:italic;transform:rotate(-3deg);display:inline-block;margin-bottom:2px;">${inst.directorSignature || inst.directorName || 'মোঃ সাইফুল ইসলাম'}</span>`;
+
     const footer = `
       <div style="margin-top:40px;padding-top:20px;border-top:2px solid #1e293b;">
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;text-align:center;">
-          <div style="display:flex;flex-direction:column;align-items:center;">
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;">
             <div style="width:120px;border-bottom:1px solid #94a3b8;margin-bottom:6px;height:30px;"></div>
             <strong style="font-size:11px;color:#0f172a;">অ্যাকাডেমিক কো-অর্ডিনেটর</strong>
             <span style="font-size:10px;color:#94a3b8;">${inst.name}</span>
           </div>
-          <div style="display:flex;flex-direction:column;align-items:center;">
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;">
             <div style="width:120px;border-bottom:1px solid #94a3b8;margin-bottom:6px;height:30px;"></div>
             <strong style="font-size:11px;color:#0f172a;">কোর্স সমন্বয়কারী / বিভাগীয় প্রধান</strong>
             <span style="font-size:10px;color:#94a3b8;">কারিকুলাম ও মূল্যায়ন বিভাগ</span>
           </div>
-          <div style="display:flex;flex-direction:column;align-items:center;">
-            <div style="width:80px;height:36px;border:1px dashed #818cf8;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#4f46e5;font-weight:700;margin-bottom:6px;">[ অফিসিয়াল সিল ]</div>
-            <div style="width:140px;border-bottom:2px solid #0f172a;margin-bottom:6px;"></div>
-            <strong style="font-size:12px;color:#0f172a;">পরিচালক / অধ্যক্ষ</strong>
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;">
+            ${sealHtml}
+            ${signatureHtml}
+            <div style="width:140px;border-bottom:2px solid #0f172a;margin-bottom:4px;"></div>
+            <strong style="font-size:12px;color:#0f172a;">${inst.directorName || 'পরিচালক / অধ্যক্ষ'}</strong>
             <span style="font-size:10px;color:#64748b;">${inst.name}</span>
           </div>
         </div>
@@ -538,12 +553,14 @@
 
               <!-- Signature 3: Executive Director / Seal -->
               <div class="flex flex-col items-center justify-end">
-                <div class="w-20 h-10 border border-dashed border-indigo-400 rounded-lg flex items-center justify-center text-[8px] text-indigo-700 font-bold uppercase mb-1">
-                  [ অফিসিয়াল সিল ]
+                <div class="mb-1">
+                  <OfficialSeal size="sm" colorScheme="indigo" />
                 </div>
-                <div class="w-36 border-b-2 border-slate-900 mb-1"></div>
-                <strong class="font-black text-slate-950 block">পরিচালক / অধ্যক্ষ</strong>
-                <span class="text-slate-600 text-[9px]">{$instituteSettings.name}</span>
+                <OfficialSignature
+                  label="পরিচালক / অধ্যক্ষ"
+                  darkText={true}
+                  underline={true}
+                />
               </div>
             </div>
 

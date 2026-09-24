@@ -24,6 +24,8 @@
   import Badge from '../components/Badge.svelte';
   import ConfirmModal from '../components/ConfirmModal.svelte';
   import Pagination from '../components/Pagination.svelte';
+  import OfficialSeal from '../components/OfficialSeal.svelte';
+  import OfficialSignature from '../components/OfficialSignature.svelte';
   import { printElement } from '../printUtils';
 
   let marksPage = 1;
@@ -1534,15 +1536,26 @@
         </div>
 
         <!-- Official Signatures -->
-        <div class="pt-10 flex items-center justify-between text-xs text-slate-700 border-t border-slate-300">
-          <div class="text-center w-36 border-t border-slate-900 pt-1 font-semibold">
-            পরীক্ষক (Examiner)
+        <div class="pt-8 flex items-end justify-between text-xs text-slate-700 border-t border-slate-300">
+          <div class="text-center w-36">
+            <div class="w-32 border-b border-slate-400 mx-auto mb-1 h-8"></div>
+            <span class="font-semibold text-slate-900 block">পরীক্ষক (Examiner)</span>
+            <span class="text-[10px] text-slate-500">মূল্যায়ন বিভাগ</span>
           </div>
-          <div class="text-center w-36 border-t border-slate-900 pt-1 font-semibold">
-            শাখা ইনচার্জ
+          <div class="text-center w-36">
+            <div class="w-32 border-b border-slate-400 mx-auto mb-1 h-8"></div>
+            <span class="font-semibold text-slate-900 block">শাখা ইনচার্জ</span>
+            <span class="text-[10px] text-slate-500">কোচফ্লো একাডেমি</span>
           </div>
-          <div class="text-center w-36 border-t border-slate-900 pt-1 font-semibold">
-            পরিচালক / অধ্যক্ষ
+          <div class="flex items-center justify-center">
+            <OfficialSeal size="sm" colorScheme="indigo" />
+          </div>
+          <div>
+            <OfficialSignature
+              label="পরিচালক / অধ্যক্ষ"
+              darkText={true}
+              underline={true}
+            />
           </div>
         </div>
       </div>
@@ -1631,13 +1644,24 @@
           <span>"{selectedStudentMark.remarks || 'সফলভাবে মূল্যায়ন সম্পন্ন হয়েছে।'}"</span>
         </div>
 
-        <!-- Signatures -->
-        <div class="pt-6 flex items-center justify-between text-[11px] text-slate-500 border-t border-slate-200">
-          <div class="text-center w-28 border-t border-slate-400 pt-1">
-            <span>Course Instructor</span>
+        <!-- Signatures & Seal -->
+        <div class="pt-6 flex items-end justify-between text-[11px] text-slate-500 border-t border-slate-200">
+          <div class="text-center w-28">
+            <div class="w-24 border-b border-slate-400 mx-auto mb-1 h-8"></div>
+            <span class="font-bold text-slate-800 block">Course Instructor</span>
+            <span class="text-[9px] text-slate-400">Evaluation Officer</span>
           </div>
-          <div class="text-center w-28 border-t border-slate-400 pt-1">
-            <span>Director / Principal</span>
+
+          <div class="flex items-center justify-center">
+            <OfficialSeal size="sm" colorScheme="indigo" />
+          </div>
+
+          <div>
+            <OfficialSignature
+              label="Director / Principal"
+              darkText={true}
+              underline={true}
+            />
           </div>
         </div>
       </div>
