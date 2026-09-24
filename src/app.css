@@ -225,12 +225,25 @@
     break-inside: avoid !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    display: inline-block !important;
   }
 
   .id-card-element {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     box-shadow: none !important;
+  }
+
+  .id-card-dock-left-top,
+  #single-student-idcard-print {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: inline-block !important;
+    text-align: left !important;
+    background: transparent !important;
   }
 
   .empty-card-slot {
@@ -243,3 +256,4 @@
     print-color-adjust: exact !important;
   }
 }
+

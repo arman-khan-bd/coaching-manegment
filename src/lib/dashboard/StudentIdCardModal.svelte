@@ -2,6 +2,7 @@
   import Modal from '../components/Modal.svelte';
   import IdCardRenderer from '../components/IdCardRenderer.svelte';
   import { instituteSettings, type Student } from '../store';
+  import { printIdCard } from '../printUtils';
   import { Printer, Sparkles, Check, Palette } from 'lucide-svelte';
 
   export let open: boolean = false;
@@ -43,64 +44,13 @@
   ];
 
   function handlePrint() {
-    const printEl = document.querySelector('.printable-area') as HTMLElement;
-    if (!printEl) return;
-
-    const printWindow = window.open('', '_blank', 'width=760,height=680');
-    if (!printWindow) return;
-
-    // Copy all CSS from current page so Tailwind classes render correctly
-    const styleLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
-      .map((el) => el.outerHTML)
-      .join('\n');
-
-    const styleTags = Array.from(document.querySelectorAll('style'))
-      .map((el) => el.outerHTML)
-      .join('\n');
-
-    printWindow.document.write(`<!DOCTYPE html>
-<html lang="bn">
-<head>
-  <meta charset="UTF-8" />
-  <title>Student ID Card — ${student?.name ?? ''}</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  ${styleLinks}
-  ${styleTags}
-  <style>
-    *, *::before, *::after { box-sizing: border-box; font-family: 'Hind Siliguri', 'Noto Sans Bengali', system-ui, sans-serif; }
-    html, body {
-      background: #ffffff !important;
-      margin: 0 !important;
-      padding: 0 !important;
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-    }
-    @page { size: A4 portrait; margin: 15mm; }
-    body {
-      display: flex;
-      align-items: flex-start;
-      justify-content: center;
-      padding: 20px;
-    }
-  </style>
-</head>
-<body>
-  <div>${printEl.outerHTML}</div>
-  <script>
-    window.addEventListener('load', function() {
-      setTimeout(function() {
-        window.print();
-        setTimeout(function() { window.close(); }, 500);
-      }, 800);
+    if (!student) return;
+    printIdCard('single-student-idcard-print', {
+      studentName: student.name,
+      rollNo: student.rollNo,
+      instituteName: $instituteSettings.name,
     });
-  <\/script>
-</body>
-</html>`);
-    printWindow.document.close();
   }
-
-
 </script>
 
 <Modal {open} title="Student Identity Card & Design Selector" subtitle="Select preferred ID card layout template & generate high-res printable pass" {onClose} maxWidth="max-w-2xl">
@@ -141,7 +91,7 @@
 
       <!-- 2. Screen Preview & Printable Card Area -->
       <div class="flex justify-center py-2">
-        <div class="printable-area">
+        <div id="single-student-idcard-print" class="inline-block text-left">
           <IdCardRenderer {student} design={selectedDesign} />
         </div>
       </div>
