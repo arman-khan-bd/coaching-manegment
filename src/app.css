@@ -153,9 +153,8 @@
     -webkit-backdrop-filter: none !important;
   }
 
-  /* Hide modal header bar & footer buttons inside modal */
-  [role="dialog"] > div > div:first-child,
-  [role="dialog"] > div > div:last-child:not(.printable-area) {
+  /* Hide modal header bar & footer buttons inside modal if not already marked with no-print */
+  [role="dialog"] .no-print {
     display: none !important;
   }
 

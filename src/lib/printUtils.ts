@@ -46,8 +46,9 @@ export function printElement(
     pageStyles = styleEls
       .map((el) => {
         if (el.tagName === 'STYLE') {
-          // Remove any global visibility hidden rules that might hide print content
+          // Strip any parent application @media print hiding rules so they don't corrupt the print frame
           const cleaned = el.innerHTML
+            .replace(/@media\s+print\s*\{[\s\S]*?\}(?:\s*\})?/gi, '')
             .replace(/body\s*\*\s*\{\s*visibility\s*:\s*hidden\s*;?\s*\}/gi, '')
             .replace(/visibility\s*:\s*hidden/gi, 'visibility: visible');
           return `<style>${cleaned}</style>`;
@@ -97,10 +98,12 @@ export function printElement(
       line-height: 1.5;
       width: 100% !important;
       height: auto !important;
+      min-height: 100% !important;
       padding: 0 !important;
       margin: 0 !important;
       visibility: visible !important;
       display: block !important;
+      overflow: visible !important;
     }
 
     .printable-root {
@@ -114,8 +117,22 @@ export function printElement(
       opacity: 1 !important;
     }
 
-    .printable-area, .printable-area * {
+    .printable-area {
+      width: 100% !important;
+      max-width: 100% !important;
+      margin: 0 auto !important;
+      padding: 0 !important;
+      box-shadow: none !important;
+      border: none !important;
+      background: #ffffff !important;
+      color: #0f172a !important;
       visibility: visible !important;
+      display: block !important;
+    }
+
+    .printable-root *, .printable-area * {
+      visibility: visible !important;
+      opacity: 1 !important;
     }
 
     /* Preserve all Tailwind colors & table borders */
@@ -243,7 +260,9 @@ export function printElement(
 </body>
 </html>`;
 
-  // PRIMARY PRINT ENGINE: Hidden iframe (triggers direct print dialog, NO blank popup window)
+  // PRIMARY PRINT ENGINE: Offscreen desktop-dimensioned iframe
+  // Chromium requires real viewport dimensions (e.g. 1024x1400) and visibility:visible
+  // to properly compute layout boxes and prevent blank white print previews.
   try {
     const existingIframe = document.getElementById('cf-print-iframe');
     if (existingIframe) {
@@ -253,13 +272,17 @@ export function printElement(
     const iframe = document.createElement('iframe');
     iframe.id = 'cf-print-iframe';
     iframe.style.position = 'fixed';
-    iframe.style.right = '0';
-    iframe.style.bottom = '0';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
+    iframe.style.left = '-9999px';
+    iframe.style.top = '-9999px';
+    iframe.style.width = '1024px';
+    iframe.style.height = '1400px';
     iframe.style.border = '0';
-    iframe.style.opacity = '0';
+    iframe.style.margin = '0';
+    iframe.style.padding = '0';
+    iframe.style.opacity = '1';
+    iframe.style.visibility = 'visible';
     iframe.style.pointerEvents = 'none';
+    iframe.style.zIndex = '-99999';
     document.body.appendChild(iframe);
 
     const doc = iframe.contentWindow?.document || iframe.contentDocument;
@@ -268,25 +291,38 @@ export function printElement(
       doc.write(printDoc);
       doc.close();
 
-      const runIframePrint = () => {
-        try {
-          iframe.contentWindow?.focus();
-          iframe.contentWindow?.print();
-          setTimeout(() => {
-            try { iframe.remove(); } catch (e) {}
-          }, 3500);
-        } catch (e) {
-          console.warn('Iframe print call failed, trying popup window:', e);
-          fallbackWindowPrint(printDoc);
-        }
-      };
+      const win = iframe.contentWindow;
+      if (win) {
+        let printed = false;
+        const doPrint = () => {
+          if (printed) return;
+          printed = true;
+          try {
+            win.focus();
+            win.print();
+          } catch (e) {
+            console.warn('Iframe print call failed, trying popup window:', e);
+            fallbackWindowPrint(printDoc);
+          } finally {
+            setTimeout(() => {
+              try { iframe.remove(); } catch (e) {}
+            }, 3500);
+          }
+        };
 
-      if (iframe.contentWindow) {
-        if (doc.readyState === 'complete') {
-          setTimeout(runIframePrint, 250);
+        // Ensure fonts and stylesheets are fully loaded before triggering Chrome print
+        if (win.document.fonts && typeof win.document.fonts.ready?.then === 'function') {
+          win.document.fonts.ready
+            .then(() => {
+              setTimeout(doPrint, 200);
+            })
+            .catch(() => {
+              setTimeout(doPrint, 250);
+            });
+          // Fallback safety timeout in case font promise hangs
+          setTimeout(doPrint, 800);
         } else {
-          iframe.onload = () => setTimeout(runIframePrint, 200);
-          setTimeout(runIframePrint, 600);
+          setTimeout(doPrint, 300);
         }
         return true;
       }

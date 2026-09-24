@@ -27,7 +27,7 @@
       class="relative w-full {maxWidth} max-h-[94vh] sm:max-h-[90vh] flex flex-col bg-slate-900 border border-slate-700/60 rounded-2xl shadow-2xl overflow-hidden my-auto animate-in zoom-in-95 duration-200"
     >
       <!-- Header -->
-      <div class="flex items-center justify-between px-4 py-3.5 sm:px-6 sm:py-4.5 border-b border-slate-800 bg-slate-900/90 gap-2">
+      <div class="no-print flex items-center justify-between px-4 py-3.5 sm:px-6 sm:py-4.5 border-b border-slate-800 bg-slate-900/90 gap-2">
         <div class="min-w-0">
           {#if title}
             <h3 class="text-base sm:text-lg font-semibold text-white tracking-tight truncate">{title}</h3>
@@ -53,7 +53,7 @@
 
       <!-- Optional Footer -->
       {#if $$slots.footer}
-        <div class="px-4 py-3 sm:px-6 sm:py-4 border-t border-slate-800/80 bg-slate-950/50 flex flex-wrap sm:flex-nowrap items-center justify-end gap-2.5 sm:gap-3">
+        <div class="no-print px-4 py-3 sm:px-6 sm:py-4 border-t border-slate-800/80 bg-slate-950/50 flex flex-wrap sm:flex-nowrap items-center justify-end gap-2.5 sm:gap-3">
           <slot name="footer" />
         </div>
       {/if}
