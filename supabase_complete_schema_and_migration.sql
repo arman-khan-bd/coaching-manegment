@@ -647,3 +647,154 @@ do $$ begin
   end if;
 end $$;
 
+-- =============================================================================
+-- SAAS ADMIN MULTI-TENANT PLATFORM SCHEMAS
+-- =============================================================================
+
+-- 1. Subscription Plans Table
+create table if not exists public.subscription_plans (
+  id text primary key,
+  name text not null,
+  tag text default '',
+  price_monthly numeric default 0,
+  price_yearly numeric default 0,
+  description text default '',
+  features jsonb default '[]'::jsonb,
+  student_limit integer default 100,
+  branch_limit integer default 1,
+  sms_credits_included integer default 500,
+  android_gateway_included boolean default true,
+  status text default 'active',
+  created_at timestamp with time zone default timezone('utc'::text, now()),
+  updated_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+alter table public.subscription_plans enable row level security;
+
+do $$ begin
+  if not exists (
+    select 1 from pg_policies where tablename = 'subscription_plans' and policyname = 'Allow all on subscription_plans'
+  ) then
+    create policy "Allow all on subscription_plans" on public.subscription_plans
+      for all using (true) with check (true);
+  end if;
+end $$;
+
+-- 2. Platform Subscriptions Table
+create table if not exists public.platform_subscriptions (
+  id text primary key,
+  coaching_id text not null,
+  coaching_name text default '',
+  plan_id text not null,
+  plan_name text default '',
+  amount numeric default 0,
+  billing_cycle text default 'monthly',
+  status text default 'active',
+  payment_method text default 'bKash',
+  sender_phone text,
+  trx_id text,
+  start_date text default '2026-01-01',
+  next_renewal_date text default '2027-01-01',
+  auto_renew boolean default true,
+  invoice_id text,
+  notes text,
+  rejection_reason text,
+  created_at timestamp with time zone default timezone('utc'::text, now()),
+  updated_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+create index if not exists idx_platform_subs_coaching on public.platform_subscriptions(coaching_id);
+create index if not exists idx_platform_subs_status on public.platform_subscriptions(status);
+
+alter table public.platform_subscriptions enable row level security;
+
+do $$ begin
+  if not exists (
+    select 1 from pg_policies where tablename = 'platform_subscriptions' and policyname = 'Allow all on platform_subscriptions'
+  ) then
+    create policy "Allow all on platform_subscriptions" on public.platform_subscriptions
+      for all using (true) with check (true);
+  end if;
+end $$;
+
+-- 3. Platform Transactions Table
+create table if not exists public.platform_transactions (
+  id text primary key,
+  coaching_id text not null,
+  coaching_name text default '',
+  type text default 'subscription',
+  item_title text default '',
+  amount numeric default 0,
+  subtotal numeric default 0,
+  vat_amount numeric default 0,
+  payment_method text default 'bKash',
+  trx_id text,
+  sender_phone text,
+  receipt_number text,
+  status text default 'completed',
+  date text default to_char(now(), 'YYYY-MM-DD HH24:MI'),
+  notes text,
+  created_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+create index if not exists idx_platform_trx_coaching on public.platform_transactions(coaching_id);
+create index if not exists idx_platform_trx_status on public.platform_transactions(status);
+
+alter table public.platform_transactions enable row level security;
+
+do $$ begin
+  if not exists (
+    select 1 from pg_policies where tablename = 'platform_transactions' and policyname = 'Allow all on platform_transactions'
+  ) then
+    create policy "Allow all on platform_transactions" on public.platform_transactions
+      for all using (true) with check (true);
+  end if;
+end $$;
+
+-- 4. Platform Reviews Table
+create table if not exists public.platform_reviews (
+  id text primary key,
+  name text not null,
+  role text default '',
+  students text default '',
+  avatar text default '',
+  comment text default '',
+  rating numeric default 5,
+  status text default 'published',
+  created_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+alter table public.platform_reviews enable row level security;
+
+do $$ begin
+  if not exists (
+    select 1 from pg_policies where tablename = 'platform_reviews' and policyname = 'Allow all on platform_reviews'
+  ) then
+    create policy "Allow all on platform_reviews" on public.platform_reviews
+      for all using (true) with check (true);
+  end if;
+end $$;
+
+-- 5. Platform FAQs Table
+create table if not exists public.platform_faqs (
+  id text primary key,
+  category text default 'general',
+  question text not null,
+  answer text not null,
+  "order" integer default 0,
+  status text default 'published',
+  created_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+alter table public.platform_faqs enable row level security;
+
+do $$ begin
+  if not exists (
+    select 1 from pg_policies where tablename = 'platform_faqs' and policyname = 'Allow all on platform_faqs'
+  ) then
+    create policy "Allow all on platform_faqs" on public.platform_faqs
+      for all using (true) with check (true);
+  end if;
+end $$;
+
+

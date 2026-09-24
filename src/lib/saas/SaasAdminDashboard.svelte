@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import {
     subscriptionPlans,
     coachingInstitutes,
@@ -6,6 +7,8 @@
     platformUsers,
     platformSettings,
     platformTransactions,
+    isSaasDataLoading,
+    refreshSaasAdminDataFromDb,
     addPlan,
     updatePlan,
     deletePlan,
@@ -109,6 +112,10 @@
   } from 'lucide-svelte';
 
   export let activeTab: string = 'overview';
+
+  onMount(() => {
+    refreshSaasAdminDataFromDb();
+  });
 
   // Sub-tabs list
   const navTabs = [
@@ -1039,6 +1046,21 @@
       </div>
 
       <div class="flex items-center gap-3">
+        <!-- Live Supabase Sync Button -->
+        <button
+          type="button"
+          class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-medium text-slate-300 hover:text-white transition-all disabled:opacity-50"
+          disabled={$isSaasDataLoading}
+          on:click={async () => {
+            await refreshSaasAdminDataFromDb();
+            showToast('success', 'লাইভ ডাটা সিঙ্ক সম্পন্ন', 'Supabase থেকে সর্বশেষ ডাটা রিফ্রেশ করা হয়েছে।');
+          }}
+          title="Supabase থেকে লাইভ ডাটা লোড ও সিঙ্ক করুন"
+        >
+          <RefreshCw class="w-3.5 h-3.5 {$isSaasDataLoading ? 'animate-spin text-amber-400' : 'text-indigo-400'}" />
+          <span class="hidden md:inline">{$isSaasDataLoading ? 'সিঙ্ক হচ্ছে...' : 'লাইভ ডাটা সিঙ্ক'}</span>
+        </button>
+
         <!-- Quick MRR Widget -->
         <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-xs">
           <span class="text-slate-400">Live MRR:</span>
