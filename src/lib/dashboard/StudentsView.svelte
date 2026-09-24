@@ -49,6 +49,11 @@
   } from 'lucide-svelte';
   import CloudinaryUpload from '../components/CloudinaryUpload.svelte';
   import ConfirmModal from '../components/ConfirmModal.svelte';
+  import Pagination from '../components/Pagination.svelte';
+
+  let currentPage = 1;
+  let pageSize = 10;
+  $: paginatedStudents = filteredStudents.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   let isConfirmDeleteOpen = false;
   let studentToDelete: Student | null = null;
@@ -517,7 +522,7 @@
         কোনো শিক্ষার্থী পাওয়া যায়নি
       </div>
     {:else}
-      {#each filteredStudents as s}
+      {#each paginatedStudents as s}
         <div class="p-4 sm:p-5 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-indigo-500/50 transition-all shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <!-- Left: Photo & Primary Info -->
           <div class="flex items-start gap-3.5">
@@ -620,6 +625,13 @@
           </div>
         </div>
       {/each}
+
+      <Pagination
+        totalItems={filteredStudents.length}
+        bind:currentPage
+        bind:pageSize
+        itemName="শিক্ষার্থী"
+      />
     {/if}
   </div>
 </div>

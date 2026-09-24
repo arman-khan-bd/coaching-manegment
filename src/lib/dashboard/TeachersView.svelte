@@ -41,6 +41,11 @@
   } from 'lucide-svelte';
   import TeacherPermissionsSelector from '../components/TeacherPermissionsSelector.svelte';
   import { TEACHER_PERMISSION_PRESETS } from '../permissions';
+  import Pagination from '../components/Pagination.svelte';
+
+  let currentPage = 1;
+  let pageSize = 6;
+  $: paginatedTeachers = $teachers.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   let isAddModalOpen = false;
 
@@ -419,7 +424,7 @@
 
   <!-- Faculty Cards Grid -->
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-    {#each $teachers as t}
+    {#each paginatedTeachers as t}
       <div class="rounded-2xl bg-slate-900/80 border border-slate-800 p-6 flex flex-col justify-between hover:border-slate-700 transition-colors">
         <div>
           <div class="flex items-start gap-4">
@@ -562,6 +567,14 @@
       </div>
     {/each}
   </div>
+
+  <Pagination
+    totalItems={$teachers.length}
+    bind:currentPage
+    bind:pageSize
+    pageSizeOptions={[3, 6, 9, 15]}
+    itemName="শিক্ষক"
+  />
 </div>
 
 <!-- Add Faculty Modal with Account Creation -->

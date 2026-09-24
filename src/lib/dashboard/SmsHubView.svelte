@@ -287,6 +287,16 @@
     });
     isSaveTemplateModalOpen = false;
   }
+
+  import Pagination from '../components/Pagination.svelte';
+
+  let logsPage = 1;
+  let logsPageSize = 10;
+  $: paginatedLogs = $smsLogs.slice((logsPage - 1) * logsPageSize, logsPage * logsPageSize);
+
+  let queuePage = 1;
+  let queuePageSize = 10;
+  $: paginatedQueue = $smsQueue.slice((queuePage - 1) * queuePageSize, queuePage * queuePageSize);
 </script>
 
 <div class="space-y-6">
@@ -305,15 +315,20 @@
 
     <!-- Quick Stats Box -->
     <div class="flex items-center gap-3">
-      <div class="bg-slate-950/80 p-3 rounded-2xl border border-slate-800 text-center min-w-[110px]">
+      <div class="relative bg-slate-950/80 p-3 rounded-2xl border border-slate-800 text-center min-w-[130px] overflow-hidden">
+        <div class="absolute -top-1 -right-1">
+          <span class="px-2 py-0.5 text-[9px] font-bold bg-amber-500/20 text-amber-300 border-b border-l border-amber-500/40 rounded-bl-lg font-bengali">
+            শীঘ্রই আসছে
+          </span>
+        </div>
         <span class="text-[10px] text-slate-400 uppercase font-semibold">Cloud SMS</span>
         <div class="text-xl font-bold text-indigo-400 font-['Outfit']">{cloudBalance.toLocaleString()}</div>
         <button
           type="button"
-          class="text-[10px] font-semibold text-emerald-400 hover:text-emerald-300 mt-0.5 block mx-auto"
+          class="text-[10px] font-semibold text-amber-400 hover:text-amber-300 mt-0.5 block mx-auto flex items-center justify-center gap-1"
           on:click={() => (activeSmsTab = 'packs')}
         >
-          + Buy Packs
+          <span>+ Buy Packs</span>
         </button>
       </div>
 
@@ -342,12 +357,15 @@
 
     <button
       type="button"
-      class="px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2
+      class="relative px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2
       {activeSmsTab === 'packs' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30' : 'text-slate-400 hover:text-white hover:bg-slate-900'}"
       on:click={() => (activeSmsTab = 'packs')}
     >
       <Coins class="w-4 h-4 text-amber-400" />
       <span>Buy Cloud SMS Packs</span>
+      <span class="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bengali">
+        শীঘ্রই আসছে
+      </span>
     </button>
 
     <button
@@ -668,7 +686,7 @@
           </div>
         {:else}
           <div class="border border-slate-800 rounded-2xl overflow-hidden divide-y divide-slate-800 bg-slate-950/60">
-            {#each $smsQueue as item}
+            {#each paginatedQueue as item}
               <div class="p-3.5 hover:bg-slate-900/50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
                 <div class="flex items-start gap-3">
                   <div class="w-8 h-8 rounded-xl shrink-0 flex items-center justify-center font-bold text-xs
@@ -748,6 +766,13 @@
               </div>
             {/each}
           </div>
+
+          <Pagination
+            totalItems={$smsQueue.length}
+            bind:currentPage={queuePage}
+            bind:pageSize={queuePageSize}
+            itemName="কিউ আইটেম"
+          />
         {/if}
       </div>
     </div>
@@ -755,8 +780,28 @@
   <!-- TAB 2: BUY CLOUD SMS PACKS -->
   {:else if activeSmsTab === 'packs'}
     <div class="space-y-6">
+      <div class="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3">
+        <AlertCircle class="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+        <div class="space-y-1">
+          <div class="flex items-center gap-2">
+            <h4 class="font-bold text-amber-300 text-sm font-bengali">ক্লাউড SMS সার্ভিস শীঘ্রই আসছে (Coming Soon)</h4>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+              Coming Soon
+            </span>
+          </div>
+          <p class="text-xs text-amber-200/80 leading-relaxed font-bengali">
+            BTRC অনুমোদিত ক্লাউড টেলকো গেটওয়ে ইন্টিগ্রেশন চলমান রয়েছে। বর্তমানে আপনার অ্যান্ড্রয়েড ফোনে নিজস্ব SIM কার্ড (GP/Robi/Banglalink ৳০.০০ প্যাক) ব্যবহার করে সম্পূর্ণ বিনামূল্যে আনলিমিটেড SMS পাঠাতে পারবেন।
+          </p>
+        </div>
+      </div>
+
       <div class="max-w-2xl">
-        <h3 class="text-lg font-bold text-white font-['Outfit']">Purchase Cloud SMS Packs</h3>
+        <div class="flex items-center gap-2">
+          <h3 class="text-lg font-bold text-white font-['Outfit']">Purchase Cloud SMS Packs</h3>
+          <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bengali">
+            শীঘ্রই আসছে
+          </span>
+        </div>
         <p class="text-xs text-slate-400 mt-1">
           High-throughput multi-carrier cloud fallback packs. Credits never expire and activate immediately.
         </p>
@@ -766,17 +811,21 @@
         <!-- Pack 1 -->
         <div class="p-6 rounded-3xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between hover:border-slate-700 transition-colors">
           <div>
-            <span class="text-xs font-semibold text-indigo-400 uppercase">Mini Pack</span>
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-indigo-400 uppercase">Mini Pack</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 font-bengali">শীঘ্রই আসছে</span>
+            </div>
             <div class="text-3xl font-extrabold text-white mt-2 font-['Outfit']">1,000 SMS</div>
             <p class="text-xs text-slate-400 mt-1">Best for small batch exam results & urgent notices.</p>
             <div class="text-2xl font-bold text-indigo-300 mt-4">৳৩৫০ <span class="text-xs text-slate-400 font-normal">one-time (৳০.৩৫/SMS)</span></div>
           </div>
           <button
             type="button"
-            class="w-full mt-6 py-2.5 rounded-xl font-semibold text-xs text-white bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/30 transition-all"
+            class="w-full mt-6 py-2.5 rounded-xl font-semibold text-xs text-white bg-indigo-600/50 hover:bg-indigo-600 transition-all flex items-center justify-center gap-1.5"
             on:click={() => buySmsPack(1000, 350)}
           >
-            Buy 1,000 Credits
+            <span>Buy 1,000 Credits</span>
+            <span class="text-[10px] opacity-75">(Coming Soon)</span>
           </button>
         </div>
 
@@ -785,7 +834,7 @@
           <div>
             <div class="flex items-center justify-between">
               <span class="text-xs font-semibold text-indigo-400 uppercase">Academy Pack</span>
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 uppercase">Popular</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 font-bengali">শীঘ্রই আসছে</span>
             </div>
             <div class="text-3xl font-extrabold text-white mt-2 font-['Outfit']">5,000 SMS</div>
             <p class="text-xs text-slate-400 mt-1">Recommended for daily absent alerts & monthly reminders.</p>
@@ -793,27 +842,32 @@
           </div>
           <button
             type="button"
-            class="w-full mt-6 py-2.5 rounded-xl font-semibold text-xs text-white bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/30 transition-all"
+            class="w-full mt-6 py-2.5 rounded-xl font-semibold text-xs text-white bg-indigo-600/50 hover:bg-indigo-600 transition-all flex items-center justify-center gap-1.5"
             on:click={() => buySmsPack(5000, 1500)}
           >
-            Buy 5,000 Credits
+            <span>Buy 5,000 Credits</span>
+            <span class="text-[10px] opacity-75">(Coming Soon)</span>
           </button>
         </div>
 
         <!-- Pack 3 -->
         <div class="p-6 rounded-3xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between hover:border-slate-700 transition-colors">
           <div>
-            <span class="text-xs font-semibold text-indigo-400 uppercase">Enterprise Pack</span>
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-indigo-400 uppercase">Enterprise Pack</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 font-bengali">শীঘ্রই আসছে</span>
+            </div>
             <div class="text-3xl font-extrabold text-white mt-2 font-['Outfit']">20,000 SMS</div>
             <p class="text-xs text-slate-400 mt-1">For multi-branch institutions broadcasting bulk campaigns.</p>
             <div class="text-2xl font-bold text-indigo-300 mt-4">৳৫,৫০০ <span class="text-xs text-slate-400 font-normal">one-time (৳০.২৭/SMS)</span></div>
           </div>
           <button
             type="button"
-            class="w-full mt-6 py-2.5 rounded-xl font-semibold text-xs text-white bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/30 transition-all"
+            class="w-full mt-6 py-2.5 rounded-xl font-semibold text-xs text-white bg-indigo-600/50 hover:bg-indigo-600 transition-all flex items-center justify-center gap-1.5"
             on:click={() => buySmsPack(20000, 5500)}
           >
-            Buy 20,000 Credits
+            <span>Buy 20,000 Credits</span>
+            <span class="text-[10px] opacity-75">(Coming Soon)</span>
           </button>
         </div>
       </div>
@@ -1176,6 +1230,9 @@
             <div class="flex items-center gap-2">
               <input type="radio" name="gw_choice" value="cloud" bind:group={selectedGateway} />
               <span>Cloud SMS Wallet</span>
+              <span class="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-amber-500/20 text-amber-300 font-bengali">
+                শীঘ্রই আসছে
+              </span>
             </div>
             <span class="font-bold text-indigo-400">1 credit</span>
           </label>
@@ -1214,7 +1271,7 @@
           কোনো প্রেরিত এসএমএস হিস্ট্রি নেই।
         </div>
       {:else}
-        {#each $smsLogs as log}
+        {#each paginatedLogs as log}
           <div class="p-4 sm:p-5 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-indigo-500/50 transition-all shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <!-- Left: Recipient & Message bubble -->
             <div class="flex items-start gap-3.5 flex-1 min-w-0">
@@ -1264,6 +1321,13 @@
             </div>
           </div>
         {/each}
+
+        <Pagination
+          totalItems={$smsLogs.length}
+          bind:currentPage={logsPage}
+          bind:pageSize={logsPageSize}
+          itemName="প্রেরিত SMS"
+        />
       {/if}
     </div>
   {/if}

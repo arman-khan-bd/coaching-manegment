@@ -15,10 +15,10 @@
     showToast,
   } from '../store';
   import type { SyllabusItem, RoutineSlot } from '../types';
-  import Badge from '../components/Badge.svelte';
   import Modal from '../components/Modal.svelte';
   import ConfirmModal from '../components/ConfirmModal.svelte';
   import SyllabusRoutinePrintModal from '../components/SyllabusRoutinePrintModal.svelte';
+  import Pagination from '../components/Pagination.svelte';
   import {
     BookOpen,
     Calendar,
@@ -42,6 +42,16 @@
 
   // Navigation Subtab: 'syllabus' | 'routine'
   let activeTab: 'syllabus' | 'routine' = 'syllabus';
+
+  // Pagination for Syllabus
+  let syllabusPage = 1;
+  let syllabusPageSize = 6;
+  $: paginatedSyllabus = filteredSyllabus.slice((syllabusPage - 1) * syllabusPageSize, syllabusPage * syllabusPageSize);
+
+  // Pagination for Routine (Table list mode)
+  let routinePage = 1;
+  let routinePageSize = 10;
+  $: paginatedRoutine = filteredRoutine.slice((routinePage - 1) * routinePageSize, routinePage * routinePageSize);
 
   // Filter States - Syllabus
   let selectedCourseFilter: string = 'all';
@@ -544,7 +554,7 @@
         </div>
       {:else}
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {#each filteredSyllabus as item (item.id)}
+          {#each paginatedSyllabus as item (item.id)}
             <div class="bg-slate-900/90 border border-slate-800 hover:border-slate-700 rounded-2xl p-5 shadow-xl transition-all flex flex-col justify-between space-y-4">
               <div>
                 <!-- Top Badge & Actions -->
@@ -623,6 +633,14 @@
             </div>
           {/each}
         </div>
+
+        <Pagination
+          totalItems={filteredSyllabus.length}
+          bind:currentPage={syllabusPage}
+          bind:pageSize={syllabusPageSize}
+          pageSizeOptions={[4, 6, 10, 20]}
+          itemName="অধ্যায়"
+        />
       {/if}
     </div>
 
@@ -814,7 +832,7 @@
               কোনো রুটিন সূচি পাওয়া যায়নি।
             </div>
           {:else}
-            {#each filteredRoutine as slot}
+            {#each paginatedRoutine as slot}
               {@const typeInfo = classTypeLabels[slot.classType] || classTypeLabels.theory}
               <div class="p-4 sm:p-5 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-indigo-500/50 transition-all shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <!-- Day, Time & Subject info -->
@@ -865,6 +883,13 @@
                 </div>
               </div>
             {/each}
+
+            <Pagination
+              totalItems={filteredRoutine.length}
+              bind:currentPage={routinePage}
+              bind:pageSize={routinePageSize}
+              itemName="ক্লাস সূচি"
+            />
           {/if}
         </div>
       {/if}

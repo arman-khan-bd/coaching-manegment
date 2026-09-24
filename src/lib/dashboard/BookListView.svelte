@@ -12,6 +12,7 @@
   import Badge from '../components/Badge.svelte';
   import Modal from '../components/Modal.svelte';
   import ConfirmModal from '../components/ConfirmModal.svelte';
+  import Pagination from '../components/Pagination.svelte';
   import { printElement } from '../printUtils';
   import {
     BookOpen,
@@ -41,6 +42,10 @@
   let searchQuery = '';
   let selectedClass = 'all';
   let selectedRequired = 'all';
+
+  let currentPage = 1;
+  let pageSize = 10;
+  $: paginatedBooks = filteredBooks.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   // Add / Edit Modal
   let isAddEditModalOpen = false;
@@ -358,11 +363,11 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-800/60 text-sm">
-            {#each filteredBooks as book, idx}
+            {#each paginatedBooks as book, idx}
               <tr class="hover:bg-slate-800/40 transition-colors group">
                 <!-- Serial -->
                 <td class="py-3.5 px-4 text-center font-mono text-xs text-slate-400">
-                  {idx + 1}
+                  {(currentPage - 1) * pageSize + idx + 1}
                 </td>
 
                 <!-- Title & Edition -->
@@ -442,6 +447,15 @@
             {/each}
           </tbody>
         </table>
+      </div>
+
+      <div class="p-4 pt-0">
+        <Pagination
+          totalItems={filteredBooks.length}
+          bind:currentPage
+          bind:pageSize
+          itemName="বই"
+        />
       </div>
     {/if}
   </div>

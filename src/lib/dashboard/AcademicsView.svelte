@@ -16,10 +16,10 @@
     type Course,
   } from '../store';
   import { navigate } from '../router';
-  import SendSmsModal from '../components/SendSmsModal.svelte';
   import Modal from '../components/Modal.svelte';
   import Badge from '../components/Badge.svelte';
   import ConfirmModal from '../components/ConfirmModal.svelte';
+  import Pagination from '../components/Pagination.svelte';
   import {
     BookOpen,
     Layers,
@@ -39,6 +39,21 @@
 
   let subTab: 'batches' | 'courses' | 'units' = 'batches';
   let isAddBatchModalOpen = false;
+
+  // Pagination for Batches
+  let batchesPage = 1;
+  let batchesPageSize = 6;
+  $: paginatedBatches = $batches.slice((batchesPage - 1) * batchesPageSize, batchesPage * batchesPageSize);
+
+  // Pagination for Courses
+  let coursesPage = 1;
+  let coursesPageSize = 6;
+  $: paginatedCourses = $courses.slice((coursesPage - 1) * coursesPageSize, coursesPage * coursesPageSize);
+
+  // Pagination for Units
+  let unitsPage = 1;
+  let unitsPageSize = 10;
+  $: paginatedUnits = $units.slice((unitsPage - 1) * unitsPageSize, unitsPage * unitsPageSize);
 
   // Confirm delete states
   let isConfirmDeleteBatchOpen = false;
@@ -458,196 +473,216 @@
 
   <!-- TAB 1: BATCHES -->
   {#if subTab === 'batches'}
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {#if $batches.length === 0}
-        <div class="col-span-full text-center py-12 text-slate-400 text-xs bg-slate-900/60 rounded-2xl border border-slate-800">
-          কোনো অ্যাকাডেমিক ব্যাচ নেই। উপরে "+ New Batch" বাটনে ক্লিক করে নতুন ব্যাচ তৈরি করুন।
-        </div>
-      {:else}
-        {#each $batches as b}
-        {@const courseObj = $courses.find((c) => c.id === b.courseId)}
-        {@const teacherObj = $teachers.find((t) => t.id === b.teacherId)}
-        {@const occupancyPercent = Math.round((b.enrolledCount / b.maxCapacity) * 100)}
+    <div class="space-y-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {#if $batches.length === 0}
+          <div class="col-span-full text-center py-12 text-slate-400 text-xs bg-slate-900/60 rounded-2xl border border-slate-800">
+            কোনো অ্যাকাডেমিক ব্যাচ নেই। উপরে "+ New Batch" বাটনে ক্লিক করে নতুন ব্যাচ তৈরি করুন।
+          </div>
+        {:else}
+          {#each paginatedBatches as b}
+          {@const courseObj = $courses.find((c) => c.id === b.courseId)}
+          {@const teacherObj = $teachers.find((t) => t.id === b.teacherId)}
+          {@const occupancyPercent = Math.round((b.enrolledCount / b.maxCapacity) * 100)}
 
-        <div class="rounded-3xl bg-slate-900/80 border border-slate-800 p-6 flex flex-col justify-between hover:border-indigo-500/40 transition-colors shadow-lg">
-          <div>
-            <div class="flex items-start justify-between gap-3">
-              <div>
-                <span class="font-mono text-xs font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20">
-                  {b.code}
-                </span>
-                <h3 class="text-base font-bold text-white mt-1.5 font-['Outfit']">{b.name}</h3>
-                <p class="text-xs text-slate-400 mt-0.5">{courseObj?.title || 'Academic Course'}</p>
+          <div class="rounded-3xl bg-slate-900/80 border border-slate-800 p-6 flex flex-col justify-between hover:border-indigo-500/40 transition-colors shadow-lg">
+            <div>
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <span class="font-mono text-xs font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20">
+                    {b.code}
+                  </span>
+                  <h3 class="text-base font-bold text-white mt-1.5 font-['Outfit']">{b.name}</h3>
+                  <p class="text-xs text-slate-400 mt-0.5">{courseObj?.title || 'Academic Course'}</p>
+                </div>
+
+                <Badge variant="success" size="sm">Running Active</Badge>
               </div>
 
-              <Badge variant="success" size="sm">Running Active</Badge>
+              <!-- Schedule & Classroom Details -->
+              <div class="mt-5 grid grid-cols-2 gap-3 text-xs bg-slate-950/60 p-3.5 rounded-2xl border border-slate-800/80">
+                <div>
+                  <span class="text-slate-500 block text-[10px] uppercase font-semibold">Timing & Days:</span>
+                  <div class="font-medium text-white mt-0.5 flex items-center gap-1.5">
+                    <Clock class="w-3.5 h-3.5 text-indigo-400" />
+                    <span>{b.startTime} - {b.endTime}</span>
+                  </div>
+                  <div class="text-[11px] text-indigo-300 font-medium mt-1">
+                    {b.scheduleDays.join(' • ')}
+                  </div>
+                </div>
+
+                <div>
+                  <span class="text-slate-500 block text-[10px] uppercase font-semibold">Classroom & Room:</span>
+                  <div class="font-medium text-white mt-0.5 flex items-center gap-1.5">
+                    <MapPin class="w-3.5 h-3.5 text-amber-400" />
+                    <span>{b.roomNumber}</span>
+                  </div>
+                  <div class="text-[11px] text-slate-400 mt-1 truncate">
+                    Instructor: <strong class="text-slate-200">{teacherObj?.name || 'Assigned Staff'}</strong>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Seat Occupancy Capacity Meter -->
+              <div class="mt-5">
+                <div class="flex justify-between text-xs mb-1.5">
+                  <span class="text-slate-400 font-medium flex items-center gap-1.5">
+                    <Users class="w-3.5 h-3.5 text-slate-500" />
+                    <span>Seat Occupancy:</span>
+                  </span>
+                  <span class="font-bold {occupancyPercent >= 90 ? 'text-rose-400' : 'text-emerald-400'}">
+                    {b.enrolledCount} / {b.maxCapacity} Enrolled ({occupancyPercent}%)
+                  </span>
+                </div>
+                <div class="w-full bg-slate-950 rounded-full h-2.5 overflow-hidden border border-slate-800">
+                  <div
+                    class="h-2.5 rounded-full transition-all duration-500
+                    {occupancyPercent >= 90 ? 'bg-gradient-to-r from-amber-500 to-rose-500' : 'bg-gradient-to-r from-indigo-500 to-emerald-500'}"
+                    style="width: {Math.min(100, occupancyPercent)}%"
+                  ></div>
+                </div>
+              </div>
             </div>
 
-            <!-- Schedule & Classroom Details -->
-            <div class="mt-5 grid grid-cols-2 gap-3 text-xs bg-slate-950/60 p-3.5 rounded-2xl border border-slate-800/80">
-              <div>
-                <span class="text-slate-500 block text-[10px] uppercase font-semibold">Timing & Days:</span>
-                <div class="font-medium text-white mt-0.5 flex items-center gap-1.5">
-                  <Clock class="w-3.5 h-3.5 text-indigo-400" />
-                  <span>{b.startTime} - {b.endTime}</span>
-                </div>
-                <div class="text-[11px] text-indigo-300 font-medium mt-1">
-                  {b.scheduleDays.join(' • ')}
-                </div>
-              </div>
+            <div class="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs">
+              <span class="text-slate-400">শুরু: {b.startDate}</span>
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  class="font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 bg-emerald-950/40 hover:bg-emerald-900/50 px-2.5 py-1 rounded-lg border border-emerald-500/20 transition-colors"
+                  title="Send SMS Notice to Batch Guardians"
+                  on:click={() => handleOpenBatchSms(b)}
+                >
+                  <MessageSquare class="w-3.5 h-3.5" />
+                  <span>নোটিশ SMS</span>
+                </button>
 
-              <div>
-                <span class="text-slate-500 block text-[10px] uppercase font-semibold">Classroom & Room:</span>
-                <div class="font-medium text-white mt-0.5 flex items-center gap-1.5">
-                  <MapPin class="w-3.5 h-3.5 text-amber-400" />
-                  <span>{b.roomNumber}</span>
-                </div>
-                <div class="text-[11px] text-slate-400 mt-1 truncate">
-                  Instructor: <strong class="text-slate-200">{teacherObj?.name || 'Assigned Staff'}</strong>
-                </div>
-              </div>
-            </div>
+                <button
+                  type="button"
+                  class="font-semibold text-amber-400 hover:text-amber-300 flex items-center gap-1 bg-amber-950/40 hover:bg-amber-900/50 px-2.5 py-1 rounded-lg border border-amber-500/20 transition-colors"
+                  title="ব্যাচের তথ্য সম্পাদনা"
+                  on:click={() => openEditBatch(b)}
+                >
+                  <Pencil class="w-3.5 h-3.5" />
+                  <span>Edit</span>
+                </button>
 
-            <!-- Seat Occupancy Capacity Meter -->
-            <div class="mt-5">
-              <div class="flex justify-between text-xs mb-1.5">
-                <span class="text-slate-400 font-medium flex items-center gap-1.5">
-                  <Users class="w-3.5 h-3.5 text-slate-500" />
-                  <span>Seat Occupancy:</span>
-                </span>
-                <span class="font-bold {occupancyPercent >= 90 ? 'text-rose-400' : 'text-emerald-400'}">
-                  {b.enrolledCount} / {b.maxCapacity} Enrolled ({occupancyPercent}%)
-                </span>
-              </div>
-              <div class="w-full bg-slate-950 rounded-full h-2.5 overflow-hidden border border-slate-800">
-                <div
-                  class="h-2.5 rounded-full transition-all duration-500
-                  {occupancyPercent >= 90 ? 'bg-gradient-to-r from-amber-500 to-rose-500' : 'bg-gradient-to-r from-indigo-500 to-emerald-500'}"
-                  style="width: {Math.min(100, occupancyPercent)}%"
-                ></div>
+                <button
+                  type="button"
+                  class="font-semibold text-rose-400 hover:text-rose-300 flex items-center gap-1 bg-rose-950/40 hover:bg-rose-900/50 px-2.5 py-1 rounded-lg border border-rose-500/20 transition-colors"
+                  title="ব্যাচ মুছুন"
+                  on:click={() => promptDeleteBatch(b)}
+                >
+                  <Trash2 class="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
           </div>
+        {/each}
+        {/if}
+      </div>
 
-          <div class="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs">
-            <span class="text-slate-400">শুরু: {b.startDate}</span>
-            <div class="flex items-center gap-2">
-              <button
-                type="button"
-                class="font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 bg-emerald-950/40 hover:bg-emerald-900/50 px-2.5 py-1 rounded-lg border border-emerald-500/20 transition-colors"
-                title="Send SMS Notice to Batch Guardians"
-                on:click={() => handleOpenBatchSms(b)}
-              >
-                <MessageSquare class="w-3.5 h-3.5" />
-                <span>নোটিশ SMS</span>
-              </button>
-
-              <button
-                type="button"
-                class="font-semibold text-amber-400 hover:text-amber-300 flex items-center gap-1 bg-amber-950/40 hover:bg-amber-900/50 px-2.5 py-1 rounded-lg border border-amber-500/20 transition-colors"
-                title="ব্যাচের তথ্য সম্পাদনা"
-                on:click={() => openEditBatch(b)}
-              >
-                <Pencil class="w-3.5 h-3.5" />
-                <span>Edit</span>
-              </button>
-
-              <button
-                type="button"
-                class="font-semibold text-rose-400 hover:text-rose-300 flex items-center gap-1 bg-rose-950/40 hover:bg-rose-900/50 px-2.5 py-1 rounded-lg border border-rose-500/20 transition-colors"
-                title="ব্যাচ মুছুন"
-                on:click={() => promptDeleteBatch(b)}
-              >
-                <Trash2 class="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        </div>
-      {/each}
-      {/if}
+      <Pagination
+        totalItems={$batches.length}
+        bind:currentPage={batchesPage}
+        bind:pageSize={batchesPageSize}
+        pageSizeOptions={[4, 6, 10, 20]}
+        itemName="ব্যাচ"
+      />
     </div>
 
   <!-- TAB 2: COURSES -->
   {:else if subTab === 'courses'}
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {#if $courses.length === 0}
-        <div class="col-span-full text-center py-12 text-slate-400 text-xs bg-slate-900/60 rounded-2xl border border-slate-800">
-          কোনো কোর্স তৈরি করা হয়নি। উপরে "+ New Course" বাটনে ক্লিক করে নতুন কোর্স যুক্ত করুন।
-        </div>
-      {:else}
-        {#each $courses as c}
-        <div class="rounded-3xl bg-slate-900/80 border border-slate-800 overflow-hidden flex flex-col justify-between hover:border-slate-700 transition-colors shadow-lg">
-          <div class="h-36 w-full relative overflow-hidden bg-slate-950">
-            <img src={c.thumbnail} alt={c.title} class="w-full h-full object-cover opacity-60" />
-            <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent"></div>
-            <div class="absolute bottom-3 left-4 flex items-center gap-2">
-              <span class="font-mono text-[11px] font-bold px-2 py-0.5 rounded bg-indigo-600/90 text-white">
-                {c.code}
-              </span>
-              <Badge variant="purple" size="sm">{c.category}</Badge>
-            </div>
+    <div class="space-y-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {#if $courses.length === 0}
+          <div class="col-span-full text-center py-12 text-slate-400 text-xs bg-slate-900/60 rounded-2xl border border-slate-800">
+            কোনো কোর্স তৈরি করা হয়নি। উপরে "+ New Course" বাটনে ক্লিক করে নতুন কোর্স যুক্ত করুন।
           </div>
-
-          <div class="p-6 flex-1 flex flex-col justify-between">
-            <div>
-              <h3 class="text-lg font-bold text-white font-['Outfit']">{c.title}</h3>
-              <p class="mt-2 text-xs text-slate-300 leading-relaxed">{c.description}</p>
-
-              <div class="mt-4 grid grid-cols-3 gap-2 p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-xs text-center">
-                <div>
-                  <span class="text-[10px] text-slate-500 uppercase block">Duration</span>
-                  <strong class="text-white">{c.durationWeeks} Weeks</strong>
-                </div>
-                <div>
-                  <span class="text-[10px] text-slate-500 uppercase block">Curriculum</span>
-                  <strong class="text-indigo-400">{c.unitsCount} Units</strong>
-                </div>
-                <div>
-                  <span class="text-[10px] text-slate-500 uppercase block">Tuition Fee</span>
-                  <strong class="text-emerald-400">৳{c.feeAmount.toLocaleString()}</strong>
-                </div>
+        {:else}
+          {#each paginatedCourses as c}
+          <div class="rounded-3xl bg-slate-900/80 border border-slate-800 overflow-hidden flex flex-col justify-between hover:border-slate-700 transition-colors shadow-lg">
+            <div class="h-36 w-full relative overflow-hidden bg-slate-950">
+              <img src={c.thumbnail} alt={c.title} class="w-full h-full object-cover opacity-60" />
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent"></div>
+              <div class="absolute bottom-3 left-4 flex items-center gap-2">
+                <span class="font-mono text-[11px] font-bold px-2 py-0.5 rounded bg-indigo-600/90 text-white">
+                  {c.code}
+                </span>
+                <Badge variant="purple" size="sm">{c.category}</Badge>
               </div>
             </div>
 
-            <div class="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between text-xs">
-              <span class="text-slate-400">Status: <strong class="text-emerald-400">{c.status || 'Published'}</strong></span>
-              <div class="flex items-center gap-2">
-                <button
-                  type="button"
-                  class="p-1.5 rounded-lg bg-slate-800 hover:bg-amber-500/20 text-amber-400 transition-colors"
-                  title="কোর্স সম্পাদনা"
-                  on:click={() => openEditCourse(c)}
-                >
-                  <Pencil class="w-3.5 h-3.5" />
-                </button>
-                <button
-                  type="button"
-                  class="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-rose-400 transition-colors"
-                  title="কোর্স মুছুন"
-                  on:click={() => promptDeleteCourse(c)}
-                >
-                  <Trash2 class="w-3.5 h-3.5" />
-                </button>
-                <button
-                  type="button"
-                  class="font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 ml-1"
-                  on:click={() => (subTab = 'units')}
-                >
-                  <span>Units</span>
-                  <ChevronRight class="w-3.5 h-3.5" />
-                </button>
+            <div class="p-6 flex-1 flex flex-col justify-between">
+              <div>
+                <h3 class="text-lg font-bold text-white font-['Outfit']">{c.title}</h3>
+                <p class="mt-2 text-xs text-slate-300 leading-relaxed">{c.description}</p>
+
+                <div class="mt-4 grid grid-cols-3 gap-2 p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-xs text-center">
+                  <div>
+                    <span class="text-[10px] text-slate-500 uppercase block">Duration</span>
+                    <strong class="text-white">{c.durationWeeks} Weeks</strong>
+                  </div>
+                  <div>
+                    <span class="text-[10px] text-slate-500 uppercase block">Curriculum</span>
+                    <strong class="text-indigo-400">{c.unitsCount} Units</strong>
+                  </div>
+                  <div>
+                    <span class="text-[10px] text-slate-500 uppercase block">Tuition Fee</span>
+                    <strong class="text-emerald-400">৳{c.feeAmount.toLocaleString()}</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between text-xs">
+                <span class="text-slate-400">Status: <strong class="text-emerald-400">{c.status || 'Published'}</strong></span>
+                <div class="flex items-center gap-2">
+                  <button
+                    type="button"
+                    class="p-1.5 rounded-lg bg-slate-800 hover:bg-amber-500/20 text-amber-400 transition-colors"
+                    title="কোর্স সম্পাদনা"
+                    on:click={() => openEditCourse(c)}
+                  >
+                    <Pencil class="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    class="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-rose-400 transition-colors"
+                    title="কোর্স মুছুন"
+                    on:click={() => promptDeleteCourse(c)}
+                  >
+                    <Trash2 class="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    class="font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 ml-1"
+                    on:click={() => (subTab = 'units')}
+                  >
+                    <span>Units</span>
+                    <ChevronRight class="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      {/each}
-      {/if}
+        {/each}
+        {/if}
+      </div>
+
+      <Pagination
+        totalItems={$courses.length}
+        bind:currentPage={coursesPage}
+        bind:pageSize={coursesPageSize}
+        pageSizeOptions={[4, 6, 10, 20]}
+        itemName="কোর্স"
+      />
     </div>
 
   <!-- TAB 3: UNITS & SYLLABUS -->
   {:else if subTab === 'units'}
     <div class="space-y-4">
-      {#each $units as u}
+      {#each paginatedUnits as u}
         {@const courseObj = $courses.find((c) => c.id === u.courseId)}
         <div class="rounded-2xl bg-slate-900/80 border border-slate-800 p-5 hover:border-slate-700 transition-colors">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
@@ -683,6 +718,14 @@
           </div>
         </div>
       {/each}
+
+      <Pagination
+        totalItems={$units.length}
+        bind:currentPage={unitsPage}
+        bind:pageSize={unitsPageSize}
+        pageSizeOptions={[5, 10, 20]}
+        itemName="ইউনিট"
+      />
     </div>
   {/if}
 </div>

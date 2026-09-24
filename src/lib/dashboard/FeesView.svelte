@@ -17,6 +17,7 @@
   import Modal from '../components/Modal.svelte';
   import Badge from '../components/Badge.svelte';
   import ConfirmModal from '../components/ConfirmModal.svelte';
+  import Pagination from '../components/Pagination.svelte';
   import { printElement } from '../printUtils';
   import {
     CreditCard,
@@ -33,6 +34,10 @@
     Pencil,
     Trash2,
   } from 'lucide-svelte';
+
+  let currentPage = 1;
+  let pageSize = 10;
+  $: paginatedInvoices = filteredInvoices.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   let statusFilter: 'all' | 'paid' | 'partial' | 'unpaid' = 'all';
 
@@ -328,7 +333,7 @@
         কোনো ইনভয়েস পাওয়া যায়নি
       </div>
     {:else}
-      {#each filteredInvoices as inv}
+      {#each paginatedInvoices as inv}
         <div class="p-4 sm:p-5 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-indigo-500/50 transition-all shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <!-- Left: Invoice # & Student info -->
           <div class="flex items-start gap-3.5">
@@ -430,6 +435,13 @@
           </div>
         </div>
       {/each}
+
+      <Pagination
+        totalItems={filteredInvoices.length}
+        bind:currentPage
+        bind:pageSize
+        itemName="ইনভয়েস"
+      />
     {/if}
   </div>
 

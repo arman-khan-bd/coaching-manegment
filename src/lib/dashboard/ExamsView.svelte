@@ -23,7 +23,12 @@
   import Modal from '../components/Modal.svelte';
   import Badge from '../components/Badge.svelte';
   import ConfirmModal from '../components/ConfirmModal.svelte';
+  import Pagination from '../components/Pagination.svelte';
   import { printElement } from '../printUtils';
+
+  let marksPage = 1;
+  let marksPageSize = 10;
+  $: paginatedMarks = filteredMarks.slice((marksPage - 1) * marksPageSize, marksPage * marksPageSize);
   import {
     Award,
     CheckCircle2,
@@ -787,7 +792,7 @@
             ক্লিক করে নম্বর যুক্ত করুন।
           </div>
         {:else}
-          {#each filteredMarks as m, idx}
+          {#each paginatedMarks as m, idx}
             {@const pct = Math.round((m.marksObtained / currentExam.totalMarks) * 100)}
             {@const isPassed = m.marksObtained >= currentExam.passMarks}
             <div class="p-4 sm:p-5 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-indigo-500/50 transition-all shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -868,6 +873,13 @@
               </div>
             </div>
           {/each}
+
+          <Pagination
+            totalItems={filteredMarks.length}
+            bind:currentPage={marksPage}
+            bind:pageSize={marksPageSize}
+            itemName="শিক্ষার্থী রেজাল্ট"
+          />
         {/if}
       </div>
     </div>
