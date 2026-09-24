@@ -205,60 +205,69 @@ create policy "Authenticated users can update coaching branding"
 
 <div class="space-y-6">
   <!-- Top Banner with Live Coaching Identity Preview -->
-  <div class="rounded-3xl p-6 bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border border-slate-800 shadow-xl flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-    <div class="flex items-center gap-4">
+  <div class="rounded-2xl sm:rounded-3xl p-4 sm:p-5 lg:p-6 bg-gradient-to-br sm:bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border border-slate-800 shadow-xl flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-6">
+    <div class="flex items-start sm:items-center gap-3.5 sm:gap-4 min-w-0 flex-1">
       <div class="relative shrink-0">
         <img
           src={form.logo || 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=150&auto=format&fit=crop&q=80'}
           alt="Institute Logo"
-          class="w-16 h-16 rounded-2xl object-cover border-2 border-indigo-500/40 shadow-lg shadow-indigo-500/20 bg-slate-950"
+          class="w-13 h-13 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl object-cover border-2 border-indigo-500/40 shadow-lg shadow-indigo-500/20 bg-slate-950"
         />
-        <span class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 border-2 border-slate-900 flex items-center justify-center text-[10px] text-white">✓</span>
+        <span class="absolute -bottom-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-emerald-500 border-2 border-slate-900 flex items-center justify-center text-[8px] sm:text-[10px] text-white">✓</span>
       </div>
 
-      <div>
-        <div class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-indigo-500/10 text-indigo-300 text-[11px] font-semibold mb-1 border border-indigo-500/20">
-          <Sparkles class="w-3 h-3 text-amber-400" />
-          <span>কোচিং সেন্টার কনফিগারেশন হাব • {form.branchName || 'প্রধান ক্যাম্পাস'}</span>
+      <div class="min-w-0 flex-1">
+        <div class="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-0.5 rounded-full bg-indigo-500/10 text-indigo-300 text-[10px] sm:text-[11px] font-semibold mb-1 border border-indigo-500/20 max-w-full">
+          <Sparkles class="w-3 h-3 text-amber-400 shrink-0" />
+          <span class="truncate">কোচিং সেন্টার কনফিগারেশন হাব • {form.branchName || 'প্রধান ক্যাম্পাস'}</span>
         </div>
-        <h1 class="text-xl sm:text-2xl font-black text-white font-['Outfit'] tracking-tight">
+        <h1 class="text-lg sm:text-xl md:text-2xl font-black text-white font-['Outfit'] tracking-tight break-words">
           {form.name || 'প্রতিষ্ঠানের নাম লিখুন'}
         </h1>
-        <p class="text-slate-400 text-xs mt-0.5 max-w-xl truncate">
-          {form.tagline || 'আদর্শ অ্যাকাডেমিক পরিবেশ ও রেজাল্ট গ্যারান্টি'} • হটলাইন: <strong class="text-indigo-300">{form.phone}</strong>
-        </p>
+        <div class="text-slate-400 text-[11px] sm:text-xs mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          <span class="line-clamp-1 sm:line-clamp-none max-w-full">
+            {form.tagline || 'আদর্শ অ্যাকাডেমিক পরিবেশ ও রেজাল্ট গ্যারান্টি'}
+          </span>
+          {#if form.phone}
+            <span class="hidden sm:inline text-slate-600">•</span>
+            <span class="inline-flex items-center gap-1 text-[11px] sm:text-xs shrink-0">
+              <span class="text-slate-500">হটলাইন:</span>
+              <strong class="text-indigo-300 font-semibold">{form.phone}</strong>
+            </span>
+          {/if}
+        </div>
       </div>
     </div>
 
-    <!-- Quick Actions Header -->
-    <div class="flex flex-wrap items-center gap-2.5 shrink-0">
+    <!-- Quick Actions Header (Responsive Grid on Mobile, Flex on Desktop) -->
+    <div class="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 sm:gap-2.5 w-full lg:w-auto shrink-0 pt-3 lg:pt-0 border-t border-slate-800/80 lg:border-t-0">
       <button
         type="button"
-        class="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 hover:text-white border border-cyan-500/30 text-xs font-semibold transition-all flex items-center gap-1.5"
+        class="col-span-1 px-3 sm:px-3.5 py-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-cyan-300 hover:text-white border border-cyan-500/30 text-xs font-semibold transition-all flex items-center justify-center gap-1.5 active:scale-95"
         on:click={() => (showSqlModal = true)}
         title="Supabase SQL মাইগ্রেশন কোড দেখুন"
       >
-        <Code2 class="w-3.5 h-3.5 text-cyan-400" />
-        <span>SQL মাইগ্রেশন</span>
+        <Code2 class="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+        <span class="truncate">SQL মাইগ্রেশন</span>
       </button>
 
       <button
         type="button"
-        class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold transition-all flex items-center gap-1.5"
+        class="col-span-1 px-3.5 sm:px-4 py-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold transition-all flex items-center justify-center gap-1.5 active:scale-95"
         on:click={handleResetDefaults}
         title="ডিফল্ট মানে রিসেট করুন"
       >
-        <RotateCcw class="w-3.5 h-3.5" />
+        <RotateCcw class="w-3.5 h-3.5 shrink-0" />
         <span>রিসেট</span>
       </button>
 
       <button
         type="button"
-        class="px-6 py-2.5 rounded-xl font-bold text-white bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-lg shadow-indigo-600/30 transition-all flex items-center gap-2 text-xs"
+        class="col-span-2 sm:col-auto w-full sm:w-auto px-5 sm:px-6 py-2.5 rounded-xl font-bold text-white bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center gap-2 text-xs active:scale-95"
         on:click={handleSaveAll}
       >
-        <Save class="w-4 h-4" />
-        <span>সকল সেটিংস সংরক্ষণ করুন</span>
+        <Save class="w-4 h-4 shrink-0" />
+        <span class="whitespace-nowrap">সকল সেটিংস সংরক্ষণ</span>
       </button>
     </div>
   </div>
