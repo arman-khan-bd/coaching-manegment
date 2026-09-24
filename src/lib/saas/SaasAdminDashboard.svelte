@@ -21,11 +21,13 @@
     suspendSubscription,
     activateSubscription,
     extendSubscription,
-    deletePlatformSubscription,
     addPlatformUser,
     updatePlatformUser,
     togglePlatformUserStatus,
     deletePlatformUser,
+    createSaasAdminAccount,
+    deleteSaasAdminAccount,
+    updateSaasAdminPassword,
     updatePlatformSettings,
     verifyPlatformTransaction,
     instituteSettings,
@@ -120,6 +122,7 @@
     { id: 'reviews', label: 'রিভিউ ও ফিডব্যাক (Reviews)', icon: Star },
     { id: 'faqs', label: 'সাধারণ জিজ্ঞাসা (FAQ Manager)', icon: HelpCircle },
     { id: 'users', label: 'ইউজার ও রোলস (Users)', icon: Users },
+    { id: 'create-admin', label: 'সুপার এডমিন তৈরি (Create Admin)', icon: UserPlus },
     { id: 'transactions', label: 'পেমেন্ট ও রসিদ (Billing)', icon: Receipt },
     { id: 'settings', label: 'প্ল্যাটফর্ম সেটিংস (Settings)', icon: Settings },
   ];
@@ -512,6 +515,113 @@
       instituteName: inst?.name,
     });
     isEditUserModalOpen = false;
+  }
+
+  // -------------------------------------------------------------
+  // Super Admin User Create Page & Management State
+  // -------------------------------------------------------------
+  let adminCreateName = '';
+  let adminCreateEmail = '';
+  let adminCreatePhone = '';
+  let adminCreatePassword = '';
+  let adminCreateConfirmPassword = '';
+  let adminCreateRole: 'super_admin' | 'platform_support' = 'super_admin';
+  let adminCreateDesignation = 'সিস্টেম অ্যাডমিনিস্ট্রেটর';
+  let showAdminCreatePassword = false;
+  let isCreatingAdminUser = false;
+  let adminSearchQuery = '';
+
+  // Password reset modal state for super admins
+  let isResetAdminPassModalOpen = false;
+  let adminToResetPass: PlatformUser | null = null;
+  let adminNewPassInput = '';
+
+  $: superAdminsList = $platformUsers
+    .filter((u) => u.role === 'super_admin' || u.role === 'platform_support')
+    .filter((u) => {
+      const q = adminSearchQuery.toLowerCase();
+      return (
+        u.name.toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q) ||
+        u.phone.includes(q)
+      );
+    });
+
+  // Calculate password strength for dashboard admin create form
+  $: adminFormPasswordStrength = (() => {
+    if (!adminCreatePassword) return 0;
+    let s = 0;
+    if (adminCreatePassword.length >= 6) s += 1;
+    if (adminCreatePassword.length >= 8) s += 1;
+    if (/[A-Z]/.test(adminCreatePassword)) s += 1;
+    if (/[0-9]/.test(adminCreatePassword)) s += 1;
+    if (/[^A-Za-z0-9]/.test(adminCreatePassword)) s += 1;
+    return s;
+  })();
+
+  function handleCreateSuperAdminFromDashboard() {
+    if (!adminCreateName.trim() || !adminCreateEmail.trim() || !adminCreatePassword.trim()) {
+      showToast('error', 'প্রয়োজনীয় তথ্য দিন', 'নাম, ইমেইল ও পাসওয়ার্ড পূরণ করুন।');
+      return;
+    }
+    if (adminCreatePassword.length < 6) {
+      showToast('error', 'দুর্বল পাসওয়ার্ড', 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।');
+      return;
+    }
+    if (adminCreatePassword !== adminCreateConfirmPassword) {
+      showToast('error', 'পাসওয়ার্ড অমিল', 'পাসওয়ার্ড ও কনফার্ম পাসওয়ার্ড মিলছে না।');
+      return;
+    }
+
+    isCreatingAdminUser = true;
+    const res = createSaasAdminAccount(
+      adminCreateName.trim(),
+      adminCreateEmail.trim(),
+      adminCreatePassword.trim(),
+      adminCreatePhone.trim() || '+880 1700-000000',
+      adminCreateRole,
+      false // keep current admin logged in
+    );
+    isCreatingAdminUser = false;
+
+    if (!res.success) {
+      showToast('error', 'অ্যাকাউন্ট তৈরি ব্যর্থ', res.error || 'ত্রুটি ঘটেছে।');
+      return;
+    }
+
+    // Reset inputs
+    adminCreateName = '';
+    adminCreateEmail = '';
+    adminCreatePhone = '';
+    adminCreatePassword = '';
+    adminCreateConfirmPassword = '';
+  }
+
+  function openResetAdminPass(u: PlatformUser) {
+    adminToResetPass = u;
+    adminNewPassInput = '';
+    isResetAdminPassModalOpen = true;
+  }
+
+  function submitResetAdminPass() {
+    if (!adminToResetPass || !adminNewPassInput.trim()) return;
+    if (adminNewPassInput.length < 6) {
+      showToast('error', 'দুর্বল পাসওয়ার্ড', 'কমপক্ষে ৬ অক্ষরের পাসওয়ার্ড দিন।');
+      return;
+    }
+    updateSaasAdminPassword(adminToResetPass.id, adminNewPassInput.trim());
+    isResetAdminPassModalOpen = false;
+    adminToResetPass = null;
+  }
+
+  function handleDeleteSuperAdmin(u: PlatformUser) {
+    if ($saasAdminAuth && $saasAdminAuth.id === u.id) {
+      showToast('error', 'অননুমোদিত', 'আপনি বর্তমানে লগইন থাকা নিজের অ্যাকাউন্ট মুছতে পারবেন না।');
+      return;
+    }
+    if (confirm(`আপনি কি নিশ্চিতভাবে "${u.name}"-এর সুপার এডমিন অ্যাকাউন্ট মুছে ফেলতে চান?`)) {
+      deleteSaasAdminAccount(u.id);
+    }
   }
 
   // -------------------------------------------------------------
@@ -1809,14 +1919,24 @@
               </div>
             </div>
 
-            <button
-              type="button"
-              class="px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md flex items-center gap-1.5"
-              on:click={() => (isAddUserModalOpen = true)}
-            >
-              <Plus class="w-4 h-4" />
-              <span>+ নতুন ইউজার তৈরি</span>
-            </button>
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                class="px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 shadow-md flex items-center gap-1.5 transition-all"
+                on:click={() => (activeTab = 'create-admin')}
+              >
+                <UserPlus class="w-4 h-4" />
+                <span>+ সুপার এডমিন পেজ</span>
+              </button>
+              <button
+                type="button"
+                class="px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md flex items-center gap-1.5"
+                on:click={() => (isAddUserModalOpen = true)}
+              >
+                <Plus class="w-4 h-4" />
+                <span>+ সাধারণ ইউজার তৈরি</span>
+              </button>
+            </div>
           </div>
 
           <!-- Users List View (with Border) -->
@@ -1901,6 +2021,440 @@
                 </div>
               {/each}
             {/if}
+          </div>
+        </div>
+
+      <!-- ========================================================= -->
+      <!-- TAB: SUPER SAAS ADMIN USER CREATE & MANAGEMENT            -->
+      <!-- ========================================================= -->
+      {:else if activeTab === 'create-admin' || activeTab === 'create-user'}
+        <div class="space-y-6">
+          <!-- Top Hero Card -->
+          <div class="p-6 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-indigo-500/20 shadow-2xl relative overflow-hidden">
+            <div class="absolute -right-12 -top-12 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -left-12 -bottom-12 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div class="space-y-2">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold">
+                  <ShieldAlert class="w-3.5 h-3.5" />
+                  <span>Central Platform Authority</span>
+                </div>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight font-['Outfit']">
+                  সুপার SaaS এডমিন ইউজার তৈরি ও নিরাপত্তা
+                </h2>
+                <p class="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
+                  CoachFlow কেন্দ্রীয় প্ল্যাটফর্মের পূর্ণ নিয়ন্ত্রণ, প্রতিষ্ঠান অনুমোদন, ডাটাবেজ নিরাপত্তা ও বিলিং পরিচালনার জন্য নতুন সুপার এডমিন বা টেকনিক্যাল সাপোর্ট লিড যুক্ত করুন।
+                </p>
+              </div>
+
+              <!-- Quick Metrics Badges -->
+              <div class="flex flex-wrap items-center gap-3">
+                <div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 text-center min-w-[110px]">
+                  <div class="text-[11px] text-slate-400 font-medium">সুপার এডমিন</div>
+                  <div class="text-xl font-black text-amber-400 font-mono mt-0.5">
+                    {$platformUsers.filter((u) => u.role === 'super_admin').length}
+                  </div>
+                </div>
+                <div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 text-center min-w-[110px]">
+                  <div class="text-[11px] text-slate-400 font-medium">সাপোর্ট স্টাফ</div>
+                  <div class="text-xl font-black text-indigo-400 font-mono mt-0.5">
+                    {$platformUsers.filter((u) => u.role === 'platform_support').length}
+                  </div>
+                </div>
+                <div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 text-center min-w-[110px]">
+                  <div class="text-[11px] text-slate-400 font-medium">সক্রিয় অ্যাকাউন্ট</div>
+                  <div class="text-xl font-black text-emerald-400 font-mono mt-0.5">
+                    {superAdminsList.filter((u) => u.status === 'active').length}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Main Two-Column Layout: Form & Live ID Preview -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- Left Form Card (7 Cols) -->
+            <div class="lg:col-span-7 bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-7 shadow-xl">
+              <div class="flex items-center gap-2.5 pb-4 mb-5 border-b border-slate-800">
+                <div class="w-9 h-9 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center font-bold">
+                  <UserPlus class="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 class="text-base font-bold text-white">নতুন সুপার এডমিন রেজিস্ট্রেশন ফর্ম</h3>
+                  <p class="text-[11px] text-slate-400">প্রয়োজনীয় তথ্য পূরণ করে নিরাপদ অ্যাক্সেস তৈরি করুন।</p>
+                </div>
+              </div>
+
+              <form on:submit|preventDefault={handleCreateSuperAdminFromDashboard} class="space-y-4 text-xs">
+                <!-- Full Name -->
+                <div>
+                  <label for="dash-admin-name" class="block font-semibold text-slate-300 mb-1.5">
+                    পূর্ণ নাম (Full Name) *
+                  </label>
+                  <div class="relative">
+                    <UserPlus class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      id="dash-admin-name"
+                      type="text"
+                      required
+                      bind:value={adminCreateName}
+                      placeholder="যেমন: মোঃ আরমান খান"
+                      class="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
+                    />
+                  </div>
+                </div>
+
+                <!-- Email & Phone Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <label for="dash-admin-email" class="block font-semibold text-slate-300 mb-1.5">
+                      অফিসিয়াল এডমিন ইমেইল *
+                    </label>
+                    <div class="relative">
+                      <Mail class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        id="dash-admin-email"
+                        type="email"
+                        required
+                        bind:value={adminCreateEmail}
+                        placeholder="admin@yourdomain.com"
+                        class="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label for="dash-admin-phone" class="block font-semibold text-slate-300 mb-1.5">
+                      মোবাইল নম্বর
+                    </label>
+                    <div class="relative">
+                      <Smartphone class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        id="dash-admin-phone"
+                        type="text"
+                        bind:value={adminCreatePhone}
+                        placeholder="+880 1700-000000"
+                        class="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Role Selection Cards -->
+                <div>
+                  <span class="block font-semibold text-slate-300 mb-2">এডমিন প্রিভিলেজ ও ভূমিকা (Role) *</span>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      class="p-3.5 rounded-2xl border text-left transition-all relative {adminCreateRole === 'super_admin' ? 'bg-gradient-to-br from-amber-500/10 to-indigo-600/10 border-amber-500 text-white ring-2 ring-amber-500/20' : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'}"
+                      on:click={() => (adminCreateRole = 'super_admin')}
+                    >
+                      <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                          <ShieldAlert class="w-4 h-4 text-amber-400" />
+                          <span class="font-bold text-sm text-white">Super Admin</span>
+                        </div>
+                        {#if adminCreateRole === 'super_admin'}
+                          <CheckCircle2 class="w-4 h-4 text-amber-400" />
+                        {/if}
+                      </div>
+                      <p class="text-[11px] text-slate-400 mt-1 leading-normal">
+                        সম্পূর্ণ সিস্টেম নিয়ন্ত্রণ, ডাটাবেজ, বিলিং, ব্যাকআপ, সাবস্ক্রিপশন ও প্রতিষ্ঠান অনুমোদন।
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      class="p-3.5 rounded-2xl border text-left transition-all relative {adminCreateRole === 'platform_support' ? 'bg-gradient-to-br from-indigo-500/10 to-blue-600/10 border-indigo-500 text-white ring-2 ring-indigo-500/20' : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'}"
+                      on:click={() => (adminCreateRole = 'platform_support')}
+                    >
+                      <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                          <Users class="w-4 h-4 text-indigo-400" />
+                          <span class="font-bold text-sm text-white">Support Lead</span>
+                        </div>
+                        {#if adminCreateRole === 'platform_support'}
+                          <CheckCircle2 class="w-4 h-4 text-indigo-400" />
+                        {/if}
+                      </div>
+                      <p class="text-[11px] text-slate-400 mt-1 leading-normal">
+                        কোচিং প্রতিষ্ঠান অনবোর্ডিং, টিকিট পর্যবেক্ষণ ও মনিটরিং অ্যাক্সেস।
+                      </p>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Password & Confirm Password Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <label for="dash-admin-password" class="block font-semibold text-slate-300 mb-1.5">
+                      অ্যাডমিন পাসওয়ার্ড *
+                    </label>
+                    <div class="relative">
+                      <Lock class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        id="dash-admin-password"
+                        type={showAdminCreatePassword ? 'text' : 'password'}
+                        required
+                        minlength="6"
+                        bind:value={adminCreatePassword}
+                        placeholder="কমপক্ষে ৬ অক্ষরের পাসওয়ার্ড"
+                        class="w-full pl-10 pr-9 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
+                      />
+                      <button
+                        type="button"
+                        class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                        on:click={() => (showAdminCreatePassword = !showAdminCreatePassword)}
+                      >
+                        {#if showAdminCreatePassword}
+                          <EyeOff class="w-4 h-4" />
+                        {:else}
+                          <Eye class="w-4 h-4" />
+                        {/if}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label for="dash-admin-confirm-password" class="block font-semibold text-slate-300 mb-1.5">
+                      পাসওয়ার্ড নিশ্চিত করুন *
+                    </label>
+                    <div class="relative">
+                      <Lock class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        id="dash-admin-confirm-password"
+                        type={showAdminCreatePassword ? 'text' : 'password'}
+                        required
+                        bind:value={adminCreateConfirmPassword}
+                        placeholder="পুনরায় পাসওয়ার্ড লিখুন"
+                        class="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Password Strength Meter -->
+                {#if adminCreatePassword}
+                  <div class="space-y-1">
+                    <div class="flex items-center justify-between text-[11px] text-slate-400">
+                      <span>পাসওয়ার্ড শক্তি (Strength)</span>
+                      <span class="font-bold {adminFormPasswordStrength <= 2 ? 'text-rose-400' : adminFormPasswordStrength <= 3 ? 'text-amber-400' : 'text-emerald-400'}">
+                        {adminFormPasswordStrength <= 2 ? 'দুর্বল' : adminFormPasswordStrength <= 3 ? 'মোটামুটি' : 'শক্তিশালী'}
+                      </span>
+                    </div>
+                    <div class="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+                      <div
+                        class="h-full transition-all duration-300 {adminFormPasswordStrength <= 2 ? 'bg-rose-500 w-1/3' : adminFormPasswordStrength <= 3 ? 'bg-amber-500 w-2/3' : 'bg-emerald-500 w-full'}"
+                      ></div>
+                    </div>
+                  </div>
+                {/if}
+
+                <!-- Submit Button -->
+                <div class="pt-2">
+                  <button
+                    type="submit"
+                    disabled={isCreatingAdminUser}
+                    class="w-full py-3 rounded-xl font-bold text-white bg-gradient-to-r from-indigo-600 via-indigo-500 to-amber-600 hover:from-indigo-500 hover:to-amber-500 shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95"
+                  >
+                    {#if isCreatingAdminUser}
+                      <span class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                      <span>তৈরি করা হচ্ছে...</span>
+                    {:else}
+                      <UserPlus class="w-4 h-4" />
+                      <span>+ সুপার এডমিন অ্যাকাউন্ট তৈরি ও সক্রিয় করুন</span>
+                    {/if}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <!-- Right Live Preview & Authority Card (5 Cols) -->
+            <div class="lg:col-span-5 space-y-4">
+              <!-- Live Profile Preview Card -->
+              <div class="p-6 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-xl relative overflow-hidden">
+                <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center justify-between">
+                  <span>লাইভ আইডি কার্ড প্রিভিউ</span>
+                  <span class="text-indigo-400 font-mono">Live Preview</span>
+                </div>
+
+                <div class="p-5 rounded-2xl bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 border border-slate-800 shadow-2xl relative">
+                  <div class="flex items-center gap-3.5">
+                    <div class="w-14 h-14 rounded-2xl {adminCreateRole === 'super_admin' ? 'bg-gradient-to-tr from-amber-600 to-amber-500' : 'bg-gradient-to-tr from-indigo-600 to-indigo-500'} text-white flex items-center justify-center font-black text-xl shadow-lg shrink-0">
+                      {adminCreateName ? adminCreateName.trim().charAt(0).toUpperCase() : 'A'}
+                    </div>
+                    <div class="min-w-0">
+                      <div class="font-extrabold text-white text-base truncate">
+                        {adminCreateName || 'নতুন সুপার এডমিন'}
+                      </div>
+                      <div class="text-xs text-slate-400 font-mono truncate mt-0.5">
+                        {adminCreateEmail || 'admin@coachflow.local'}
+                      </div>
+                      <div class="mt-2 flex items-center gap-2">
+                        <Badge variant={adminCreateRole === 'super_admin' ? 'danger' : 'warning'} size="sm">
+                          {adminCreateRole === 'super_admin' ? 'SUPER ADMIN' : 'SUPPORT LEAD'}
+                        </Badge>
+                        <Badge variant="success" size="sm">ACTIVE</Badge>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="mt-5 pt-4 border-t border-slate-800/80 space-y-2 text-[11px] text-slate-400">
+                    <div class="flex items-center justify-between">
+                      <span>সিস্টেম আইডি:</span>
+                      <span class="font-mono text-slate-300">saas-admin-{Date.now().toString().slice(-4)}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                      <span>নিরাপত্তা স্তর:</span>
+                      <span class="font-semibold {adminCreateRole === 'super_admin' ? 'text-amber-400' : 'text-indigo-400'}">
+                        {adminCreateRole === 'super_admin' ? 'Tier 1 • Root Level' : 'Tier 2 • Support Level'}
+                      </span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                      <span>তৈরির তারিখ:</span>
+                      <span class="text-slate-300">{new Date().toISOString().split('T')[0]}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Granted Capabilities Matrix -->
+                <div class="mt-5 space-y-2 text-xs">
+                  <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    প্রদত্ত প্রশাসনিক ক্ষমতা (Capabilities)
+                  </div>
+                  <div class="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800/80 space-y-2 text-[11.5px] text-slate-300">
+                    <div class="flex items-center gap-2">
+                      <CheckCircle2 class="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <span>সকল কোচিং ইনস্টিটিউট, ব্রাঞ্চ ও ইউজার পরিচালনা</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <CheckCircle2 class="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <span>প্ল্যাটফর্ম সাবস্ক্রিপশন প্ল্যান ও পেমেন্ট ভেরিফিকেশন</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <CheckCircle2 class="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <span>সেন্ট্রাল এসএমএস গেটওয়ে ও ক্লাউড নোড কনফিগারেশন</span>
+                    </div>
+                    {#if adminCreateRole === 'super_admin'}
+                      <div class="flex items-center gap-2">
+                        <CheckCircle2 class="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                        <span class="text-amber-300 font-semibold">নতুন এডমিন তৈরি, পাসওয়ার্ড রিসেট ও ডিলিট ক্ষমতা</span>
+                      </div>
+                    {/if}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom: Registered Super Admins Table -->
+          <div class="p-6 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-xl space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                  <ShieldCheck class="w-4 h-4 text-amber-400" />
+                  <span>বর্তমান সুপার এডমিন ও সাপোর্ট স্টাফ তালিকা ({superAdminsList.length})</span>
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5">
+                  সিস্টেমের সকল অথরাইজড সেন্ট্রাল এডমিন অ্যাকাউন্ট পরিচালনা করুন।
+                </p>
+              </div>
+
+              <!-- Search -->
+              <div class="relative w-full sm:w-64">
+                <Search class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="এডমিন নাম বা ইমেইল খুঁজুন..."
+                  bind:value={adminSearchQuery}
+                  class="w-full pl-9 pr-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+            </div>
+
+            <!-- Admins List -->
+            <div class="space-y-3">
+              {#if superAdminsList.length === 0}
+                <div class="p-8 text-center text-slate-500 rounded-2xl bg-slate-950/60 border border-slate-800">
+                  কোনো সুপার এডমিন অ্যাকাউন্ট পাওয়া যায়নি।
+                </div>
+              {:else}
+                {#each superAdminsList as adminUser}
+                  <div class="p-4 sm:p-5 rounded-2xl bg-slate-950/80 border border-slate-800 hover:border-indigo-500/40 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div class="flex items-start gap-3.5">
+                      <div class="w-11 h-11 rounded-2xl {adminUser.role === 'super_admin' ? 'bg-amber-950/70 border border-amber-500/30 text-amber-400' : 'bg-indigo-950/70 border border-indigo-500/30 text-indigo-400'} flex items-center justify-center font-bold text-base shrink-0 mt-0.5">
+                        {adminUser.name ? adminUser.name.charAt(0) : 'A'}
+                      </div>
+                      <div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                          <span class="font-bold text-white text-sm sm:text-base">{adminUser.name}</span>
+                          <Badge
+                            variant={adminUser.role === 'super_admin' ? 'danger' : 'warning'}
+                            size="sm"
+                          >
+                            {adminUser.role.replace('_', ' ').toUpperCase()}
+                          </Badge>
+                          <Badge variant={adminUser.status === 'active' ? 'success' : 'danger'} size="sm">
+                            {adminUser.status.toUpperCase()}
+                          </Badge>
+                          {#if $saasAdminAuth && $saasAdminAuth.id === adminUser.id}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                              বর্তমান সেশন (Current)
+                            </span>
+                          {/if}
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400 mt-1">
+                          <span class="font-mono text-slate-300">{adminUser.email}</span>
+                          <span class="text-slate-600">•</span>
+                          <span class="font-mono text-emerald-400">{adminUser.phone}</span>
+                          <span class="text-slate-600">•</span>
+                          <span>তৈরি: <strong class="text-slate-300">{adminUser.createdAt}</strong></span>
+                          <span class="text-slate-600">•</span>
+                          <span>সর্বশেষ লগইন: <strong class="text-slate-400">{adminUser.lastLogin}</strong></span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="flex items-center gap-2 shrink-0 flex-wrap">
+                      <!-- Reset Password Button -->
+                      <button
+                        type="button"
+                        class="px-3 py-1.5 rounded-xl text-xs font-medium text-slate-300 bg-slate-900 hover:bg-slate-800 border border-slate-700/80 flex items-center gap-1.5 transition-colors"
+                        on:click={() => openResetAdminPass(adminUser)}
+                      >
+                        <KeyRound class="w-3.5 h-3.5 text-amber-400" />
+                        <span>পাসওয়ার্ড পরিবর্তন</span>
+                      </button>
+
+                      <!-- Toggle Status Button -->
+                      <button
+                        type="button"
+                        class="px-3 py-1.5 rounded-xl text-xs font-medium {adminUser.status === 'active' ? 'text-amber-300 bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/30' : 'text-emerald-300 bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/30'} flex items-center gap-1.5 transition-colors"
+                        on:click={() => togglePlatformUserStatus(adminUser.id)}
+                      >
+                        <RefreshCw class="w-3.5 h-3.5" />
+                        <span>{adminUser.status === 'active' ? 'স্থগিত করুন' : 'সক্রিয় করুন'}</span>
+                      </button>
+
+                      <!-- Delete Button -->
+                      {#if !$saasAdminAuth || $saasAdminAuth.id !== adminUser.id}
+                        <button
+                          type="button"
+                          class="p-2 rounded-xl text-rose-400 hover:text-white hover:bg-rose-950/60 border border-rose-500/20 hover:border-rose-500/40 transition-colors"
+                          title="মুছে ফেলুন"
+                          on:click={() => handleDeleteSuperAdmin(adminUser)}
+                        >
+                          <Trash2 class="w-3.5 h-3.5" />
+                        </button>
+                      {/if}
+                    </div>
+                  </div>
+                {/each}
+              {/if}
+            </div>
           </div>
         </div>
 
@@ -4759,4 +5313,51 @@
     </div>
   </form>
 </Modal>
+
+<!-- ========================================================================= -->
+<!-- SUPER ADMIN PASSWORD RESET MODAL                                          -->
+<!-- ========================================================================= -->
+<Modal
+  open={isResetAdminPassModalOpen}
+  onClose={() => { isResetAdminPassModalOpen = false; adminToResetPass = null; }}
+  title="সুপার এডমিন পাসওয়ার্ড পরিবর্তন"
+  subtitle={adminToResetPass ? `${adminToResetPass.name} (${adminToResetPass.email})` : ''}
+  maxWidth="max-w-md"
+>
+  <form on:submit|preventDefault={submitResetAdminPass} class="space-y-4 text-xs">
+    <div>
+      <label for="modal-admin-pass" class="block font-semibold text-slate-300 mb-1.5">
+        নতুন পাসওয়ার্ড (New Password) *
+      </label>
+      <input
+        id="modal-admin-pass"
+        type="password"
+        required
+        minlength="6"
+        bind:value={adminNewPassInput}
+        placeholder="কমপক্ষে ৬ অক্ষরের নতুন পাসওয়ার্ড দিন..."
+        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-amber-500"
+      />
+      <p class="text-[10px] text-slate-500 mt-1">পাসওয়ার্ডটি অবশ্যই জটিল ও গোপন রাখুন।</p>
+    </div>
+
+    <div class="pt-3 flex justify-end gap-2 border-t border-slate-800">
+      <button
+        type="button"
+        class="px-4 py-2 rounded-xl text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700"
+        on:click={() => { isResetAdminPassModalOpen = false; adminToResetPass = null; }}
+      >
+        বাতিল
+      </button>
+      <button
+        type="submit"
+        class="px-5 py-2 rounded-xl font-bold text-white bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 shadow-md flex items-center gap-1.5"
+      >
+        <KeyRound class="w-4 h-4" />
+        <span>পাসওয়ার্ড আপডেট করুন</span>
+      </button>
+    </div>
+  </form>
+</Modal>
+
 

@@ -800,17 +800,6 @@ export interface SaasAdminSession {
 
 const defaultPlatformUsers: PlatformUser[] = [
   {
-    id: 'usr-1',
-    name: 'মোঃ আরমান খান (Super Admin)',
-    email: 'admin@coachflow.app',
-    phone: '+880 1700-000000',
-    role: 'super_admin',
-    status: 'active',
-    password: 'Password123!',
-    lastLogin: 'এইমাত্র (সক্রিয়)',
-    createdAt: '2025-01-01',
-  },
-  {
     id: 'usr-2',
     name: 'সাব্বির আহমেদ (Tech Support Lead)',
     email: 'support@coachflow.app',
@@ -868,7 +857,13 @@ function getSavedPlatformUsers(): PlatformUser[] {
     const raw = localStorage.getItem('coachflow_platform_users');
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // Purge dummy admin@coachflow.app account from previous local storage
+        const sanitized = parsed.filter(
+          (u) => u.email && u.email.trim().toLowerCase() !== 'admin@coachflow.app'
+        );
+        return sanitized;
+      }
     }
   } catch (_) {}
   return defaultPlatformUsers;
@@ -889,7 +884,13 @@ function getSavedSaasAdminSession(): SaasAdminSession | null {
   try {
     const raw = localStorage.getItem('coachflow_saas_admin_auth');
     if (raw) {
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      // Revoke any legacy dummy admin session
+      if (parsed?.email && parsed.email.trim().toLowerCase() === 'admin@coachflow.app') {
+        localStorage.removeItem('coachflow_saas_admin_auth');
+        return null;
+      }
+      return parsed;
     }
   } catch (_) {}
   return null;
@@ -974,31 +975,54 @@ export async function logoutDashboardUser(): Promise<void> {
   }
 }
 
-export function createSaasAdminAccount(name: string, email: string, password: string): { success: boolean; error?: string } {
+export function createSaasAdminAccount(
+  name: string,
+  email: string,
+  password: string,
+  phone: string = '+880 1700-000000',
+  role: 'super_admin' | 'platform_support' = 'super_admin',
+  autoLogin: boolean = true
+): { success: boolean; error?: string; user?: PlatformUser } {
+  const cleanEmail = email.trim().toLowerCase();
   let existingUser: PlatformUser | undefined;
   platformUsers.subscribe((list) => {
-    existingUser = list.find((u) => u.email.toLowerCase() === email.toLowerCase());
+    existingUser = list.find((u) => u.email.trim().toLowerCase() === cleanEmail);
   })();
 
   if (existingUser) {
-    return { success: false, error: 'An admin account with this email already exists.' };
+    return { success: false, error: 'এই ইমেইলটি দিয়ে ইতিমধ্যে একটি প্ল্যাটফর্ম একাউন্ট রয়েছে।' };
   }
 
   const newAdmin: PlatformUser = {
     id: `saas-admin-${Date.now()}`,
-    name,
-    email,
-    phone: '+880 1700-000000',
-    role: 'super_admin',
+    name: name.trim(),
+    email: cleanEmail,
+    phone: phone.trim() || '+880 1700-000000',
+    role,
     status: 'active',
-    password,
-    lastLogin: 'এইমাত্র (সক্রিয়)',
+    password: password.trim(),
+    lastLogin: 'এইমাত্র তৈরি (সক্রিয়)',
     createdAt: new Date().toISOString().split('T')[0],
   };
 
   platformUsers.update((all) => [newAdmin, ...all]);
-  loginSaasAdmin(newAdmin);
-  return { success: true };
+  if (autoLogin) {
+    loginSaasAdmin(newAdmin);
+  }
+  showToast('success', 'সুপার এডমিন অ্যাকাউন্ট তৈরি হয়েছে', `স্বাগতম ${newAdmin.name}! আপনার সুপার এডমিন অ্যাকাউন্ট তৈরি সম্পন্ন হয়েছে।`);
+  return { success: true, user: newAdmin };
+}
+
+export function deleteSaasAdminAccount(id: string) {
+  platformUsers.update((all) => all.filter((u) => u.id !== id));
+  showToast('warning', 'সুপার এডমিন অপসারিত', 'এডমিন একাউন্টটি তালিকা থেকে মুছে ফেলা হয়েছে।');
+}
+
+export function updateSaasAdminPassword(id: string, newPass: string) {
+  platformUsers.update((all) =>
+    all.map((u) => (u.id === id ? { ...u, password: newPass.trim() } : u))
+  );
+  showToast('success', 'পাসওয়ার্ড পরিবর্তিত', 'সুপার এডমিন পাসওয়ার্ড সফলভাবে আপডেট করা হয়েছে।');
 }
 
 export function addPlatformUser(userData: Omit<PlatformUser, 'id' | 'createdAt' | 'lastLogin'>) {
