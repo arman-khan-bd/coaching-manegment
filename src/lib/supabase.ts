@@ -70,6 +70,33 @@ export async function initSupabaseAuth(
       const profile = buildProfileFromAuthUser(session.user);
       currentAuthUser.set(profile);
       if (onUserChange) onUserChange(profile);
+
+      // Hydrate with live DB profiles table values
+      try {
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .maybeSingle()
+          .then(({ data: dbProf }) => {
+            if (dbProf) {
+              currentAuthUser.update((curr) => {
+                if (!curr) return curr;
+                return {
+                  ...curr,
+                  full_name: dbProf.full_name || curr.full_name,
+                  institute_name: dbProf.institute_name || curr.institute_name,
+                  phone: dbProf.phone || curr.phone,
+                  role: (dbProf.role as UserRole) || curr.role,
+                  coaching_center_id: dbProf.coaching_center_id || curr.coaching_center_id,
+                };
+              });
+            }
+          })
+          .catch(() => {});
+      } catch (e) {
+        // ignore
+      }
     }
   } catch (err) {
     console.warn('Supabase getSession initial check error:', err);
@@ -84,6 +111,33 @@ export async function initSupabaseAuth(
       const profile = buildProfileFromAuthUser(session.user);
       currentAuthUser.set(profile);
       if (onUserChange) onUserChange(profile);
+
+      // Hydrate with live DB profiles table values
+      try {
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .maybeSingle()
+          .then(({ data: dbProf }) => {
+            if (dbProf) {
+              currentAuthUser.update((curr) => {
+                if (!curr) return curr;
+                return {
+                  ...curr,
+                  full_name: dbProf.full_name || curr.full_name,
+                  institute_name: dbProf.institute_name || curr.institute_name,
+                  phone: dbProf.phone || curr.phone,
+                  role: (dbProf.role as UserRole) || curr.role,
+                  coaching_center_id: dbProf.coaching_center_id || curr.coaching_center_id,
+                };
+              });
+            }
+          })
+          .catch(() => {});
+      } catch (e) {
+        // ignore
+      }
     } else {
       currentAuthUser.set(null);
       if (onUserChange) onUserChange(null);
@@ -1089,10 +1143,13 @@ export async function deleteBookFromDb(id: string) {
 // ----------------------------------------------------
 export async function syncInstituteSettingsToDb(settings: InstituteSettings) {
   try {
+    const brandingName = (settings.brandingTitle && settings.brandingTitle.trim()) || settings.name;
+    const instituteName = (settings.name && settings.name.trim()) || settings.brandingTitle || 'এপেক্স অ্যাকাডেমিক কেয়ার';
+
     const brandPayload = {
       id: 'primary_branch',
       coaching_center_id: settings.coachingCenterId || 'aac-dhaka-01',
-      name: settings.name,
+      name: brandingName,
       name_english: settings.nameEnglish,
       tagline: settings.tagline,
       established_year: settings.establishedYear,
@@ -1129,17 +1186,74 @@ export async function syncInstituteSettingsToDb(settings: InstituteSettings) {
       bank_branch: settings.bankBranch,
       bank_account_number: settings.bankAccountNumber,
       bank_routing: settings.bankRouting,
-      settings_data: settings,
+      settings_data: { ...settings, brandingTitle: brandingName, name: instituteName },
       updated_at: new Date().toISOString(),
     };
 
+    // 1. Save to coaching_branding table
     await safeUpsert('coaching_branding', brandPayload);
+
+    // 2. Save to institute_settings backup table
     await safeUpsert('institute_settings', {
       id: 'main',
       coaching_center_id: settings.coachingCenterId || 'aac-dhaka-01',
-      settings,
+      settings: { ...settings, brandingTitle: brandingName, name: instituteName },
       updated_at: new Date().toISOString(),
     });
+
+    // 3. Save directly to profiles table in Supabase
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.id) {
+        // Update profiles table for current user
+        const { error: profUpdateErr } = await supabase
+          .from('profiles')
+          .update({
+            institute_name: instituteName,
+            phone: settings.phone || undefined,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', session.user.id);
+
+        if (profUpdateErr) {
+          console.warn('profiles update error, attempting upsert:', profUpdateErr.message);
+          await supabase.from('profiles').upsert({
+            id: session.user.id,
+            email: session.user.email || '',
+            institute_name: instituteName,
+            phone: settings.phone || undefined,
+            updated_at: new Date().toISOString(),
+          });
+        }
+
+        // Also update Supabase auth user_metadata
+        await supabase.auth.updateUser({
+          data: {
+            institute_name: instituteName,
+            instituteName: instituteName,
+            branding_title: brandingName,
+          },
+        }).catch(() => {});
+
+        // Update in-memory currentAuthUser store
+        currentAuthUser.update((u) => (u ? { ...u, institute_name: instituteName } : null));
+      }
+
+      // Also update any matching profiles with this coaching_center_id
+      if (settings.coachingCenterId) {
+        await supabase
+          .from('profiles')
+          .update({
+            institute_name: instituteName,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('coaching_center_id', settings.coachingCenterId)
+          .catch(() => {});
+      }
+    } catch (profErr) {
+      console.warn('Sync to profiles table caught:', profErr);
+    }
+
     return { success: true };
   } catch (e: any) {
     console.warn('Institute settings sync caught:', e);
@@ -1149,63 +1263,100 @@ export async function syncInstituteSettingsToDb(settings: InstituteSettings) {
 
 export async function loadInstituteSettingsFromDb(): Promise<Partial<InstituteSettings> | null> {
   try {
+    let brandingData: any = null;
     const { data, error } = await supabase
       .from('coaching_branding')
       .select('*')
       .eq('id', 'primary_branch')
       .maybeSingle();
 
-    if (error || !data) {
+    if (!error && data) {
+      brandingData = data;
+    } else {
       const { data: instData } = await supabase
         .from('institute_settings')
         .select('settings')
         .eq('id', 'main')
         .maybeSingle();
       if (instData?.settings) {
-        return instData.settings;
+        brandingData = {
+          name: instData.settings.name,
+          settings_data: instData.settings,
+        };
+      }
+    }
+
+    // Also check current user's profile table in Supabase
+    let profileInstituteName = '';
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.id) {
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('institute_name')
+          .eq('id', session.user.id)
+          .maybeSingle();
+        if (prof?.institute_name && prof.institute_name.trim()) {
+          profileInstituteName = prof.institute_name.trim();
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    if (!brandingData) {
+      if (profileInstituteName) {
+        return {
+          name: profileInstituteName,
+          brandingTitle: profileInstituteName,
+        };
       }
       return null;
     }
 
+    const resolvedName = brandingData.name || profileInstituteName || 'এপেক্স অ্যাকাডেমিক কেয়ার (ফার্মগেট শাখা)';
+    const brandingTitle = brandingData.settings_data?.brandingTitle || brandingData.name || resolvedName;
+
     return {
-      name: data.name,
-      nameEnglish: data.name_english,
-      tagline: data.tagline,
-      establishedYear: data.established_year,
-      regNumber: data.reg_number,
-      branchName: data.branch_name,
-      branchCode: data.branch_code,
-      logo: data.logo_url,
-      icon: data.icon_url,
-      phone: data.phone,
-      hotline: data.hotline,
-      whatsapp: data.whatsapp,
-      alternatePhone: data.alternate_phone,
-      email: data.email,
-      website: data.website,
-      address: data.address,
-      division: data.division,
-      district: data.district,
-      thana: data.thana,
-      googleMapsUrl: data.google_maps_url,
-      socialMedia: data.social_media,
-      directorName: data.director_name,
-      directorDesignation: data.director_designation,
-      directorSignature: data.director_signature,
-      directorSignatureUrl: data.director_signature_url || data.settings_data?.directorSignatureUrl,
-      headTeacherSignatureUrl: data.head_teacher_signature_url || data.settings_data?.headTeacherSignatureUrl,
-      academicCoordinator: data.academic_coordinator,
-      officialSealText: data.official_seal_text,
-      officialSealUrl: data.official_seal_url || data.settings_data?.officialSealUrl,
-      bkashMerchant: data.bkash_merchant,
-      nagadMerchant: data.nagad_merchant,
-      rocketNumber: data.rocket_number,
-      bankAccountName: data.bank_account_name,
-      bankName: data.bank_name,
-      bankBranch: data.bank_branch,
-      bankAccountNumber: data.bank_account_number,
-      bankRouting: data.bank_routing,
-      ...(data.settings_data || {}),
+      name: resolvedName,
+      brandingTitle,
+      nameEnglish: brandingData.name_english,
+      tagline: brandingData.tagline,
+      establishedYear: brandingData.established_year,
+      regNumber: brandingData.reg_number,
+      branchName: brandingData.branch_name,
+      branchCode: brandingData.branch_code,
+      logo: brandingData.logo_url,
+      icon: brandingData.icon_url,
+      phone: brandingData.phone,
+      hotline: brandingData.hotline,
+      whatsapp: brandingData.whatsapp,
+      alternatePhone: brandingData.alternate_phone,
+      email: brandingData.email,
+      website: brandingData.website,
+      address: brandingData.address,
+      division: brandingData.division,
+      district: brandingData.district,
+      thana: brandingData.thana,
+      googleMapsUrl: brandingData.google_maps_url,
+      socialMedia: brandingData.social_media,
+      directorName: brandingData.director_name,
+      directorDesignation: brandingData.director_designation,
+      directorSignature: brandingData.director_signature,
+      directorSignatureUrl: brandingData.director_signature_url || brandingData.settings_data?.directorSignatureUrl,
+      headTeacherSignatureUrl: brandingData.head_teacher_signature_url || brandingData.settings_data?.headTeacherSignatureUrl,
+      academicCoordinator: brandingData.academic_coordinator,
+      officialSealText: brandingData.official_seal_text,
+      officialSealUrl: brandingData.official_seal_url || brandingData.settings_data?.officialSealUrl,
+      bkashMerchant: brandingData.bkash_merchant,
+      nagadMerchant: brandingData.nagad_merchant,
+      rocketNumber: brandingData.rocket_number,
+      bankAccountName: brandingData.bank_account_name,
+      bankName: brandingData.bank_name,
+      bankBranch: brandingData.bank_branch,
+      bankAccountNumber: brandingData.bank_account_number,
+      bankRouting: brandingData.bank_routing,
+      ...(brandingData.settings_data || {}),
     };
   } catch (e) {
     console.warn('loadInstituteSettingsFromDb caught:', e);

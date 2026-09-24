@@ -133,7 +133,7 @@
           </div>
         {/if}
         <div class="min-w-0">
-          <h2 class="text-sm font-bold text-white truncate font-['Outfit']">{$instituteSettings.name}</h2>
+          <h2 class="text-sm font-bold text-white truncate font-['Outfit']">{$instituteSettings.brandingTitle || $instituteSettings.name}</h2>
           <span class="text-[10px] text-indigo-400 font-medium tracking-wide uppercase">Academy Workspace</span>
         </div>
       </div>
@@ -256,7 +256,7 @@
           </div>
         {/if}
         <div>
-          <h2 class="text-sm font-bold text-white font-['Outfit'] line-clamp-1">{$instituteSettings.name}</h2>
+          <h2 class="text-sm font-bold text-white font-['Outfit'] line-clamp-1">{$instituteSettings.brandingTitle || $instituteSettings.name}</h2>
           <span class="text-[11px] text-indigo-400 font-medium">মোবাইল অ্যাপ ড্যাশবোর্ড মেনু</span>
         </div>
       </div>

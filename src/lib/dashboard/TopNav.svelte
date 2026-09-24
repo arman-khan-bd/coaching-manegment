@@ -93,7 +93,7 @@
       {/if}
       <div class="flex flex-col min-w-0">
         <span class="text-xs font-bold text-white truncate">{pageTitles[$activeTab]?.bn || 'ড্যাশবোর্ড'}</span>
-        <span class="text-[9px] text-indigo-400 truncate">{$instituteSettings.name}</span>
+        <span class="text-[9px] text-indigo-400 truncate">{$instituteSettings.brandingTitle || $instituteSettings.name}</span>
       </div>
     </div>
 

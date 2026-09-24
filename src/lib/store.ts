@@ -1266,6 +1266,7 @@ export const defaultInstituteSettings: InstituteSettings = {
   // 1. General & Brand
   name: 'এপেক্স অ্যাকাডেমিক কেয়ার (ফার্মগেট শাখা)',
   nameEnglish: 'Apex Academic Care (Farmgate Branch)',
+  brandingTitle: 'এপেক্স অ্যাকাডেমিক কেয়ার (ফার্মগেট শাখা)',
   tagline: 'HSC বিজ্ঞান, বুয়েট ইঞ্জিনিয়ারিং ও মেডিকেল ভর্তি পরীক্ষার সেরা প্ল্যাটফর্ম',
   establishedYear: '২০১৮',
   regNumber: 'TRAD/DSCC/019283/2021',

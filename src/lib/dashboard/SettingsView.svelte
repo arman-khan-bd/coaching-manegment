@@ -52,6 +52,7 @@
   // Form State initialized from $instituteSettings store
   let form: InstituteSettings = {
     ...$instituteSettings,
+    brandingTitle: $instituteSettings.brandingTitle || $instituteSettings.name || '',
     icon: $instituteSettings.icon || '',
     hotline: $instituteSettings.hotline || '',
     whatsapp: $instituteSettings.whatsapp || '',
@@ -155,8 +156,12 @@ create policy "Authenticated users can update coaching branding"
       return;
     }
 
+    if (!form.brandingTitle || !form.brandingTitle.trim()) {
+      form.brandingTitle = form.name.trim();
+    }
+
     instituteSettings.set({ ...form });
-    showToast('success', 'সকল সেটিংস সংরক্ষিত!', 'কোচিং সেন্টারের সমস্ত তথ্য ও কনফিগারেশন সফলভাবে আপডেট হয়েছে।');
+    showToast('success', 'সকল সেটিংস সংরক্ষিত!', 'কোচিং সেন্টারের প্রোফাইল (profiles) ও ব্র্যান্ডিং (coaching_branding) সফলভাবে আপডেট ও ডাটাবেজে সিঙ্ক হয়েছে।');
   }
 
   // Reset to Default Values
@@ -376,7 +381,7 @@ create policy "Authenticated users can update coaching branding"
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- Name Bangla -->
+          <!-- Name Bangla (Profile Table: profiles.institute_name) -->
           <div>
             <label for="form-name-bn" class="block font-medium text-slate-300 mb-1">
               প্রতিষ্ঠানের পূর্ণ নাম (বাংলায়) <span class="text-rose-400">*</span>
@@ -388,6 +393,28 @@ create policy "Authenticated users can update coaching branding"
               placeholder="যেমন: এপেক্স অ্যাকাডেমিক কেয়ার"
               class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500 font-medium"
             />
+            <p class="text-[11px] text-slate-400 mt-1 flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>
+              <span>প্রোফাইল টেবিল (<code class="text-indigo-300 font-mono text-[10px]">profiles.institute_name</code>) ও ভাউচারে মূল নাম হিসেবে সংরক্ষিত হয়।</span>
+            </p>
+          </div>
+
+          <!-- Coaching Branding Display Title (Branding Table: coaching_branding.name) -->
+          <div>
+            <label for="form-branding-title" class="block font-medium text-slate-300 mb-1">
+              কোচিং ব্র্যান্ডিং ও ডিসপ্লে টাইটেল (Branding Title)
+            </label>
+            <input
+              id="form-branding-title"
+              type="text"
+              bind:value={form.brandingTitle}
+              placeholder={form.name || "যেমন: এপেক্স অ্যাকাডেমিক কেয়ার (ফার্মগেট)"}
+              class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500 font-medium"
+            />
+            <p class="text-[11px] text-slate-400 mt-1 flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0"></span>
+              <span>ব্র্যান্ডিং টেবিল (<code class="text-indigo-300 font-mono text-[10px]">coaching_branding.name</code>) এবং সাইডবার হেডারে সরাসরি প্রদর্শিত হয়।</span>
+            </p>
           </div>
 
           <!-- Name English -->

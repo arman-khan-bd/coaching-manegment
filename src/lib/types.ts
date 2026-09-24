@@ -231,6 +231,7 @@ export interface InstituteSettings {
   // 1. General & Brand
   name: string;
   nameEnglish?: string;
+  brandingTitle?: string;
   tagline: string;
   establishedYear?: string;
   regNumber?: string;
