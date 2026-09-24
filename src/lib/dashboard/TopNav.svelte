@@ -5,6 +5,7 @@
     instituteSettings,
     currentView,
     showToast,
+    logoutDashboardUser,
   } from '../store';
   import {
     Menu,
@@ -17,15 +18,26 @@
     UserCheck,
     Coins,
     Shield,
+    Loader2,
   } from 'lucide-svelte';
 
   export let toggleMobile: () => void = () => {};
 
   import { navigate } from '../router';
 
-  function handleLogout() {
-    navigate('/login');
-    showToast('info', 'Logged Out', 'You have been signed out of your academy session.');
+  let isLoggingOut = false;
+
+  async function handleLogout() {
+    if (isLoggingOut) return;
+    isLoggingOut = true;
+    try {
+      await logoutDashboardUser();
+    } catch (err) {
+      console.error('Logout error:', err);
+      navigate('/login');
+    } finally {
+      isLoggingOut = false;
+    }
   }
   const pageTitles: Record<string, { bn: string; en: string }> = {
     overview: { bn: 'ড্যাশবোর্ড', en: 'Dashboard' },
@@ -119,11 +131,17 @@
     <!-- Logout -->
     <button
       type="button"
-      class="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 transition-colors"
+      class="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 transition-colors disabled:opacity-50"
       on:click={handleLogout}
-      title="Sign Out"
+      disabled={isLoggingOut}
+      title="লগআউট / Sign Out"
+      aria-label="Sign Out"
     >
-      <LogOut class="w-4 h-4" />
+      {#if isLoggingOut}
+        <Loader2 class="w-4 h-4 animate-spin text-rose-400" />
+      {:else}
+        <LogOut class="w-4 h-4" />
+      {/if}
     </button>
   </div>
 </header>

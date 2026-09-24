@@ -8,6 +8,7 @@
     smsAccount,
     currentRole,
     currentTeacherPermissions,
+    logoutDashboardUser,
   } from '../store';
   import { isModulePermitted } from '../permissions';
   import {
@@ -87,6 +88,20 @@
   function selectTab(slug: string) {
     navigate(`/dashboard/${slug}`);
     closeMobile();
+  }
+
+  let isLoggingOut = false;
+  async function handleLogout() {
+    if (isLoggingOut) return;
+    isLoggingOut = true;
+    try {
+      await logoutDashboardUser();
+    } catch (err) {
+      console.error('Sidebar logout error:', err);
+      navigate('/login');
+    } finally {
+      isLoggingOut = false;
+    }
   }
 
   $: visibleNavItems = navItems.filter((item) =>
@@ -195,6 +210,22 @@
     >
       <ExternalLink class="w-3.5 h-3.5" />
       <span>View Public SaaS Portal</span>
+    </button>
+
+    <!-- Logout / Sign Out Desktop Button -->
+    <button
+      type="button"
+      class="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold text-rose-400 hover:text-rose-200 bg-rose-950/30 hover:bg-rose-900/50 border border-rose-500/20 hover:border-rose-500/40 transition-all cursor-pointer disabled:opacity-50"
+      on:click={handleLogout}
+      disabled={isLoggingOut}
+    >
+      {#if isLoggingOut}
+        <div class="w-3.5 h-3.5 border-2 border-rose-400 border-t-transparent rounded-full animate-spin"></div>
+        <span>লগআউট হচ্ছে...</span>
+      {:else}
+        <LogOut class="w-3.5 h-3.5 text-rose-400" />
+        <span>লগআউট (Sign Out)</span>
+      {/if}
     </button>
   </div>
 </aside>
@@ -323,6 +354,25 @@
       >
         <ExternalLink class="w-4 h-4 text-indigo-400" />
         <span>পাবলিক ওয়েবসাইট ভিউ</span>
+      </button>
+
+      <!-- Mobile Logout Button -->
+      <button
+        type="button"
+        class="w-full py-3.5 rounded-2xl font-bold text-xs text-rose-400 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/30 flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+        on:click={async () => {
+          closeMobile();
+          await handleLogout();
+        }}
+        disabled={isLoggingOut}
+      >
+        {#if isLoggingOut}
+          <div class="w-4 h-4 border-2 border-rose-400 border-t-transparent rounded-full animate-spin"></div>
+          <span>লগআউট হচ্ছে...</span>
+        {:else}
+          <LogOut class="w-4 h-4 text-rose-400" />
+          <span>লগআউট (Sign Out)</span>
+        {/if}
       </button>
     </div>
   </div>

@@ -109,6 +109,15 @@
             navigate('/dashboard/overview');
           }
         }
+      } else {
+        currentRole.set('institute_admin');
+        currentTeacherPermissions.set([]);
+        if (typeof window !== 'undefined') {
+          const path = window.location.pathname;
+          if (path.startsWith('/dashboard')) {
+            navigate('/login');
+          }
+        }
       }
     });
 

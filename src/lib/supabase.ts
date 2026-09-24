@@ -257,9 +257,10 @@ export async function supabaseSignIn(email: string, pass: string) {
 export async function supabaseSignOut() {
   try {
     await supabase.auth.signOut();
-    currentAuthUser.set(null);
   } catch (err) {
     console.error('Sign Out Error:', err);
+  } finally {
+    currentAuthUser.set(null);
   }
 }
 

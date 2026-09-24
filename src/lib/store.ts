@@ -54,6 +54,8 @@ import {
   syncInstituteSettingsToDb,
   loadInstituteSettingsFromDb,
   loadTenantDataFromSupabase,
+  supabaseSignOut,
+  currentAuthUser,
 } from './supabase';
 import {
   enqueueSmsToQueue,
@@ -874,6 +876,58 @@ export function logoutSaasAdmin() {
     localStorage.removeItem('coachflow_saas_admin_auth');
   }
   showToast('info', 'Logged Out', 'SaaS Super Admin session terminated.');
+}
+
+/**
+ * Sign out the currently logged in coaching user / institute admin / teacher from Supabase,
+ * clear all session state and auth tokens from localStorage, and navigate to /login.
+ */
+export async function logoutDashboardUser(): Promise<void> {
+  try {
+    await supabaseSignOut();
+  } catch (err) {
+    console.error('Logout error during supabaseSignOut:', err);
+  }
+
+  // Clear in-memory auth and permissions
+  currentAuthUser.set(null);
+  currentRole.set('institute_admin');
+  currentTeacherPermissions.set([]);
+  saasAdminAuth.set(null);
+
+  // Clear all Supabase session tokens and custom CoachFlow auth keys from localStorage
+  if (typeof window !== 'undefined') {
+    try {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (
+          key &&
+          (key.includes('-auth-token') ||
+            key.startsWith('sb-') ||
+            key.startsWith('coachflow_auth') ||
+            key.startsWith('coachflow_saas_admin_auth'))
+        ) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach((k) => localStorage.removeItem(k));
+    } catch (e) {
+      console.warn('Failed to clear auth keys from localStorage:', e);
+    }
+  }
+
+  showToast('info', 'লগআউট সফল (Logged Out)', 'আপনি সফলভাবে অ্যাকাউন্ট থেকে লগআউট করেছেন।');
+
+  // Navigate to login page
+  if (typeof window !== 'undefined') {
+    try {
+      const { navigate } = await import('./router');
+      navigate('/login');
+    } catch {
+      window.location.href = '/login';
+    }
+  }
 }
 
 export function createSaasAdminAccount(name: string, email: string, password: string): { success: boolean; error?: string } {
