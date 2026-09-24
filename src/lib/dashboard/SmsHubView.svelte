@@ -258,23 +258,35 @@
     showToast('info', 'Copied to Clipboard', `${label} is now in your clipboard.`);
   }
 
-  function saveCurrentAsTemplate() {
+  // Save as Template Modal State
+  let isSaveTemplateModalOpen = false;
+  let saveTemplateTitle = '';
+  let saveTemplateCategory: 'attendance' | 'fees' | 'exams' | 'batches' | 'teachers' | 'general' = 'general';
+
+  function openSaveAsTemplateModal() {
     if (!messageContent.trim()) {
       showToast('error', 'মেসেজ খালি', 'টেমপ্লেট হিসেবে সংরক্ষণ করতে মেসেজ লিখুন।');
       return;
     }
-    const title = prompt('নতুন SMS টেমপ্লেটের নাম / শিরোনাম দিন:', 'কাস্টম ক্যাম্পেইন টেমপ্লেট');
-    if (!title || !title.trim()) return;
+    saveTemplateTitle = '';
+    saveTemplateCategory = 'general';
+    isSaveTemplateModalOpen = true;
+  }
 
+  function handleConfirmSaveAsTemplate() {
+    if (!messageContent.trim()) return;
+    const title = saveTemplateTitle.trim() || 'কাস্টম ক্যাম্পেইন টেমপ্লেট';
+    const isBn = /[\u0980-\u09FF]/.test(messageContent);
     addSmsTemplate({
-      title: title.trim(),
-      category: 'general',
+      title,
+      category: saveTemplateCategory,
       eventType: `custom_${Date.now().toString(36)}`,
       contentBangla: messageContent.trim(),
       contentEnglish: messageContent.trim(),
       variables: ['{student_name}', '{guardian_name}', '{due_amount}', '{batch_name}'],
-      activeLanguage: /[\u0980-\u09FF]/.test(messageContent) ? 'bangla' : 'english',
+      activeLanguage: isBn ? 'bangla' : 'english',
     });
+    isSaveTemplateModalOpen = false;
   }
 </script>
 
@@ -1160,7 +1172,7 @@
             <button
               type="button"
               class="px-2.5 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-slate-700 hover:border-emerald-500/40 text-[11px] font-semibold transition-all flex items-center gap-1"
-              on:click={saveCurrentAsTemplate}
+              on:click={openSaveAsTemplateModal}
               title="বর্তমান টেক্সটকে একটি নতুন SMS টেমপ্লেট হিসেবে সংরক্ষণ করুন"
             >
               <span>+ Save as Template</span>
@@ -1324,3 +1336,66 @@
     </div>
   {/if}
 </div>
+
+<!-- Save Current SMS as Template Modal -->
+<Modal
+  open={isSaveTemplateModalOpen}
+  title="নতুন SMS টেমপ্লেট হিসেবে সংরক্ষণ"
+  subtitle="এই মেসেজটি টেমপ্লেট হিসেবে সংরক্ষণ করে ভবিষ্যতে দ্রুত ব্যবহার করতে পারবেন"
+  onClose={() => (isSaveTemplateModalOpen = false)}
+  maxWidth="max-w-md"
+>
+  <form on:submit|preventDefault={handleConfirmSaveAsTemplate} class="space-y-4 text-xs">
+    <div>
+      <label for="save-tpl-title" class="block font-medium text-slate-300 mb-1">
+        টেমপ্লেটের নাম / শিরোনাম <span class="text-rose-400">*</span>
+      </label>
+      <input
+        id="save-tpl-title"
+        type="text"
+        bind:value={saveTemplateTitle}
+        placeholder="যেমন: নোটিশ / স্পেশাল অফার টেমপ্লেট"
+        class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+        required
+      />
+    </div>
+
+    <div>
+      <label for="save-tpl-cat" class="block font-medium text-slate-300 mb-1">সেকশন / ক্যাটাগরি</label>
+      <select
+        id="save-tpl-cat"
+        bind:value={saveTemplateCategory}
+        class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
+      >
+        <option value="general">সাধারণ নোটিশ (General Notices)</option>
+        <option value="attendance">উপস্থিতি (Attendance)</option>
+        <option value="fees">ফি ও পেমেন্ট (Fees & Invoicing)</option>
+        <option value="exams">পরীক্ষা ও ফলাফল (Exams & Marks)</option>
+        <option value="batches">ব্যাচ ও সময়সূচি (Batches & Routine)</option>
+        <option value="teachers">শিক্ষক ও স্টাফ (Teachers)</option>
+      </select>
+    </div>
+
+    <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 text-xs">
+      <span class="text-[10px] text-slate-400 block font-semibold mb-1">সংরক্ষণযোগ্য মেসেজ টেক্সট:</span>
+      <p class="leading-relaxed line-clamp-3 font-sans text-slate-200">{messageContent}</p>
+    </div>
+  </form>
+
+  <div slot="footer" class="w-full flex items-center justify-end gap-2.5">
+    <button
+      type="button"
+      class="px-4 py-2 rounded-xl text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 transition-colors text-xs font-semibold"
+      on:click={() => (isSaveTemplateModalOpen = false)}
+    >
+      বাতিল
+    </button>
+    <button
+      type="button"
+      class="px-5 py-2 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-500 transition-colors text-xs"
+      on:click={handleConfirmSaveAsTemplate}
+    >
+      টেমপ্লেট তৈরি করুন
+    </button>
+  </div>
+</Modal>

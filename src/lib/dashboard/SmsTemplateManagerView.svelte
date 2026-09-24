@@ -98,23 +98,46 @@
     general: { labelBn: 'সাধারণ বিজ্ঞপ্তি', labelEn: 'General Notices', color: 'purple', icon: Layers },
   };
 
+  // Safe sanitization of templates to prevent runtime errors on null/legacy records
+  $: safeTemplates = ($smsTemplates || []).map((t) => {
+    const rawBn = t?.contentBangla || t?.content || '';
+    const rawEn = t?.contentEnglish || t?.content || '';
+    return {
+      ...t,
+      id: t?.id || `tpl-${Math.random().toString(36).slice(2, 8)}`,
+      title: t?.title || 'নামহীন টেমপ্লেট',
+      category: t?.category || 'general',
+      eventType: t?.eventType || `${t?.category || 'general'}_notice`,
+      contentBangla: rawBn,
+      contentEnglish: rawEn,
+      variables: Array.isArray(t?.variables) ? t.variables.filter(Boolean) : ['{student_name}', '{institute_name}'],
+      activeLanguage: t?.activeLanguage || (rawBn ? 'bangla' : 'english'),
+    };
+  });
+
   // Filtered Templates
-  $: filteredTemplates = $smsTemplates.filter((tpl) => {
+  $: filteredTemplates = safeTemplates.filter((tpl) => {
     const matchesCat = selectedCategory === 'all' || tpl.category === selectedCategory;
-    const query = searchQuery.trim().toLowerCase();
+    const query = (searchQuery || '').trim().toLowerCase();
+    const title = (tpl.title || '').toLowerCase();
+    const bn = (tpl.contentBangla || '').toLowerCase();
+    const en = (tpl.contentEnglish || '').toLowerCase();
+    const ev = (tpl.eventType || '').toLowerCase();
+    const vars = Array.isArray(tpl.variables) ? tpl.variables : [];
     const matchesSearch =
       !query ||
-      tpl.title.toLowerCase().includes(query) ||
-      tpl.contentBangla.toLowerCase().includes(query) ||
-      tpl.contentEnglish.toLowerCase().includes(query) ||
-      tpl.eventType.toLowerCase().includes(query) ||
-      tpl.variables.some((v) => v.toLowerCase().includes(query));
+      title.includes(query) ||
+      bn.includes(query) ||
+      en.includes(query) ||
+      ev.includes(query) ||
+      vars.some((v) => (v || '').toLowerCase().includes(query));
     return matchesCat && matchesSearch;
   });
 
-  // Calculate live SMS parts
-  function calcParts(text: string, isBangla: boolean) {
-    const len = text.length;
+  // Calculate live SMS parts safely
+  function calcParts(text: string | null | undefined, isBangla: boolean) {
+    const str = (text || '').trim();
+    const len = str.length;
     if (len === 0) return { chars: 0, parts: 0 };
     const limit = isBangla ? 70 : 160;
     const parts = Math.ceil(len / limit) || 1;
@@ -227,7 +250,10 @@
   }
 
   // Save / Update Handler
-  function handleSaveTemplate() {
+  let isSaving = false;
+
+  async function handleSaveTemplate() {
+    if (isSaving) return;
     if (!formTitle.trim()) {
       showToast('error', 'শিরোনাম আবশ্যক', 'অনুগ্রহ করে টেমপ্লেটের শিরোনাম লিখুন।');
       return;
@@ -241,35 +267,44 @@
       return;
     }
 
-    // Auto-fallback: if one language is provided and the other is blank, mirror it
-    const finalBn = hasBn ? formContentBangla.trim() : formContentEnglish.trim();
-    const finalEn = hasEn ? formContentEnglish.trim() : formContentBangla.trim();
+    isSaving = true;
+    try {
+      // Auto-fallback: if one language is provided and the other is blank, mirror it
+      const finalBn = hasBn ? formContentBangla.trim() : formContentEnglish.trim();
+      const finalEn = hasEn ? formContentEnglish.trim() : formContentBangla.trim();
 
-    const vars = extractVariables(finalBn, finalEn);
+      const vars = extractVariables(finalBn, finalEn);
 
-    if (editingTemplateId) {
-      updateSmsTemplate(editingTemplateId, {
-        title: formTitle.trim(),
-        category: formCategory,
-        eventType: formEventType.trim() || `${formCategory}_notice`,
-        contentBangla: finalBn,
-        contentEnglish: finalEn,
-        variables: vars,
-        activeLanguage: formDefaultLang,
-      });
-    } else {
-      addSmsTemplate({
-        title: formTitle.trim(),
-        category: formCategory,
-        eventType: formEventType.trim() || `${formCategory}_${Date.now().toString(36)}`,
-        contentBangla: finalBn,
-        contentEnglish: finalEn,
-        variables: vars,
-        activeLanguage: formDefaultLang,
-      });
+      if (editingTemplateId) {
+        updateSmsTemplate(editingTemplateId, {
+          title: formTitle.trim(),
+          category: formCategory,
+          eventType: formEventType.trim() || `${formCategory}_notice`,
+          contentBangla: finalBn,
+          contentEnglish: finalEn,
+          variables: vars,
+          activeLanguage: formDefaultLang,
+        });
+      } else {
+        addSmsTemplate({
+          title: formTitle.trim(),
+          category: formCategory,
+          eventType: formEventType.trim() || `${formCategory}_${Date.now().toString(36)}`,
+          contentBangla: finalBn,
+          contentEnglish: finalEn,
+          variables: vars,
+          activeLanguage: formDefaultLang,
+        });
+        selectedCategory = 'all'; // Ensure new template is immediately visible on screen
+      }
+
+      isEditModalOpen = false;
+    } catch (err: any) {
+      console.error('Save template caught:', err);
+      showToast('error', 'সংরক্ষণ ব্যর্থ', err?.message || 'টেমপ্লেট তৈরি করতে সমস্যা হয়েছে।');
+    } finally {
+      isSaving = false;
     }
-
-    isEditModalOpen = false;
   }
 
   // Delete Confirmation State
@@ -660,11 +695,11 @@
 <Modal
   open={isEditModalOpen}
   title={editingTemplateId ? 'SMS টেমপ্লেট সম্পাদনা করুন' : 'নতুন দ্বিভাষিক SMS টেমপ্লেট তৈরি করুন'}
-  subtitle="একই সেকশনের জন্য বাংলা ও ইংরেজি উভয় ফরম্যাট বাধ্যতামূলক"
+  subtitle="একই সেকশনের জন্য বাংলা ও ইংরেজি উভয় ফরম্যাট সংরক্ষণ করুন"
   onClose={() => (isEditModalOpen = false)}
   maxWidth="max-w-3xl"
 >
-  <div class="space-y-4 text-xs">
+  <form on:submit|preventDefault={handleSaveTemplate} class="space-y-4 text-xs">
     <!-- Row 1: Title & Section -->
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div>
@@ -677,6 +712,7 @@
           bind:value={formTitle}
           placeholder="যেমন: সাপ্তাহিক ক্লাস টেস্ট মূল্যায়ন ফলাফল"
           class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+          required
         />
       </div>
 
@@ -850,15 +886,23 @@
         class="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 text-xs leading-relaxed font-sans"
       ></textarea>
       <p class="text-[10px] text-slate-500">
-        * টিপস: যেকোনো একটি ভাষা পূরণ করলেই অপরটি স্বয়ংক্রিয়ভাবে পূরণ হবে।
+        * যেকোনো একটি ভাষা লিখলেও অপরটি স্বয়ংক্রিয়ভাবে সমন্বয় হবে।
       </p>
     </div>
+  </form>
 
-    <!-- Modal Actions -->
-    <div class="pt-4 flex items-center justify-end gap-3 border-t border-slate-800">
+  <div slot="footer" class="w-full flex items-center justify-between gap-3">
+    <div class="text-[11px] text-slate-400 hidden sm:block">
+      {#if !formTitle.trim()}
+        <span class="text-amber-400">* টেমপ্লেটের নাম আবশ্যক</span>
+      {:else}
+        <span class="text-emerald-400">✓ টেমপ্লেট সংরক্ষণের জন্য প্রস্তুত</span>
+      {/if}
+    </div>
+    <div class="flex items-center gap-2.5 ml-auto">
       <button
         type="button"
-        class="px-4 py-2.5 rounded-xl text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 transition-colors"
+        class="px-4 py-2.5 rounded-xl text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 transition-colors text-xs font-semibold"
         on:click={() => (isEditModalOpen = false)}
       >
         বাতিল
@@ -866,11 +910,17 @@
 
       <button
         type="button"
-        class="px-6 py-2.5 rounded-xl font-bold text-white bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-lg shadow-indigo-600/30 transition-all flex items-center gap-2"
+        class="px-6 py-2.5 rounded-xl font-bold text-white bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-lg shadow-indigo-600/30 transition-all flex items-center gap-2 text-xs disabled:opacity-50"
         on:click={handleSaveTemplate}
+        disabled={isSaving}
       >
-        <CheckCircle2 class="w-4 h-4" />
-        <span>{editingTemplateId ? 'আপডেট সংরক্ষণ করুন' : 'টেমপ্লেট তৈরি করুন'}</span>
+        {#if isSaving}
+          <span class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+          <span>সংরক্ষণ হচ্ছে...</span>
+        {:else}
+          <CheckCircle2 class="w-4 h-4" />
+          <span>{editingTemplateId ? 'আপডেট সংরক্ষণ করুন' : 'টেমপ্লেট তৈরি করুন'}</span>
+        {/if}
       </button>
     </div>
   </div>
